@@ -3,30 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Services\DocumentVersionService;
+use App\Models\Document;
 use Illuminate\Http\Request;
 
 class DocumentVersionController extends Controller
 {
-    protected $documentVersionService;
+    const PER_PAGE = 1;
 
-    public function __construct(DocumentVersionService $documentVersionService)
+    public function index(Request $request, Document $document)
     {
-        $this->documentVersionService = $documentVersionService;
-    }
+        $versions = $document->versions()
+            ->with('user')
+            ->orderByDesc('version_number')
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
 
-    /**
-     * Hien thi trang phien ban tai lieu
-     */
-    public function index($id)
-    {
-        $document = $this->documentVersionService->getDocumentWithRelations($id);
-
-        if (!$document) {
-            return redirect()->route('documents.index')->with('error', 'Tài liệu không tồn tại hoặc đã bị xóa.');
-        }
-
-        return view('documents.versions.index', [
-            'document' => $document,
-        ]);
+        return view('documents.versions.index', compact('document', 'versions'));
     }
 }

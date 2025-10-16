@@ -29,6 +29,18 @@ class DocumentVersionSeeder extends Seeder
             for ($v = 1; $v <= $numVersions; $v++) {
                 $userId = $users[array_rand($users)];
                 $versionNumber = $v; // dùng số nguyên
+            DB::table('document_versions')->insert([
+                'version_number' => $versionNumber,
+                'file_path' => "docs/doc{$documentId}_v{$versionNumber}.pdf",
+                'file_size' => rand(2, 8) * 1024 * 1024,
+                'mime_type' => 'application/pdf',
+                'is_current_version' => 1,
+                'change_note' => $versionNumber === 1 ? 'Initial version' : 'Updated version',
+                'document_id' => $documentId,
+                'user_id' => $userId,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
 
                 // Tạo file PDF thực tế
                 $pdfContent = Pdf::loadHTML("<h1>Document #$documentId</h1><p>Version: v$versionNumber</p>")->output();

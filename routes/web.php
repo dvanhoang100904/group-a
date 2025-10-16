@@ -5,9 +5,13 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\DocumentVersionController;
+
+
+// use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\UploadController;
-use App\Http\Controllers\DocumentVersionController;
+// use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -50,3 +54,6 @@ Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
 Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
 Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
+Route::get('/documents/{document}/versions', [DocumentVersionController::class, 'index'])
+    ->name('documents.versions.index');
+
