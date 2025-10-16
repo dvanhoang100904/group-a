@@ -8,14 +8,15 @@
             <a href="{{ route('folders.index') }}" class="text-blue-500 hover:text-blue-700 mr-4">
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <h1 class="text-2xl font-bold text-gray-800">Tạo Thư Mục Mới</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Chỉnh sửa Thư Mục</h1>
         </div>
 
         <!-- Form -->
         <div class="bg-white rounded-lg shadow p-6">
-           <form action="{{ route('folders.store') }}" method="POST">
+            <form action="{{ route('folders.update', $folder->folder_id) }}" method="POST">
                 @csrf
-                 <input type="hidden" name="parent_folder_id" value="{{ $parentFolderId }}">
+                @method('PUT')
+                
                 <!-- Tên thư mục -->
                 <div class="mb-4">
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
@@ -24,7 +25,7 @@
                     <input type="text" 
                            id="name" 
                            name="name" 
-                           value="{{ old('name') }}"
+                           value="{{ old('name', $folder->name) }}"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                            placeholder="Nhập tên thư mục"
                            required>
@@ -34,7 +35,7 @@
                 </div>
 
                 <!-- Trạng thái -->
-                <div class="mb-6">
+                <div class="mb-4">
                     <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
                         Trạng thái *
                     </label>
@@ -43,22 +44,33 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             required>
                         <option value="">Chọn trạng thái</option>
-                        <option value="private" {{ old('status') == 'private' ? 'selected' : '' }}>Riêng tư</option>
-                        <option value="public" {{ old('status') == 'public' ? 'selected' : '' }}>Công khai</option>
+                        <option value="private" {{ old('status', $folder->status) == 'private' ? 'selected' : '' }}>Riêng tư</option>
+                        <option value="public" {{ old('status', $folder->status) == 'public' ? 'selected' : '' }}>Công khai</option>
                     </select>
                     @error('status')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- Thông báo vị trí -->
-                <div class="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <div class="flex items-center">
-                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                        <span class="text-sm text-blue-700">
-                            Thư mục sẽ được tạo trong <strong>Danh sách hiện tại</strong> (Thư mục gốc)
-                        </span>
-                    </div>
+                <!-- Thư mục cha -->
+                <div class="mb-6">
+                    <label for="parent_folder_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        Thư mục cha (tùy chọn)
+                    </label>
+                    <select id="parent_folder_id" 
+                            name="parent_folder_id" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">-- Thư mục gốc --</option>
+                        @foreach($parentFolders as $parent)
+                            <option value="{{ $parent->folder_id }}" 
+                                {{ old('parent_folder_id', $folder->parent_folder_id) == $parent->folder_id ? 'selected' : '' }}>
+                                {{ $parent->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('parent_folder_id')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <!-- Buttons -->
@@ -69,9 +81,9 @@
                     </a>
                     <button type="submit" 
                             class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <i class="fas fa-folder-plus mr-2"></i>
-                        Tạo Thư Mục
-                    </button>                        
+                        <i class="fas fa-save mr-2"></i>
+                        Cập nhật
+                    </button>
                 </div>
             </form>
         </div>
