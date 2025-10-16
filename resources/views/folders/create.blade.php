@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="vi">
+@extends('layouts.app')
+@section('content')
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,9 +20,9 @@
 
             <!-- Form -->
             <div class="bg-white rounded-lg shadow p-6">
-                <form action="{{ route('folders.store') }}" method="POST">
+               <form action="{{ route('folders.store') }}" method="POST">
                     @csrf
-                    
+                     <input type="hidden" name="parent_folder_id" value="{{ $parentFolderId }}">
                     <!-- Tên thư mục -->
                     <div class="mb-4">
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
@@ -79,10 +79,25 @@
                             <i class="fas fa-folder-plus mr-2"></i>
                             Tạo Thư Mục
                         </button>
+                         <!-- Thông báo vị trí -->
+                    <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                            <span class="text-sm text-blue-700">
+                                Thư mục sẽ được tạo trong 
+                                <strong>
+                                    @if($parentFolderId)
+                                    thư mục hiện tại
+                                    @else
+                                    Danh sách gốc
+                                    @endif
+                                </strong>
+                            </span>
+                        </div>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </body>
-</html>
+@endsection

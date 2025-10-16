@@ -1,5 +1,6 @@
-<!DOCTYPE html>
-<html lang="vi">
+@extends('layouts.app')
+
+@section('content')
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,44 +9,74 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
-    <!-- Thêm sau thẻ <body> -->
-@if(session('success'))
-    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
-        <div class="flex">
-            <div class="py-1">
-                <i class="fas fa-check-circle text-green-500 mr-3"></i>
-            </div>
-            <div>
-                <p class="font-bold">Thành công!</p>
-                <p>{{ session('success') }}</p>
-            </div>
-        </div>
-    </div>
-@endif
-
-@if(session('error'))
-    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-        <div class="flex">
-            <div class="py-1">
-                <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
-            </div>
-            <div>
-                <p class="font-bold">Lỗi!</p>
-                <p>{{ session('error') }}</p>
-            </div>
-        </div>
-    </div>
-@endif
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
-            <a href="{{ route('folders.create') }}" 
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
+                
+                <!-- Breadcrumbs -->
+                @if(!empty($breadcrumbs))
+                <nav class="flex mt-2" aria-label="Breadcrumb">
+                    <ol class="flex items-center space-x-2 text-sm">
+                        <li>
+                            <a href="{{ route('folders.index') }}" class="text-blue-500 hover:text-blue-700">
+                                <i class="fas fa-home"></i> Root
+                            </a>
+                        </li>
+                        @foreach($breadcrumbs as $crumb)
+                        <li class="flex items-center">
+                            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                            @if(!$loop->last)
+                            <a href="{{ route('folders.show', $crumb->folder_id) }}" 
+                               class="text-blue-500 hover:text-blue-700">
+                                {{ $crumb->name }}
+                            </a>
+                            @else
+                            <span class="text-gray-600">{{ $crumb->name }}</span>
+                            @endif
+                        </li>
+                        @endforeach
+                    </ol>
+                </nav>
+                @endif
+            </div>
+            
+            <a href="{{ route('folders.create', ['parent_id' => $currentFolder ? $currentFolder->folder_id : null]) }}" 
                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
                 <i class="fas fa-plus mr-2"></i>
                 Tạo Thư Mục Mới
             </a>
         </div>
+        <!-- Back button nếu đang ở thư mục con -->
+        @if($currentFolder)
+        <div class="mt-4">
+            <button onclick="window.location='{{ $currentFolder->parent_folder_id ? route('folders.show', $currentFolder->parent_folder_id) : route('folders.index') }}'" 
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Quay lại
+            </button>
+        </div>
+        @endif
+
+        <!-- Thông báo -->
+        @if(session('success'))
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                <span>{{ session('success') }}</span>
+            </div>
+        </div>
+        @endif
+
+        @if(session('error'))
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                <span>{{ session('error') }}</span>
+            </div>
+        </div>
+        @endif
 
         <!-- Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -68,14 +99,16 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($folders as $folder)
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50 cursor-pointer" 
+                        onclick="window.location='{{ route('folders.show', $folder->folder_id) }}'">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <i class="fas fa-folder text-yellow-500 mr-3"></i>
+                                <i class="fas fa-folder text-yellow-500 mr-3 text-lg"></i>
                                 <div>
                                     <div class="text-sm font-medium text-gray-900">{{ $folder->name }}</div>
                                     @if($folder->childFolders->count() > 0)
-                                    <div class="text-xs text-gray-500">
+                                    <div class="text-xs text-gray-500 flex items-center">
+                                        <i class="fas fa-folder-open mr-1"></i>
                                         {{ $folder->childFolders->count() }} thư mục con
                                     </div>
                                     @endif
@@ -85,6 +118,7 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
                                 {{ $folder->status == 'public' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                <i class="fas {{ $folder->status == 'public' ? 'fa-globe' : 'fa-lock' }} mr-1"></i>
                                 {{ $folder->status == 'public' ? 'Công khai' : 'Riêng tư' }}
                             </span>
                         </td>
@@ -97,17 +131,23 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
-                            Không có thư mục nào. 
-                            <a href="{{ route('folders.create') }}" class="text-blue-500 hover:text-blue-700 ml-1">
-                                Tạo thư mục đầu tiên
-                            </a>
+                        <td colspan="4" class="px-6 py-8 text-center">
+                            <div class="flex flex-col items-center justify-center text-gray-400">
+                                <i class="fas fa-folder-open text-4xl mb-2"></i>
+                                <p class="text-lg">Không có thư mục nào</p>
+                                <p class="text-sm mt-1">Hãy tạo thư mục đầu tiên</p>
+                                <a href="{{ route('folders.create', ['parent_id' => $currentFolder ? $currentFolder->folder_id : null]) }}" 
+                                   class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Tạo Thư Mục Mới
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
-        </div>
+        </div>       
     </div>
 </body>
-</html>
+@endsection
