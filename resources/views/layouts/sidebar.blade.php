@@ -27,7 +27,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="{{ route('upload.index') }}">
                     <i class="bi bi-upload"></i>
                     <span class="link-text">Upload tài liệu</span>
                 </a>
