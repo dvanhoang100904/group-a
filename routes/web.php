@@ -1,7 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FolderController;
+use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\DocumentController;
@@ -46,3 +47,6 @@ Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
 Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
+Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
+Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
+Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
