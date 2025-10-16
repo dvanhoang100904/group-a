@@ -32,7 +32,7 @@ class DocumentVersionSeeder extends Seeder
             DB::table('document_versions')->insert([
                 'version_number' => $versionNumber,
                 'file_path' => "docs/doc{$documentId}_v{$versionNumber}.pdf",
-                'file_size' => rand(500, 5000),
+                'file_size' => rand(2, 8) * 1024 * 1024,
                 'mime_type' => 'application/pdf',
                 'is_current_version' => 1,
                 'change_note' => $versionNumber === 1 ? 'Initial version' : 'Updated version',
