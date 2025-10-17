@@ -55,7 +55,6 @@ body {
 }
 
 /****************sidebar****************/
-/****************sidebar****************/
 .sidebar {
     width: var(--sidebar-width);
     height: 100vh;
@@ -117,17 +116,15 @@ body {
     padding: 24px 8px;
 }
 
-/* Thêm khoảng cách an toàn phía trên menu đầu tiên khi collapsed */
 .sidebar.collapsed .sidebar-content .nav:first-child {
-    margin-top: 20px; /* Khoảng cách với nút toggle */
+    margin-top: 20px; 
 }
 
-/* Hoặc cách khác - thêm padding top cho nav item đầu tiên */
 .sidebar.collapsed .nav-item:first-child .nav-link:first-child {
     margin-top: 8px;
 }
 
-/* Section titles với khoảng cách hợp lý */
+
 .sidebar-section-title {
     display: block;
     font-size: 0.75rem;
@@ -139,7 +136,7 @@ body {
     transition: all var(--transition-speed);
 }
 
-/* Khoảng cách cho section đầu tiên */
+
 .sidebar-content .nav-item:first-child .sidebar-section-title {
     margin-top: 0;
 }
@@ -148,7 +145,7 @@ body {
     display: none;
 }
 
-/* Khoảng cách giữa các nhóm menu khi collapsed */
+
 .sidebar.collapsed .nav-item:has(+ .nav-item .sidebar-section-title) {
     margin-bottom: 12px;
 }
@@ -174,9 +171,8 @@ body {
     margin-bottom: 6px;
 }
 
-/* Đặc biệt: menu item đầu tiên khi collapsed cần thêm khoảng cách trên */
 .sidebar.collapsed .nav-item:first-child .nav-link:first-child {
-    margin-top: 12px; /* Thêm khoảng cách phía trên */
+    margin-top: 12px; 
 }
 
 .sidebar .nav-link i {
