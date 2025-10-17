@@ -14,7 +14,21 @@ use App\Http\Controllers\UploadController;
 // use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+// Dashboard
+Route::get('/dashboard', [DashboardController::class, 'index']);
+
+
+
+// Upload
+Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
+Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
+
+// Documents
+Route::get('/my-documents', [DocumentController::class, 'index'])->name('documents.index');
+Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('documents.show'); // ✅ thêm dòng này
+Route::get('/documents/{id}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
+Route::put('/documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
+Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
 // Nhóm route quản lý báo cáo
 Route::prefix('dashboard')->group(function () {
@@ -54,6 +68,9 @@ Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
 Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
 Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
-Route::get('/documents/{document}/versions', [DocumentVersionController::class, 'index'])
+Route::get('/documents/{document}/versions', [DocumentVersionController::class, 'index']);
+
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
+
     ->name('documents.versions.index');
 

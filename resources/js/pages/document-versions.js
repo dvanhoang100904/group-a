@@ -1,6 +1,6 @@
 import { createApp } from "vue";
 
-import DocumentVersionList from "../components/documentVersions/DocumentVersionList.vue";
+import DocumentVersionList from "../Components/DocumentVersions/DocumentVersionList.vue";
 
 const el = document.getElementById("document-version-list");
 if (el) {

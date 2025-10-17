@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DocumentVersionApiController;
 use App\Http\Controllers\Api\UserApiController;
+
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -17,3 +18,4 @@ Route::post('/documents/{id}/versions', [DocumentVersionApiController::class, 's
 
 // Users
 Route::get('/users', [UserApiController::class, 'index']);
+Route::get('/documents/{id}/versions', [DocumentVersionApiController::class, 'index']);

@@ -121,12 +121,18 @@ body {
 }
 
 .sidebar.collapsed .sidebar-content .nav:first-child {
+
     margin-top: 20px;
+    /* Khoảng cách với nút toggle */
+
+    margin-top: 20px; 
+
 }
 
 .sidebar.collapsed .nav-item:first-child .nav-link:first-child {
     margin-top: 8px;
 }
+
 
 .sidebar-section-title {
     display: block;
@@ -139,6 +145,7 @@ body {
     transition: all var(--transition-speed);
 }
 
+
 .sidebar-content .nav-item:first-child .sidebar-section-title {
     margin-top: 0;
 }
@@ -146,6 +153,7 @@ body {
 .sidebar.collapsed .sidebar-section-title {
     display: none;
 }
+
 
 .sidebar.collapsed .nav-item:has(+ .nav-item .sidebar-section-title) {
     margin-bottom: 12px;
@@ -173,7 +181,12 @@ body {
 }
 
 .sidebar.collapsed .nav-item:first-child .nav-link:first-child {
+
     margin-top: 12px;
+    /* Thêm khoảng cách phía trên */
+
+    margin-top: 12px; 
+
 }
 
 .sidebar .nav-link i {
