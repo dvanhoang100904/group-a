@@ -7,16 +7,12 @@ use Illuminate\Http\Request;
 
 class DocumentVersionController extends Controller
 {
-    const PER_PAGE = 1;
-
-    public function index(Request $request, Document $document)
+    public function index(Request $request, $id)
     {
-        $versions = $document->versions()
-            ->with('user')
-            ->orderByDesc('version_number')
-            ->paginate(self::PER_PAGE)
-            ->withQueryString();
+        $document = Document::with('subject.department', 'versions.user')->find($id);
 
-        return view('documents.versions.index', compact('document', 'versions'));
+        return view('documents.versions.index', [
+            'document' => $document,
+        ]);
     }
 }

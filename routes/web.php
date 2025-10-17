@@ -17,5 +17,5 @@ Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
 
-Route::get('/documents/{document}/versions', [DocumentVersionController::class, 'index'])
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
     ->name('documents.versions.index');
