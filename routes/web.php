@@ -2,6 +2,31 @@
 
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
+
+
+Route::get('/', fn() => redirect('/dashboard'));
+
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+Route::prefix('dashboard')->group(function () {
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/{id}', [ReportController::class, 'show'])->name('reports.show');
+    Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
+});
+
+// Dashboard chính
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+// Nhóm route quản lý báo cáo
+Route::prefix('dashboard')->group(function () {
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/{id}', [ReportController::class, 'show'])->name('reports.show');
+    Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
+});
+Route::get('/', function () {
+    return redirect('/dashboard');
+});
 
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\UploadController;
@@ -16,6 +41,7 @@ use App\Http\Controllers\UserController;
 Route::get('/dashboard', [DashboardController::class, 'index']);
 
 
+<<< HEAD
 Route::get('/folders/search', [FolderController::class, 'search'])->name('folders.search');
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
 Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');

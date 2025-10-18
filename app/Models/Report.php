@@ -3,12 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Report extends Model
 {
+    use HasFactory;
+
     protected $table = 'reports';
     protected $primaryKey = 'report_id';
-    protected $fillable = ['reason', 'status', 'document_id', 'user_id', 'resolved_at'];
+    public $timestamps = true;
+
+    protected $fillable = [
+        'reason',
+        'status',
+        'document_id',
+        'user_id',
+        'resolved_at'
+    ];
 
     public function document()
     {
