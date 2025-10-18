@@ -114,6 +114,7 @@
                 Về Root
             </button>
             @endif
+<<<<<<< HEAD
         </nav>
         @endif
     </div>
@@ -137,6 +138,92 @@
                     @endif
                     - Tìm thấy <strong>{{ $folders->total() }}</strong> thư mục
                     (Trang {{ $folders->currentPage() }}/{{ $folders->lastPage() }})
+                </span>
+            </div>
+            <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
+               class="text-blue-500 hover:text-blue-700 text-sm">
+                <i class="fas fa-times mr-1"></i> Xóa bộ lọc
+            </a>
+        </div>
+=======
+        </div>
+        
+        <div class="flex items-center space-x-4">
+            <!-- Form tìm kiếm -->
+            <form action="{{ route('folders.search') }}" method="GET" class="flex items-center space-x-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                @if($currentFolder)
+                    <input type="hidden" name="parent_id" value="{{ $currentFolder->folder_id }}">
+                @endif
+                
+                <!-- Tìm theo tên -->
+                <div class="relative">
+                    <input type="text" 
+                           name="name" 
+                           value="{{ request('name') }}"
+                           placeholder="Tìm theo tên..." 
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                
+                <!-- Tìm theo ngày -->
+                <div class="relative">
+                    <input type="date" 
+                           name="date" 
+                           value="{{ request('date') }}"
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <i class="fas fa-calendar absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                
+                <!-- Nút tìm kiếm -->
+                <button type="submit" 
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-search mr-2"></i>
+                    Tìm kiếm
+                </button>
+                
+                <!-- Nút reset -->
+                @if(request('name') || request('date'))
+                <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
+                   class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-times mr-2"></i>
+                    Reset
+                </a>
+                @endif
+            </form>
+            
+            <!-- Nút tạo thư mục -->
+            <a href="{{ route('folders.create', ['parent_id' => $currentFolder ? $currentFolder->folder_id : null]) }}" 
+               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-plus mr-2"></i>
+                Tạo Thư Mục Mới
+            </a>
+        </div>
+    </div>
+
+    <!-- Back button -->
+    @if($currentFolder)
+    <div class="mt-4">
+        <button onclick="window.location='{{ $currentFolder->parent_folder_id ? route('folders.show', $currentFolder->parent_folder_id) : route('folders.index') }}'" 
+                class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Quay lại
+        </button>
+>>>>>>> 7352864 (seach theo tên folder và ngày/tháng/năm)
+    </div>
+    @endif
+
+    <!-- Thông báo kết quả tìm kiếm -->
+    @if(request('name') || request('date'))
+    <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                <span class="text-sm text-blue-700">
+                    Kết quả tìm kiếm:
+                    @if(request('name')) <strong>"{{ request('name') }}"</strong> @endif
+                    @if(request('name') && request('date')) và @endif
+                    @if(request('date')) ngày <strong>{{ \Carbon\Carbon::parse(request('date'))->format('d/m/Y') }}</strong> @endif
+                    - Tìm thấy <strong>{{ $folders->count() }}</strong> thư mục
                 </span>
             </div>
             <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
@@ -271,20 +358,33 @@
                         <div class="flex flex-col items-center justify-center text-gray-400">
                             <i class="fas fa-folder-open text-4xl mb-2"></i>
                             <p class="text-lg">
+<<<<<<< HEAD
                                 @if(request('name') || request('date') || request('status'))
+=======
+                                @if(request('name') || request('date'))
+>>>>>>> 7352864 (seach theo tên folder và ngày/tháng/năm)
                                     Không tìm thấy thư mục nào phù hợp
                                 @else
                                     Không có thư mục nào
                                 @endif
                             </p>
                             <p class="text-sm mt-1">
+<<<<<<< HEAD
                                 @if(request('name') || request('date') || request('status'))
                                     Hãy thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc
+=======
+                                @if(request('name') || request('date'))
+                                    Hãy thử điều chỉnh từ khóa tìm kiếm
+>>>>>>> 7352864 (seach theo tên folder và ngày/tháng/năm)
                                 @else
                                     Hãy tạo thư mục đầu tiên
                                 @endif
                             </p>
+<<<<<<< HEAD
                             @if(request('name') || request('date') || request('status'))
+=======
+                            @if(request('name') || request('date'))
+>>>>>>> 7352864 (seach theo tên folder và ngày/tháng/năm)
                             <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
                                class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
                                 <i class="fas fa-times mr-2"></i>
