@@ -2,17 +2,15 @@
 
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\DocumentVersionController;
 
-
-// use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\UploadController;
 // use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
 
 use Illuminate\Support\Facades\Route;
+// use App\Http\Controllers\UserController;
+
 
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -92,4 +90,8 @@ Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index
     ->name('documents.versions.index');
 Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
 
+
+//profile
+Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
+Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
 
