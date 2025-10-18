@@ -37,8 +37,9 @@ class DocumentController extends Controller
         ])->findOrFail($id);
 
         // Trả về view hiển thị chi tiết tài liệu
-        return view('documents.documents_detail.document_detail', compact('document'));
+      return view('documents.documents_detail.document_detail', compact('document'));
     }
+
 
     public function edit($id) {}
 
