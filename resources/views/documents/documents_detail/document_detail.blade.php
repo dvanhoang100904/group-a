@@ -1,0 +1,99 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container py-4">
+
+    <!-- Nút quay lại + báo cáo -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="{{ route('documents.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+        <button class="btn btn-danger">
+            <i class="bi bi-flag"></i> Báo cáo vi phạm
+        </button>
+    </div>
+
+    <!-- Thông tin chi tiết -->
+    <div class="card shadow-sm border-0 rounded-4 p-4">
+        <div class="mb-3">
+            <h3 class="fw-bold">{{ $document->title }}</h3>
+            <p class="text-muted mb-2">
+                {{ $document->description ?? 'Không có mô tả.' }}
+            </p>
+            <div>
+                @if(!empty($document->tags))
+                    @foreach(explode(',', $document->tags) as $tag)
+                        <span class="badge bg-primary me-1">{{ trim($tag) }}</span>
+                    @endforeach
+                @endif
+            </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="row g-3 small text-muted mb-3">
+            <div class="col-md-6">
+                <i class="bi bi-person-circle"></i> 
+                Người tạo: <strong>{{ $document->user->name ?? 'Không xác định' }}</strong>
+            </div>
+            <div class="col-md-6">
+                <i class="bi bi-calendar-event"></i>
+                Ngày tạo: {{ $document->created_at->format('d/m/Y') }}
+            </div>
+            <div class="col-md-6">
+                <i class="bi bi-file-earmark-text"></i>
+                Kích thước: {{ number_format($document->size / 1024, 2) }} MB
+            </div>
+            <div class="col-md-6">
+                <i class="bi bi-shield-check"></i>
+                Chế độ chia sẻ: 
+                <span class="fw-semibold text-{{ $document->status == 'public' ? 'success' : 'secondary' }}">
+                    {{ ucfirst($document->status) }}
+                </span>
+            </div>
+            <div class="col-md-6">
+                <i class="bi bi-eye"></i>
+                Lượt xem: {{ $document->views ?? 0 }}
+            </div>
+            <div class="col-md-6">
+                <i class="bi bi-code-slash"></i>
+                Phiên bản hiện tại: v{{ $document->versions->count() ?? 1 }}
+            </div>
+        </div>
+
+        <!-- Các nút hành động -->
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <a href="{{ asset('storage/' . $document->file_path) }}" class="btn btn-primary">
+                <i class="bi bi-download"></i> Tải xuống
+            </a>
+            <a href="#" class="btn btn-outline-primary">
+                <i class="bi bi-printer"></i> In tài liệu
+            </a>
+            <button class="btn btn-outline-secondary">
+                <i class="bi bi-link-45deg"></i> Copy link chia sẻ
+            </button>
+            <button class="btn btn-outline-info">
+                <i class="bi bi-clock-history"></i> Phiên bản
+            </button>
+            <button class="btn btn-outline-success">
+                <i class="bi bi-share"></i> Cài đặt chia sẻ
+            </button>
+        </div>
+
+        <!-- Xem trước tài liệu -->
+        <div class="border rounded-3 overflow-hidden">
+            @php
+                $preview = $document->previews->last();
+            @endphp
+            @if($preview && $preview->preview_path)
+                <iframe src="{{ asset('storage/' . $preview->preview_path) }}"
+                        class="w-100" style="height:600px;border:0;"></iframe>
+            @else
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-file-earmark-x display-6"></i>
+                    <p class="mt-2">Không có bản xem trước khả dụng.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+@endsection
