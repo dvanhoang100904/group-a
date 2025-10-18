@@ -184,4 +184,39 @@ class FolderController extends Controller
                 ->with('error', $e->getMessage());
         }
     }
+    /**
+     * Tìm kiếm thư mục
+     */
+    public function search(Request $request)
+    {
+        $searchName = $request->get('name');
+        $searchDate = $request->get('date');
+        $parentFolderId = $request->get('parent_id');
+
+        $query = Folder::with(['childFolders', 'user', 'documents']);
+
+        // Tìm kiếm theo tên
+        if ($searchName) {
+            $query->where('name', 'like', '%' . $searchName . '%');
+        }
+
+        // Tìm kiếm theo ngày tạo
+        if ($searchDate) {
+            $query->whereDate('created_at', $searchDate);
+        }
+
+        // Nếu có parent_id, tìm trong thư mục cụ thể, ngược lại tìm trong thư mục gốc
+        if ($parentFolderId) {
+            $currentFolder = Folder::with(['parentFolder'])->findOrFail($parentFolderId);
+            $query->where('parent_folder_id', $parentFolderId);
+        } else {
+            $currentFolder = null;
+            $query->whereNull('parent_folder_id');
+        }
+
+        $folders = $query->orderBy('created_at', 'desc')->get();
+        $breadcrumbs = $this->getBreadcrumbs($currentFolder);
+
+        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs', 'searchName', 'searchDate'));
+    }
 }
