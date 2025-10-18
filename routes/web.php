@@ -1,12 +1,13 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\UploadController;
 
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index']);
+
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
+    ->name('documents.versions.index');
 
 // Upload
 Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');

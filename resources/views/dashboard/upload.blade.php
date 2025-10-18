@@ -90,9 +90,6 @@
             </table>
         @endif
     </div>
-     <div class="text-center">
-        {{ $documents->links() }}
-    </div>
 </div>
 
 <script>
