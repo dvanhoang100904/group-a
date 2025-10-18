@@ -22,18 +22,25 @@ class DocumentController extends Controller
 
         return view('dashboard.my_documents', compact('documents', 'subjects', 'sortBy', 'sortOrder'));
     }
-    public function edit($id)
+    public function show($id)
     {
-    
+        // Lấy thông tin tài liệu cùng các quan hệ liên quan
+        $document = Document::with([
+            'user',
+            'folder',
+            'subject',
+            'versions',
+            'previews',
+            'accesses'
+        ])->findOrFail($id);
+
+        // Trả về view hiển thị chi tiết
+        return view('dashboard.document_detail', compact('document'));
     }
 
-    public function update(Request $request, $id)
-    {
-        
-    }
+    public function edit($id) {}
 
-    public function destroy($id)
-    {
-        
-    }
+    public function update(Request $request, $id) {}
+
+    public function destroy($id) {}
 }
