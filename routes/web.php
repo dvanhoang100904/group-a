@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 
@@ -30,12 +30,8 @@ Route::get('/', function () {
 
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\UploadController;
-// use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
-
-// use Illuminate\Support\Facades\Route;
-// use App\Http\Controllers\UserController;
-
+use App\Http\Controllers\DocumentVersionController;
 
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -52,8 +48,6 @@ Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folder
 Route::get('/folders/{folder}/edit', [FolderController::class, 'edit'])->name('folders.edit');
 Route::put('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
 Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
-
-
 
 
 
@@ -75,6 +69,7 @@ Route::prefix('dashboard')->group(function () {
     Route::get('/reports/{id}', [ReportController::class, 'show'])->name('reports.show');
     Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 });
+
 
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
 Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
@@ -110,6 +105,7 @@ Route::get('/documents/{document}/versions', [DocumentVersionController::class, 
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
 
     ->name('documents.versions.index');
+
 
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
     ->name('documents.versions.index');
