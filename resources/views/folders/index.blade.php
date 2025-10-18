@@ -3,10 +3,10 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Header & Breadcrumbs -->
+    
+        <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
     <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
-            
+        <div>                        
             @if(!empty($breadcrumbs))
             <nav class="flex mt-2" aria-label="Breadcrumb">
                 <ol class="flex items-center space-x-2 text-sm">
@@ -34,8 +34,8 @@
         </div>
         
         <div class="flex items-center space-x-4">
-            <!-- Form tìm kiếm -->
-            <form action="{{ route('folders.search') }}" method="GET" class="flex items-center space-x-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+            <!-- Form tìm kiếm và lọc -->
+            <form action="{{ route('folders.index') }}" method="GET" class="flex items-center space-x-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2">
                 @if($currentFolder)
                     <input type="hidden" name="parent_id" value="{{ $currentFolder->folder_id }}">
                 @endif
@@ -59,6 +59,17 @@
                     <i class="fas fa-calendar absolute left-3 top-3 text-gray-400"></i>
                 </div>
                 
+                <!-- Lọc theo trạng thái -->
+                <div class="relative">
+                    <select name="status" 
+                            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="public" {{ request('status') == 'public' ? 'selected' : '' }}>Công khai</option>
+                        <option value="private" {{ request('status') == 'private' ? 'selected' : '' }}>Riêng tư</option>
+                    </select>
+                    <i class="fas fa-filter absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                
                 <!-- Nút tìm kiếm -->
                 <button type="submit" 
                         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
@@ -67,7 +78,7 @@
                 </button>
                 
                 <!-- Nút reset -->
-                @if(request('name') || request('date'))
+                @if(request('name') || request('date') || request('status'))
                 <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
                     <i class="fas fa-times mr-2"></i>
@@ -97,7 +108,7 @@
     @endif
 
     <!-- Thông báo kết quả tìm kiếm -->
-    @if(request('name') || request('date'))
+    @if(request('name') || request('date') || request('status'))
     <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
@@ -105,8 +116,14 @@
                 <span class="text-sm text-blue-700">
                     Kết quả tìm kiếm:
                     @if(request('name')) <strong>"{{ request('name') }}"</strong> @endif
-                    @if(request('name') && request('date')) và @endif
+                    @if(request('name') && (request('date') || request('status'))) và @endif
                     @if(request('date')) ngày <strong>{{ \Carbon\Carbon::parse(request('date'))->format('d/m/Y') }}</strong> @endif
+                    @if(request('date') && request('status')) và @endif
+                    @if(request('status')) 
+                        <strong>
+                            {{ request('status') == 'public' ? 'Công khai' : 'Riêng tư' }}
+                        </strong>
+                    @endif
                     - Tìm thấy <strong>{{ $folders->count() }}</strong> thư mục
                 </span>
             </div>
@@ -242,20 +259,20 @@
                         <div class="flex flex-col items-center justify-center text-gray-400">
                             <i class="fas fa-folder-open text-4xl mb-2"></i>
                             <p class="text-lg">
-                                @if(request('name') || request('date'))
+                                @if(request('name') || request('date') || request('status'))
                                     Không tìm thấy thư mục nào phù hợp
                                 @else
                                     Không có thư mục nào
                                 @endif
                             </p>
                             <p class="text-sm mt-1">
-                                @if(request('name') || request('date'))
-                                    Hãy thử điều chỉnh từ khóa tìm kiếm
+                                @if(request('name') || request('date') || request('status'))
+                                    Hãy thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc
                                 @else
                                     Hãy tạo thư mục đầu tiên
                                 @endif
                             </p>
-                            @if(request('name') || request('date'))
+                            @if(request('name') || request('date') || request('status'))
                             <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
                                class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
                                 <i class="fas fa-times mr-2"></i>
