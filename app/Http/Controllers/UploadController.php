@@ -19,9 +19,8 @@ class UploadController extends Controller
         // Lấy danh sách tài liệu
         $documents = Document::latest()->limit(10)->get();
 
-       return view('dashboard.upload', compact('folders', 'subjects', 'types', 'documents'));
+      return view('documents.uploads.upload', compact('folders', 'subjects', 'types', 'documents'));
     }
-
     public function store(Request $request)
     {
         $request->validate([

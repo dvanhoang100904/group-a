@@ -20,7 +20,7 @@ class DocumentController extends Controller
 
         $subjects = Subject::all();
 
-        return view('dashboard.my_documents', compact('documents', 'subjects', 'sortBy', 'sortOrder'));
+        return view('documents.uploads.my_documents', compact('documents', 'subjects', 'sortBy', 'sortOrder'));
     }
     public function show($id)
     {
@@ -34,9 +34,10 @@ class DocumentController extends Controller
             'accesses'
         ])->findOrFail($id);
 
-        // Trả về view hiển thị chi tiết
-        return view('dashboard.document_detail', compact('document'));
+        // Trả về view hiển thị chi tiết tài liệu
+      return view('documents.documents_detail.document_detail', compact('document'));
     }
+
 
     public function edit($id) {}
 
