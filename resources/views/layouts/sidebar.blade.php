@@ -97,11 +97,12 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('reports') ? 'active' : '' }}" href="{{ route('reports.index') }}">
                     <i class="bi bi-flag"></i>
                     <span class="link-text">Báo cáo vi phạm</span>
                 </a>
             </li>
+
         </ul>
     </div>
 </div>
