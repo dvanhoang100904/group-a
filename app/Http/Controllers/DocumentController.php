@@ -22,6 +22,7 @@ class DocumentController extends Controller
 
         return view('documents.uploads.my_documents', compact('documents', 'subjects', 'sortBy', 'sortOrder'));
     }
+
     public function show($id)
     {
         // Lấy thông tin tài liệu cùng các quan hệ liên quan
@@ -38,7 +39,6 @@ class DocumentController extends Controller
         // Trả về view hiển thị chi tiết tài liệu
         return view('documents.documents_detail.document_detail', compact('document'));
     }
-
 
     public function edit($id) {}
 

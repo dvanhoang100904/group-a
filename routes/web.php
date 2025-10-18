@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\FolderController;
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\DocumentVersionController;
@@ -14,12 +12,29 @@ use App\Http\Controllers\UploadController;
 // use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
 
-// Dashboard
+
+// use App\Http\Controllers\DocumentVersionController;
+use Illuminate\Support\Facades\Route;
+
 Route::get('/dashboard', [DashboardController::class, 'index']);
 
 
 
-// Upload
+
+Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
+Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
+Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
+Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
+Route::get('/folders/{folder}/edit', [FolderController::class, 'edit'])->name('folders.edit');
+Route::put('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
+Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
+
+
+
+
+
+
+// Uplods
 Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
 
@@ -37,8 +52,6 @@ Route::prefix('dashboard')->group(function () {
     Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 });
 
-// Folder - yen đẹp trai
-Route::get('/folders/search', [FolderController::class, 'search'])->name('folders.search');
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
 Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
 Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
@@ -73,4 +86,9 @@ Route::get('/documents/{document}/versions', [DocumentVersionController::class, 
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
 
     ->name('documents.versions.index');
+
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
+    ->name('documents.versions.index');
+Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
+
 
