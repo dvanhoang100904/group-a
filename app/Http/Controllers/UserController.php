@@ -53,7 +53,7 @@ class UserController extends Controller
         */
 
         // Tạm thời log ra dữ liệu cập nhật
-        \Log::info('User update data', $validated);
+        // Log::info('User update data', $validated);
 
         return back()->with('success', 'Cập nhật hồ sơ thành công!');
     }
