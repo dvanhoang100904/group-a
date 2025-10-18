@@ -3,10 +3,10 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Header & Breadcrumbs -->
+    
+        <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
     <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
-            
+        <div>                        
             @if(!empty($breadcrumbs))
             <nav class="flex mt-2" aria-label="Breadcrumb">
                 <ol class="flex items-center space-x-2 text-sm">
@@ -33,13 +33,70 @@
             @endif
         </div>
         
-        <a href="{{ route('folders.create', ['parent_id' => $currentFolder ? $currentFolder->folder_id : null]) }}" 
-           class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
-            <i class="fas fa-plus mr-2"></i>
-            Tạo Thư Mục Mới
-        </a>
+        <div class="flex items-center space-x-4">
+            <!-- Form tìm kiếm và lọc -->
+            <form action="{{ route('folders.index') }}" method="GET" class="flex items-center space-x-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                @if($currentFolder)
+                    <input type="hidden" name="parent_id" value="{{ $currentFolder->folder_id }}">
+                @endif
+                
+                <!-- Tìm theo tên -->
+                <div class="relative">
+                    <input type="text" 
+                           name="name" 
+                           value="{{ request('name') }}"
+                           placeholder="Tìm theo tên..." 
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                
+                <!-- Tìm theo ngày -->
+                <div class="relative">
+                    <input type="date" 
+                           name="date" 
+                           value="{{ request('date') }}"
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <i class="fas fa-calendar absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                
+                <!-- Lọc theo trạng thái -->
+                <div class="relative">
+                    <select name="status" 
+                            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="public" {{ request('status') == 'public' ? 'selected' : '' }}>Công khai</option>
+                        <option value="private" {{ request('status') == 'private' ? 'selected' : '' }}>Riêng tư</option>
+                    </select>
+                    <i class="fas fa-filter absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                
+                <!-- Nút tìm kiếm -->
+                <button type="submit" 
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-search mr-2"></i>
+                    Tìm kiếm
+                </button>
+                
+                <!-- Nút reset -->
+                @if(request('name') || request('date') || request('status'))
+                <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
+                   class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
+                    <i class="fas fa-times mr-2"></i>
+                    Reset
+                </a>
+                @endif
+            </form>
+            
+            <!-- Nút tạo thư mục -->
+            <a href="{{ route('folders.create', ['parent_id' => $currentFolder ? $currentFolder->folder_id : null]) }}" 
+               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-plus mr-2"></i>
+                Tạo Thư Mục Mới
+            </a>
+        </div>
     </div>
-     <!-- Back button -->
+
+    <!-- Back button -->
     @if($currentFolder)
     <div class="mt-4">
         <button onclick="window.location='{{ $currentFolder->parent_folder_id ? route('folders.show', $currentFolder->parent_folder_id) : route('folders.index') }}'" 
@@ -47,6 +104,34 @@
             <i class="fas fa-arrow-left mr-2"></i>
             Quay lại
         </button>
+    </div>
+    @endif
+
+    <!-- Thông báo kết quả tìm kiếm -->
+    @if(request('name') || request('date') || request('status'))
+    <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                <span class="text-sm text-blue-700">
+                    Kết quả tìm kiếm:
+                    @if(request('name')) <strong>"{{ request('name') }}"</strong> @endif
+                    @if(request('name') && (request('date') || request('status'))) và @endif
+                    @if(request('date')) ngày <strong>{{ \Carbon\Carbon::parse(request('date'))->format('d/m/Y') }}</strong> @endif
+                    @if(request('date') && request('status')) và @endif
+                    @if(request('status')) 
+                        <strong>
+                            {{ request('status') == 'public' ? 'Công khai' : 'Riêng tư' }}
+                        </strong>
+                    @endif
+                    - Tìm thấy <strong>{{ $folders->count() }}</strong> thư mục
+                </span>
+            </div>
+            <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
+               class="text-blue-500 hover:text-blue-700 text-sm">
+                <i class="fas fa-times mr-1"></i> Xóa bộ lọc
+            </a>
+        </div>
     </div>
     @endif
 
@@ -99,7 +184,13 @@
                         <div class="flex items-center">
                             <i class="fas fa-folder text-yellow-500 mr-3 text-lg"></i>
                             <div>
-                                <div class="text-sm font-medium text-gray-900">{{ $folder->name }}</div>
+                                <div class="text-sm font-medium text-gray-900">
+                                    @if(request('name'))
+                                        {!! highlightText($folder->name, request('name')) !!}
+                                    @else
+                                        {{ $folder->name }}
+                                    @endif
+                                </div>
                                 @if($folder->childFolders->count() > 0)
                                 <div class="text-xs text-gray-500 flex items-center">
                                     <i class="fas fa-folder-open mr-1"></i>
@@ -126,54 +217,74 @@
                         {{ $folder->documents->count() }} files
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium align-middle">
-                    <!-- Dropdown Menu -->
-                    <div class="relative inline-block text-left">
-                        <button type="button" 
-                                class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                id="menu-button-{{ $folder->folder_id }}"
-                                onclick="toggleMenu('{{ $folder->folder_id }}')">
-                            <i class="fas fa-ellipsis-v text-gray-500"></i>
-                        </button>
-                        
-                        <!-- Dropdown panel -->
-                        <div class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
-                            id="menu-{{ $folder->folder_id }}">
-                            <div class="py-1" role="none">
-                                <!-- Edit -->
-                                <a href="{{ route('folders.edit', $folder->folder_id) }}" 
-                                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
-                                    <i class="fas fa-edit mr-3 text-blue-500"></i>
-                                    Chỉnh sửa
-                                </a>
-                                
-                                <!-- Delete -->
-                                <form action="{{ route('folders.destroy', $folder->folder_id) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                            onclick="return confirm('Bạn có chắc chắn muốn xóa thư mục {{ $folder->name }}?')">
-                                        <i class="fas fa-trash mr-3 text-red-500"></i>
-                                        Xóa
-                                    </button>
-                                </form>
+                        <!-- Dropdown Menu -->
+                        <div class="relative inline-block text-left">
+                            <button type="button" 
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    id="menu-button-{{ $folder->folder_id }}"
+                                    onclick="toggleMenu('{{ $folder->folder_id }}')">
+                                <i class="fas fa-ellipsis-v text-gray-500"></i>
+                            </button>
+                            
+                            <!-- Dropdown panel -->
+                            <div class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                                id="menu-{{ $folder->folder_id }}">
+                                <div class="py-1" role="none">
+                                    <!-- Edit -->
+                                    <a href="{{ route('folders.edit', $folder->folder_id) }}" 
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                        <i class="fas fa-edit mr-3 text-blue-500"></i>
+                                        Chỉnh sửa
+                                    </a>
+                                    
+                                    <!-- Delete -->
+                                    <form action="{{ route('folders.destroy', $folder->folder_id) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                                onclick="return confirm('Bạn có chắc chắn muốn xóa thư mục {{ $folder->name }}?')">
+                                            <i class="fas fa-trash mr-3 text-red-500"></i>
+                                            Xóa
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </td>
+                    </td>
                 </tr>
                 @empty
                 <tr>
                     <td colspan="5" class="px-6 py-8 text-center">
                         <div class="flex flex-col items-center justify-center text-gray-400">
                             <i class="fas fa-folder-open text-4xl mb-2"></i>
-                            <p class="text-lg">Không có thư mục nào</p>
-                            <p class="text-sm mt-1">Hãy tạo thư mục đầu tiên</p>
+                            <p class="text-lg">
+                                @if(request('name') || request('date') || request('status'))
+                                    Không tìm thấy thư mục nào phù hợp
+                                @else
+                                    Không có thư mục nào
+                                @endif
+                            </p>
+                            <p class="text-sm mt-1">
+                                @if(request('name') || request('date') || request('status'))
+                                    Hãy thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc
+                                @else
+                                    Hãy tạo thư mục đầu tiên
+                                @endif
+                            </p>
+                            @if(request('name') || request('date') || request('status'))
+                            <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
+                               class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
+                                <i class="fas fa-times mr-2"></i>
+                                Xóa bộ lọc
+                            </a>
+                            @else
                             <a href="{{ route('folders.create', ['parent_id' => $currentFolder ? $currentFolder->folder_id : null]) }}" 
                                class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
                                 <i class="fas fa-plus mr-2"></i>
                                 Tạo Thư Mục Mới
                             </a>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -182,6 +293,7 @@
         </table>
     </div>   
 </div>
+
 <script>
     // Biến để theo dõi menu đang mở
     let currentOpenMenu = null;
@@ -240,6 +352,14 @@
     [id^="menu-"] {
         z-index: 11111 !important;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }       
+    }
+    
+    /* Highlight text trong kết quả tìm kiếm */
+    .highlight {
+        background-color: #ffeb3b;
+        padding: 0 2px;
+        border-radius: 2px;
+        font-weight: bold;
+    }
 </style>
 @endsection

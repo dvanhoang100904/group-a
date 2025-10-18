@@ -1,16 +1,19 @@
 <template>
     <div>
-        <!-- Table -->
+        <div v-if="loading" class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- table -->
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+            <thead class="table-primary">
                 <tr>
                     <th class="text-center">#</th>
                     <th>Phiên bản</th>
-                    <th>Ghi chú thay đổi</th>
                     <th>Người cập nhật</th>
                     <th>Ngày cập nhật</th>
-                    <th>Kích thước</th>
-                    <th>Loại file</th>
                     <th>Trạng thái</th>
                     <th class="text-center">Hành động</th>
                 </tr>
@@ -25,11 +28,8 @@
                     <td>
                         <strong>v{{ version.version_number }}</strong>
                     </td>
-                    <td>{{ version.change_note || "-" }}</td>
                     <td>{{ version.user?.name || "Không rõ" }}</td>
                     <td>{{ formatDate(version.created_at) }}</td>
-                    <td>{{ formatFileSize(version.file_size) || "—" }}</td>
-                    <td>{{ formatMimeType(version.mime_type) }}</td>
                     <td>
                         <span
                             v-if="version.is_current_version"
@@ -51,6 +51,7 @@
                         <button
                             class="btn btn-sm btn-outline-primary me-1"
                             title="Xem chi tiết"
+                            @click="showVersionDetail(version)"
                         >
                             <i class="bi bi-eye"></i>
                         </button>
@@ -90,7 +91,7 @@
             </tbody>
         </table>
 
-        <!-- Pagination -->
+        <!-- pagination -->
         <nav v-if="versions.last_page && versions.last_page > 1" class="mt-3">
             <ul class="pagination justify-content-end mb-0">
                 <li
@@ -130,9 +131,244 @@
             </ul>
         </nav>
     </div>
+
+    <!-- modal detail -->
+    <div
+        class="modal fade"
+        id="versionDetailModal"
+        tabindex="-1"
+        aria-labelledby="versionDetailModalLabel"
+        aria-hidden="true"
+    >
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <!-- header -->
+                <div class="modal-header bg-light">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-wrapper bg-primary rounded p-2 me-3">
+                            <i class="bi bi-file-earmark-text text-white"></i>
+                        </div>
+                        <div>
+                            <!-- version number -->
+                            <h5
+                                class="modal-title mb-0"
+                                id="versionDetailModalLabel"
+                            >
+                                Phiên bản v{{ selectedVersion?.version_number }}
+                            </h5>
+                            <div class="text-muted small mt-1">
+                                <span
+                                    v-if="selectedVersion?.is_current_version"
+                                    class="badge bg-success-subtle text-success me-2"
+                                >
+                                    <i class="bi bi-check-circle me-1"></i>Hiện
+                                    tại
+                                </span>
+                                <span class="text-muted"
+                                    >Chi tiết phiên bản</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                    ></button>
+                </div>
+
+                <!-- body -->
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="section-title mb-3">
+                                <i class="bi bi-card-text me-2"></i>Thông tin
+                                phiên bản
+                            </h6>
+                        </div>
+
+                        <!-- change note -->
+                        <div class="col-sm-12 mb-3">
+                            <div class="card bg-light border-0">
+                                <div class="card-body p-3">
+                                    <h6 class="card-title fw-bold mb-2">
+                                        <i class="bi bi-journal-text me-2"></i
+                                        >Ghi chú thay đổi
+                                    </h6>
+                                    <p class="card-text mb-0">
+                                        {{
+                                            selectedVersion?.change_note ||
+                                            "Không có ghi chú"
+                                        }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- mime type  -->
+                        <div class="col-sm-6 mb-3">
+                            <div class="info-item">
+                                <div class="info-icon text-primary">
+                                    <i class="bi bi-file-earmark"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label fw-bold">
+                                        Loại file
+                                    </div>
+                                    <div class="info-value">
+                                        {{
+                                            formatMimeType(
+                                                selectedVersion?.mime_type
+                                            )
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- file size -->
+                        <div class="col-sm-6 mb-3">
+                            <div class="info-item">
+                                <div class="info-icon text-primary">
+                                    <i class="bi bi-hdd"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label fw-bold">
+                                        Kích thước
+                                    </div>
+                                    <div class="info-value">
+                                        {{
+                                            formatFileSize(
+                                                selectedVersion?.file_size
+                                            )
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="section-title mb-3">
+                                <i class="bi bi-person me-2"></i>Thông tin cập
+                                nhật
+                            </h6>
+                        </div>
+
+                        <!-- user name -->
+                        <div class="col-sm-6 mb-3">
+                            <div class="info-item">
+                                <div class="info-icon text-primary">
+                                    <i class="bi bi-person-circle"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label fw-bold">
+                                        Người cập nhật
+                                    </div>
+                                    <div class="info-value">
+                                        {{
+                                            selectedVersion?.user?.name ||
+                                            "Không rõ"
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- create at -->
+                        <div class="col-sm-6 mb-3">
+                            <div class="info-item">
+                                <div class="info-icon text-primary">
+                                    <i class="bi bi-calendar-event"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label fw-bold">
+                                        Ngày cập nhật
+                                    </div>
+                                    <div class="info-value">
+                                        {{
+                                            formatDate(
+                                                selectedVersion?.created_at
+                                            )
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- is current version -->
+                        <div class="col-sm-6 mb-3">
+                            <div class="info-item">
+                                <div class="info-icon text-primary">
+                                    <i class="bi bi-info-circle"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label fw-bold">
+                                        Trạng thái
+                                    </div>
+                                    <div class="info-value">
+                                        <span
+                                            v-if="
+                                                selectedVersion?.is_current_version
+                                            "
+                                            class="badge bg-success-subtle text-success"
+                                        >
+                                            <i
+                                                class="bi bi-check-circle me-1"
+                                            ></i
+                                            >Hiện tại
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="badge bg-secondary-subtle text-secondary"
+                                        >
+                                            <i
+                                                class="bi bi-clock-history me-1"
+                                            ></i
+                                            >Cũ
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- footer -->
+                <div class="modal-footer bg-light">
+                    <!-- action -->
+                    <div
+                        class="d-flex w-100 justify-content-between align-items-center"
+                    >
+                        <div class="file-actions">
+                            <a
+                                v-if="selectedVersion?.file_path"
+                                :href="selectedVersion.file_path"
+                                target="_blank"
+                                class="btn btn-primary"
+                            >
+                                <i class="bi bi-box-arrow-up-right me-1"></i>
+                                Mở file
+                            </a>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal"
+                        >
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup>
+import * as bootstrap from "bootstrap";
 import { ref, onMounted } from "vue";
 import axios from "axios";
 
@@ -142,7 +378,9 @@ const props = defineProps({
 
 const versions = ref({ data: [] });
 const loading = ref(false);
+const selectedVersion = ref(null);
 
+// list document versions
 const fetchVersions = async (page = 1) => {
     loading.value = true;
     try {
@@ -155,13 +393,16 @@ const fetchVersions = async (page = 1) => {
     }
 };
 
+// pagination
 const changePage = (page) => {
     if (page < 1 || page > versions.value.last_page) return;
     fetchVersions(page);
 };
 
+// format date
 const formatDate = (dateStr) => new Date(dateStr).toLocaleString("vi-VN");
 
+// format file size
 const formatFileSize = (bytes) => {
     if (!bytes) return null;
     const sizes = ["B", "KB", "MB", "GB", "TB"];
@@ -174,6 +415,7 @@ const formatFileSize = (bytes) => {
     return `${size.toFixed(2)} ${sizes[i]}`;
 };
 
+// format mime type
 const formatMimeType = (mime) => {
     if (!mime) return "-";
     if (mime.includes("pdf")) return "PDF";
@@ -182,6 +424,13 @@ const formatMimeType = (mime) => {
     if (mime.includes("image")) return "Hình ảnh";
     return mime;
 };
-
 onMounted(() => fetchVersions());
+
+// modal detail
+const showVersionDetail = (version) => {
+    selectedVersion.value = version;
+    const modalEl = document.getElementById("versionDetailModal");
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+};
 </script>
