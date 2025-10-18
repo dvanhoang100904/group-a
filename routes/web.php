@@ -17,7 +17,6 @@ Route::get('/dashboard', [DashboardController::class, 'index']);
 
 
 
-
 Route::get('/folders/search', [FolderController::class, 'search'])->name('folders.search');
 
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
@@ -94,4 +93,3 @@ Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('docume
 //profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
 Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
-
