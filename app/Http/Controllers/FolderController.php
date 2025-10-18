@@ -14,25 +14,41 @@ class FolderController extends Controller
      */
     public function index(Request $request)
     {
+        $searchName = $request->get('name');
+        $searchDate = $request->get('date');
+        $filterStatus = $request->get('status');
         $parentFolderId = $request->get('parent_id');
 
-        if ($parentFolderId) {
-            $currentFolder = Folder::with(['parentFolder'])->findOrFail($parentFolderId);
-            $folders = Folder::with(['childFolders', 'user', 'documents'])
-                ->where('parent_folder_id', $parentFolderId)
-                ->orderBy('created_at', 'desc')
-                ->get();
-        } else {
-            $currentFolder = null;
-            $folders = Folder::with(['childFolders', 'user', 'documents'])
-                ->whereNull('parent_folder_id')
-                ->orderBy('created_at', 'desc')
-                ->get();
+        $query = Folder::with(['childFolders', 'user', 'documents']);
+
+        // Tìm kiếm theo tên
+        if ($searchName) {
+            $query->where('name', 'like', '%' . $searchName . '%');
         }
 
+        // Tìm kiếm theo ngày tạo
+        if ($searchDate) {
+            $query->whereDate('created_at', $searchDate);
+        }
+
+        // Lọc theo trạng thái
+        if ($filterStatus && in_array($filterStatus, ['public', 'private'])) {
+            $query->where('status', $filterStatus);
+        }
+
+        // Nếu có parent_id, tìm trong thư mục cụ thể, ngược lại tìm trong thư mục gốc
+        if ($parentFolderId) {
+            $currentFolder = Folder::with(['parentFolder'])->findOrFail($parentFolderId);
+            $query->where('parent_folder_id', $parentFolderId);
+        } else {
+            $currentFolder = null;
+            $query->whereNull('parent_folder_id');
+        }
+
+        $folders = $query->orderBy('created_at', 'desc')->get();
         $breadcrumbs = $this->getBreadcrumbs($currentFolder);
 
-        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs'));
+        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs', 'searchName', 'searchDate', 'filterStatus'));
     }
 
     /**
@@ -183,5 +199,9 @@ class FolderController extends Controller
             return redirect()->back()
                 ->with('error', $e->getMessage());
         }
+    }
+    public function search(Request $request)
+    {
+        return $this->index($request);
     }
 }
