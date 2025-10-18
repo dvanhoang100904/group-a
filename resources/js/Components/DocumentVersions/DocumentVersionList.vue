@@ -343,16 +343,17 @@
                         class="d-flex w-100 justify-content-between align-items-center"
                     >
                         <div class="file-actions">
-                            <a
+                            <button
                                 v-if="selectedVersion?.file_path"
-                                :href="selectedVersion.file_path"
-                                target="_blank"
                                 class="btn btn-primary"
+                                @click="previewFile(selectedVersion)"
+                                title="Xem trước tài liệu"
                             >
-                                <i class="bi bi-box-arrow-up-right me-1"></i>
-                                Mở file
-                            </a>
+                                <i class="bi bi-eye me-1"></i>
+                                Xem trước
+                            </button>
                         </div>
+
                         <button
                             type="button"
                             class="btn btn-outline-secondary"
@@ -360,6 +361,68 @@
                         >
                             Đóng
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- modal preview file -->
+    <div
+        class="modal fade"
+        id="filePreviewModal"
+        tabindex="-1"
+        aria-labelledby="filePreviewModalLabel"
+        aria-hidden="true"
+    >
+        <div
+            class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
+        >
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="filePreviewModalLabel">
+                        Xem trước tài liệu
+                    </h5>
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Đóng"
+                    ></button>
+                </div>
+
+                <div class="modal-body text-center">
+                    <!-- Loading -->
+                    <div v-if="loading" class="text-muted">Đang tải...</div>
+
+                    <!-- PDF -->
+                    <iframe
+                        v-else-if="isPreviewable && mimeType.includes('pdf')"
+                        :src="previewUrl"
+                        width="100%"
+                        height="600px"
+                        style="border: none"
+                    ></iframe>
+
+                    <!-- Image -->
+                    <img
+                        v-else-if="isPreviewable && mimeType.includes('image')"
+                        :src="previewUrl"
+                        class="img-fluid rounded"
+                        alt="Xem trước tài liệu"
+                    />
+
+                    <!-- Không hỗ trợ -->
+                    <div v-else class="text-danger">
+                        Không thể xem trước định dạng này.
+                        <br />
+                        <a
+                            class="btn btn-outline-primary mt-3"
+                            :href="previewUrl"
+                            target="_blank"
+                        >
+                            <i class="bi bi-download me-1"></i> Tải xuống file
+                        </a>
                     </div>
                 </div>
             </div>
@@ -379,6 +442,9 @@ const props = defineProps({
 const versions = ref({ data: [] });
 const loading = ref(false);
 const selectedVersion = ref(null);
+const previewUrl = ref(null);
+const mimeType = ref("");
+const isPreviewable = ref(false);
 
 // list document versions
 const fetchVersions = async (page = 1) => {
@@ -432,5 +498,30 @@ const showVersionDetail = (version) => {
     const modalEl = document.getElementById("versionDetailModal");
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
+};
+
+// modal preview file
+const previewFile = (version) => {
+    selectedVersion.value = version;
+    previewUrl.value = null;
+    isPreviewable.value = false;
+    loading.value = true;
+
+    const mime = version.mime_type || "";
+    mimeType.value = mime;
+
+    if (mime.includes("pdf") || mime.includes("image")) {
+        isPreviewable.value = true;
+    }
+
+    previewUrl.value = version.file_path.startsWith("docs/")
+        ? `/storage/${version.file_path}`
+        : version.file_path;
+
+    const modalEl = document.getElementById("filePreviewModal");
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    setTimeout(() => (loading.value = false), 300);
 };
 </script>
