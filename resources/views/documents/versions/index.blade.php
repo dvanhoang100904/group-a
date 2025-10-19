@@ -40,12 +40,17 @@
         {{-- detail document --}}
         <div class="card shadow-sm mb-4 border-0">
             <div class="card-body">
-                <h5 class="fw-bold mb-1">{{ $document->title }}</h5>
-                <p class="text-muted small mb-0">
-                    Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
-                    Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong> |
-                    Số phiên bản: <strong>{{ $document->versions()->count() }}</strong>
-                </p>
+                @if ($document)
+                    <h5 class="fw-bold mb-1">{{ $document->title }}</h5>
+                    <p class="text-muted small mb-0">
+                        Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
+                        Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong> |
+                        Số phiên bản: <strong>{{ $document->versions()->count() }}</strong>
+                    </p>
+                @else
+                    <p class="text-danger">Tài liệu không tồn tại</p>
+                @endif
+
             </div>
         </div>
 
@@ -57,7 +62,9 @@
 
             <div class="card-body">
                 <div class="table-responsive">
-                    <div id="document-version-list" data-document-id="{{ $document->document_id }}"></div>
+                    @if ($document)
+                        <div id="document-version-list" data-document-id="{{ $document->document_id }}"></div>
+                    @endif
                 </div>
             </div>
         </div>
