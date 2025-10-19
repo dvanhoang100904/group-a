@@ -8,17 +8,28 @@ use Illuminate\Http\Request;
 
 class DocumentVersionApiController extends Controller
 {
-    const PER_PAGE = 3;
+    const PER_PAGE = 5;
 
-    public function index(Request $request, $id)
+    public function index($id)
     {
         $document = Document::find($id);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại'
+            ], 404);
+        }
 
         $versions = $document->versions()
             ->with('user')
             ->latest()
             ->paginate(self::PER_PAGE);
 
-        return response()->json($versions);
+        return response()->json([
+            'success' => true,
+            'data' => $versions,
+            'message' => 'Danh sách phiên bản'
+        ]);
     }
 }

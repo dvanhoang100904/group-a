@@ -1,11 +1,61 @@
-@import 'tailwindcss';
+/*******************modal versions*******************/
+.info-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+}
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+.info-icon {
+    font-size: 1.2rem;
+    width: 40px;
+    text-align: center;
+    margin-right: 12px;
+}
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+.info-content {
+    flex: 1;
+}
+
+.info-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 2px;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    color: #212529;
+}
+
+.section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 8px;
+}
+
+.icon-wrapper {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-actions .btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.modal-header {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+}
+
+.card.bg-light {
+    background-color: #f8f9fa !important;
 }

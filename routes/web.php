@@ -66,6 +66,8 @@ Route::get('/documents/{id}/edit', [DocumentController::class, 'edit'])->name('d
 Route::put('/documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
 Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
+
+// document versions
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
     ->name('documents.versions.index');
 Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('documents.show');

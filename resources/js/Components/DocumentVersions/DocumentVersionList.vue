@@ -1,12 +1,13 @@
 <template>
     <div>
+        <!-- loading -->
         <div v-if="loading" class="text-center py-3">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
         </div>
 
-        <!-- table -->
+        <!-- tables -->
         <table class="table table-hover align-middle mb-0">
             <thead class="table-primary">
                 <tr>
@@ -85,7 +86,7 @@
                 <!-- No data -->
                 <tr v-if="versions.data.length === 0">
                     <td colspan="9" class="text-center text-muted py-4">
-                        Không có phiên bản nào
+                        Chưa có phiên bản nào
                     </td>
                 </tr>
             </tbody>
@@ -130,317 +131,42 @@
                 </li>
             </ul>
         </nav>
-    </div>
 
-    <!-- modal detail -->
-    <div
-        class="modal fade"
-        id="versionDetailModal"
-        tabindex="-1"
-        aria-labelledby="versionDetailModalLabel"
-        aria-hidden="true"
-    >
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <!-- header -->
-                <div class="modal-header bg-light">
-                    <div class="d-flex align-items-center">
-                        <div class="icon-wrapper bg-primary rounded p-2 me-3">
-                            <i class="bi bi-file-earmark-text text-white"></i>
-                        </div>
-                        <div>
-                            <!-- version number -->
-                            <h5
-                                class="modal-title mb-0"
-                                id="versionDetailModalLabel"
-                            >
-                                Phiên bản v{{ selectedVersion?.version_number }}
-                            </h5>
-                            <div class="text-muted small mt-1">
-                                <span
-                                    v-if="selectedVersion?.is_current_version"
-                                    class="badge bg-success-subtle text-success me-2"
-                                >
-                                    <i class="bi bi-check-circle me-1"></i>Hiện
-                                    tại
-                                </span>
-                                <span class="text-muted"
-                                    >Chi tiết phiên bản</span
-                                >
-                            </div>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Close"
-                    ></button>
-                </div>
+        <!-- modal detail version -->
+        <VersionDetailModal
+            :selected-version="selectedVersion"
+            :format-file-size="formatFileSize"
+            :format-mime-type="formatMimeType"
+            :format-date="formatDate"
+            @preview-file="previewFile"
+        />
 
-                <!-- body -->
-                <div class="modal-body">
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <h6 class="section-title mb-3">
-                                <i class="bi bi-card-text me-2"></i>Thông tin
-                                phiên bản
-                            </h6>
-                        </div>
-
-                        <!-- change note -->
-                        <div class="col-sm-12 mb-3">
-                            <div class="card bg-light border-0">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title fw-bold mb-2">
-                                        <i class="bi bi-journal-text me-2"></i
-                                        >Ghi chú thay đổi
-                                    </h6>
-                                    <p class="card-text mb-0">
-                                        {{
-                                            selectedVersion?.change_note ||
-                                            "Không có ghi chú"
-                                        }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- mime type  -->
-                        <div class="col-sm-6 mb-3">
-                            <div class="info-item">
-                                <div class="info-icon text-primary">
-                                    <i class="bi bi-file-earmark"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label fw-bold">
-                                        Loại file
-                                    </div>
-                                    <div class="info-value">
-                                        {{
-                                            formatMimeType(
-                                                selectedVersion?.mime_type
-                                            )
-                                        }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- file size -->
-                        <div class="col-sm-6 mb-3">
-                            <div class="info-item">
-                                <div class="info-icon text-primary">
-                                    <i class="bi bi-hdd"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label fw-bold">
-                                        Kích thước
-                                    </div>
-                                    <div class="info-value">
-                                        {{
-                                            formatFileSize(
-                                                selectedVersion?.file_size
-                                            )
-                                        }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-12">
-                            <h6 class="section-title mb-3">
-                                <i class="bi bi-person me-2"></i>Thông tin cập
-                                nhật
-                            </h6>
-                        </div>
-
-                        <!-- user name -->
-                        <div class="col-sm-6 mb-3">
-                            <div class="info-item">
-                                <div class="info-icon text-primary">
-                                    <i class="bi bi-person-circle"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label fw-bold">
-                                        Người cập nhật
-                                    </div>
-                                    <div class="info-value">
-                                        {{
-                                            selectedVersion?.user?.name ||
-                                            "Không rõ"
-                                        }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- create at -->
-                        <div class="col-sm-6 mb-3">
-                            <div class="info-item">
-                                <div class="info-icon text-primary">
-                                    <i class="bi bi-calendar-event"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label fw-bold">
-                                        Ngày cập nhật
-                                    </div>
-                                    <div class="info-value">
-                                        {{
-                                            formatDate(
-                                                selectedVersion?.created_at
-                                            )
-                                        }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- is current version -->
-                        <div class="col-sm-6 mb-3">
-                            <div class="info-item">
-                                <div class="info-icon text-primary">
-                                    <i class="bi bi-info-circle"></i>
-                                </div>
-                                <div class="info-content">
-                                    <div class="info-label fw-bold">
-                                        Trạng thái
-                                    </div>
-                                    <div class="info-value">
-                                        <span
-                                            v-if="
-                                                selectedVersion?.is_current_version
-                                            "
-                                            class="badge bg-success-subtle text-success"
-                                        >
-                                            <i
-                                                class="bi bi-check-circle me-1"
-                                            ></i
-                                            >Hiện tại
-                                        </span>
-                                        <span
-                                            v-else
-                                            class="badge bg-secondary-subtle text-secondary"
-                                        >
-                                            <i
-                                                class="bi bi-clock-history me-1"
-                                            ></i
-                                            >Cũ
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- footer -->
-                <div class="modal-footer bg-light">
-                    <!-- action -->
-                    <div
-                        class="d-flex w-100 justify-content-between align-items-center"
-                    >
-                        <div class="file-actions">
-                            <button
-                                v-if="selectedVersion?.file_path"
-                                class="btn btn-primary"
-                                @click="previewFile(selectedVersion)"
-                                title="Xem trước tài liệu"
-                            >
-                                <i class="bi bi-eye me-1"></i>
-                                Xem trước
-                            </button>
-                        </div>
-
-                        <button
-                            type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal"
-                        >
-                            Đóng
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- modal preview file -->
-    <div
-        class="modal fade"
-        id="filePreviewModal"
-        tabindex="-1"
-        aria-labelledby="filePreviewModalLabel"
-        aria-hidden="true"
-    >
-        <div
-            class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"
-        >
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="filePreviewModalLabel">
-                        Xem trước tài liệu
-                    </h5>
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Đóng"
-                    ></button>
-                </div>
-
-                <div class="modal-body text-center">
-                    <!-- Loading -->
-                    <div v-if="loading" class="text-muted">Đang tải...</div>
-
-                    <!-- PDF -->
-                    <iframe
-                        v-else-if="isPreviewable && mimeType.includes('pdf')"
-                        :src="previewUrl"
-                        width="100%"
-                        height="600px"
-                        style="border: none"
-                    ></iframe>
-
-                    <!-- Image -->
-                    <img
-                        v-else-if="isPreviewable && mimeType.includes('image')"
-                        :src="previewUrl"
-                        class="img-fluid rounded"
-                        alt="Xem trước tài liệu"
-                    />
-
-                    <!-- Không hỗ trợ -->
-                    <div v-else class="text-danger">
-                        Không thể xem trước định dạng này.
-                        <br />
-                        <a
-                            class="btn btn-outline-primary mt-3"
-                            :href="previewUrl"
-                            target="_blank"
-                        >
-                            <i class="bi bi-download me-1"></i> Tải xuống file
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- modal preview file -->
+        <FilePreviewModal
+            :loading="loading"
+            :is-previewable="isPreviewable"
+            :mime-type="mimeType"
+            :preview-url="previewUrl"
+        />
     </div>
 </template>
 
 <script setup>
-import * as bootstrap from "bootstrap";
 import { ref, onMounted } from "vue";
 import axios from "axios";
+import VersionDetailModal from "./VersionDetailModal.vue";
+import FilePreviewModal from "./FilePreviewModal.vue";
 
+// Nhan props
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
 });
 
+// Luu danh sach cac phien ban
 const versions = ref({ data: [] });
+// Trang thai loading
 const loading = ref(false);
+// Phien ban duoc chon
 const selectedVersion = ref(null);
 const previewUrl = ref(null);
 const mimeType = ref("");
@@ -448,13 +174,23 @@ const isPreviewable = ref(false);
 
 // list document versions
 const fetchVersions = async (page = 1) => {
+    // Bat loading khi bat dau goi api
     loading.value = true;
     try {
+        // Goi api lay danh sach phien ban cua tai lieu theo id
         const res = await axios.get(
             `/api/documents/${props.documentId}/versions?page=${page}`
         );
-        versions.value = res.data;
+        // Luu du lieu tra ve vao state versions
+        if (res.data.success) {
+            versions.value = res.data.data;
+        } else {
+            alert(res.data.message);
+        }
+    } catch (error) {
+        alert("Lỗi hệ thống, vui lòng thử lại!");
     } finally {
+        // Tat loading
         loading.value = false;
     }
 };
@@ -490,38 +226,56 @@ const formatMimeType = (mime) => {
     if (mime.includes("image")) return "Hình ảnh";
     return mime;
 };
-onMounted(() => fetchVersions());
 
-// modal detail
+// modal detail version
 const showVersionDetail = (version) => {
+    // Luu phien ban duoc chon vao state de hien trong modal
     selectedVersion.value = version;
+    // Lay element modal tu dom
     const modalEl = document.getElementById("versionDetailModal");
+    // Tao instance modal bootstrap tu element
     const modal = new bootstrap.Modal(modalEl);
+    // Hien thi modal
     modal.show();
 };
 
 // modal preview file
 const previewFile = (version) => {
+    // Luu phien ban duoc chon vao state de hien thi modal
     selectedVersion.value = version;
+    // Reset cac trang thai preview truoc khi load file moi
+    // Duong dan file de preview
     previewUrl.value = null;
+    // Kiem tra xem file co preview duoc khong
     isPreviewable.value = false;
+    // Bat loading
     loading.value = true;
 
+    // Lay mime type cua file
     const mime = version.mime_type || "";
     mimeType.value = mime;
 
+    // Chi xem truoc pdf va hinh anh
     if (mime.includes("pdf") || mime.includes("image")) {
         isPreviewable.value = true;
     }
 
+    // Xac dinh url de hien thi
+    // Neu file nam trong storage thi them
     previewUrl.value = version.file_path.startsWith("docs/")
         ? `/storage/${version.file_path}`
         : version.file_path;
 
+    // Lay element modal tu dom va hien thi modal
     const modalEl = document.getElementById("filePreviewModal");
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 
+    // Tat loading sau khi modal da hien thi
     setTimeout(() => (loading.value = false), 300);
 };
+
+onMounted(() => {
+    fetchVersions();
+});
 </script>

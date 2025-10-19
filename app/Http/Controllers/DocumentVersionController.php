@@ -7,9 +7,11 @@ use Illuminate\Http\Request;
 
 class DocumentVersionController extends Controller
 {
-    public function index(Request $request, $id)
+    public function index($id)
     {
-        $document = Document::with('subject.department', 'versions.user')->find($id);
+        $document = Document::with('subject.department')
+            ->withCount('versions')
+            ->find($id);
 
         return view('documents.versions.index', [
             'document' => $document,
