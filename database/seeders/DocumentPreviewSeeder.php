@@ -14,7 +14,8 @@ class DocumentPreviewSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_RECORD = 100;
+    const MAX_PREVIEWS = 50; // tổng preview tạo ra
+    const MAX_PREVIEW_PER_VERSION = 3; // số preview tối đa cho mỗi version
 
     public function run(): void
     {
@@ -23,10 +24,13 @@ class DocumentPreviewSeeder extends Seeder
 
         $previewCounter = 1;
 
-        foreach (range(1, self::MAX_RECORD) as $_) {
+        foreach (range(1, self::MAX_PREVIEWS) as $_) {
+            if (empty($documents) || empty($users)) continue;
+
             $documentId = $documents[array_rand($documents)];
             $userId = $users[array_rand($users)];
 
+            // Lấy version của document
             $versions = DB::table('document_versions')
                 ->where('document_id', $documentId)
                 ->pluck('version_id')
@@ -36,15 +40,13 @@ class DocumentPreviewSeeder extends Seeder
 
             $versionId = $versions[array_rand($versions)];
 
-            // Tạo từ 1-3 preview cho mỗi version
-            $numPreviews = rand(1, 3);
-
-            for ($j = 1; $j <= $numPreviews; $j++) {
+            // Tạo 1-3 preview
+            $numPreviews = rand(1, self::MAX_PREVIEW_PER_VERSION);
+            for ($i = 1; $i <= $numPreviews; $i++) {
                 $previewPath = "previews/doc{$documentId}_v{$versionId}_preview{$previewCounter}.png";
 
-                // Tạo placeholder preview nếu muốn
                 if (!Storage::disk('public')->exists($previewPath)) {
-                    Storage::disk('public')->put($previewPath, '');
+                    Storage::disk('public')->put($previewPath, ''); // placeholder
                 }
 
                 DB::table('document_previews')->insert([
