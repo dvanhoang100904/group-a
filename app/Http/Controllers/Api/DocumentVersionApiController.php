@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\Writer\PDF\Mpdf as PDFWriter;
 use Throwable;
 
 class DocumentVersionApiController extends Controller
@@ -55,7 +57,7 @@ class DocumentVersionApiController extends Controller
             ], 404);
         }
 
-        //Lay preview moi nhat va chua het han
+        // Lấy preview mới nhất còn hạn
         $preview = $version->previews()
             ->where(function ($q) {
                 $q->whereNull('expires_at')
@@ -64,67 +66,54 @@ class DocumentVersionApiController extends Controller
             ->orderByDesc('created_at')
             ->first();
 
-        if ($preview) {
+        if ($preview && Storage::disk('public')->exists($preview->preview_path)) {
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'preview_path' => '/storage/' . $preview->preview_path,
+                    'preview_path' => Storage::url($preview->preview_path),
+                    'file_name' => basename($version->file_path),
                     'expires_at' => $preview->expires_at
                 ]
             ]);
         }
 
-        //  Neu la file DOCX, convert sang PDF
-        $ext = pathinfo($version->file_path, PATHINFO_EXTENSION);
-        if (strtolower($ext) === 'docx') {
-            $sourcePath = storage_path('app/public/' . $version->file_path);
-            $targetPath = 'previews/doc' . $version->document_id . '_v' . $version->version_number . '_preview.pdf';
-            // $fullTargetPath = storage_path('app/public/' . $targetPath);
+        // Chuyển DOCX sang PDF nếu cần
+        $filePath = storage_path('app/public/' . $version->file_path);
+        $ext = pathinfo($filePath, PATHINFO_EXTENSION);
 
-            try {
-                // Cau hinh PHPWORD su dung mPDF lam renderer
-                Settings::setPdfRendererName('MPDF');
-                Settings::setPdfRendererPath(base_path('vendor/mpdf/mpdf'));
+        if ($ext === 'docx') {
+            $pdfPreviewPath = 'previews/' . $version->version_id . '.pdf';
+            $pdfFullPath = storage_path('app/public/' . $pdfPreviewPath);
 
-                // Doc file Word goc
-                $phpWord = IOFactory::load($sourcePath);
+            if (!file_exists($pdfFullPath)) {
+                if (!file_exists(storage_path('app/public/previews'))) {
+                    mkdir(storage_path('app/public/previews'), 0755, true);
+                }
 
-                // Tao file PDF tam trong thu muc he thong
-                $tempFile = tempnam(sys_get_temp_dir(), 'preview_');
-                $pdfWriter = IOFactory::createWriter($phpWord, 'PDF');
-                $pdfWriter->save($tempFile);
-
-                // Ghi file PDF vao storage/public qua Storage facade
-                Storage::disk('public')->put($targetPath, file_get_contents($tempFile));
-
-                // Xoa file tam sau khi luu
-                @unlink($tempFile);
-
-                // Luu thong tin preview vao db
-                $preview = $version->previews()->create([
-                    'preview_path' => $targetPath,
-                    'generated_by' => $version->user_id,
-                    'expires_at' => now()->addDays(7),
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'preview_path' => '/storage/' . $preview->preview_path,
-                        'expires_at' => $preview->expires_at
-                    ]
-                ]);
-            } catch (\Throwable $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Không thể tạo preview: ' . $e->getMessage()
-                ], 500);
+                try {
+                    $phpWord = IOFactory::load($filePath);
+                    $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
+                    $pdfWriter->save($pdfFullPath);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không thể tạo preview PDF: ' . $e->getMessage()
+                    ]);
+                }
             }
+
+            $previewUrl = Storage::url($pdfPreviewPath);
+        } else {
+            // File PDF hoặc khác
+            $previewUrl = Storage::url($version->file_path);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Không có preview cho phiên bản này'
+            'success' => true,
+            'data' => [
+                'preview_path' => $previewUrl,
+                'file_name' => basename($version->file_path)
+            ]
         ]);
     }
 }

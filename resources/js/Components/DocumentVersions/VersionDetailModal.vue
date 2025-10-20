@@ -2,7 +2,7 @@
     <!-- modal detail version -->
     <div
         class="modal fade"
-        id="versionDetailModal"
+        ref="modalRef"
         tabindex="-1"
         aria-labelledby="versionDetailModalLabel"
         aria-hidden="true"
@@ -16,7 +16,6 @@
                             <i class="bi bi-file-earmark-text text-white"></i>
                         </div>
                         <div>
-                            <!-- version number -->
                             <h5
                                 class="modal-title mb-0"
                                 id="versionDetailModalLabel"
@@ -37,7 +36,7 @@
                     <button
                         type="button"
                         class="btn-close"
-                        data-bs-dismiss="modal"
+                        @click="closeModal"
                         aria-label="Close"
                     ></button>
                 </div>
@@ -202,26 +201,24 @@
 
                 <!-- footer -->
                 <div class="modal-footer bg-light">
-                    <!-- action -->
                     <div
                         class="d-flex w-100 justify-content-between align-items-center"
                     >
                         <div class="file-actions">
                             <button
-                                v-if="selectedVersion?.file_path"
+                                v-if="selectedVersion?.version_id"
                                 class="btn btn-primary"
-                                @click="emit('preview-file', selectedVersion)"
+                                @click="previewFile"
                                 title="Xem trước tài liệu"
                             >
-                                <i class="bi bi-eye me-1"></i>
-                                Xem trước
+                                <i class="bi bi-eye me-1"></i> Xem trước
                             </button>
                         </div>
 
                         <button
                             type="button"
                             class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal"
+                            @click="closeModal"
                         >
                             Đóng
                         </button>
@@ -229,10 +226,19 @@
                 </div>
             </div>
         </div>
+        <!-- modal preview file -->
+        <FilePreviewModal
+            v-model:version-id="versionToPreview"
+            :file-path="selectedVersion?.file_path"
+        />
     </div>
 </template>
 
 <script setup>
+import { ref, watch } from "vue";
+import FilePreviewModal from "./FilePreviewModal.vue";
+
+// Nhan props tu cha
 const props = defineProps({
     selectedVersion: Object,
     formatFileSize: Function,
@@ -240,5 +246,50 @@ const props = defineProps({
     formatDate: Function,
 });
 
-const emit = defineEmits(["preview-file"]);
+const emit = defineEmits(["update:selectedVersion"]);
+
+// ref modal chinh
+const modalRef = ref(null);
+// instance Bootstrap modal
+let bsModal = null;
+
+// Hien thi modal
+const showModal = () => {
+    if (!bsModal) bsModal = new bootstrap.Modal(modalRef.value);
+    bsModal.show();
+};
+
+// An modal
+const hideModal = () => {
+    if (bsModal) {
+        bsModal.hide();
+        bsModal = null;
+    }
+};
+
+// Dong modal va reset
+const closeModal = () => {
+    hideModal();
+    versionToPreview.value = null;
+    emit("update:selectedVersion", null);
+};
+
+// Watch props.selectedVersion để show/hide modal
+watch(
+    () => props.selectedVersion,
+    (val) => {
+        if (val) showModal();
+        else hideModal();
+    }
+);
+
+// File preview
+const versionToPreview = ref(null);
+const previewFile = () => {
+    if (props.selectedVersion?.version_id) {
+        versionToPreview.value = props.selectedVersion.version_id;
+    }
+};
+
+defineExpose({ showModal, hideModal, closeModal });
 </script>

@@ -31,7 +31,7 @@
                 </a>
 
                 <!-- upload -->
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+                <button class="btn btn-primary" data-bs-toggle="modal" >
                     <i class="bi bi-upload me-2"></i> Tải lên
                 </button>
             </div>
