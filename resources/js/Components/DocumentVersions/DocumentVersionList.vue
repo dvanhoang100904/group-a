@@ -169,8 +169,8 @@ const loading = ref(false);
 // Phien ban duoc chon
 const selectedVersion = ref(null);
 const previewUrl = ref(null);
-const mimeType = ref("");
 const isPreviewable = ref(false);
+const mimeType = ref("");
 
 // list document versions
 const fetchVersions = async (page = 1) => {
@@ -240,9 +240,10 @@ const showVersionDetail = (version) => {
 };
 
 // modal preview file
-const previewFile = (version) => {
+const previewFile = async (version) => {
     // Luu phien ban duoc chon vao state de hien thi modal
     selectedVersion.value = version;
+
     // Reset cac trang thai preview truoc khi load file moi
     // Duong dan file de preview
     previewUrl.value = null;
@@ -250,29 +251,46 @@ const previewFile = (version) => {
     isPreviewable.value = false;
     // Bat loading
     loading.value = true;
+    mimeType.value = version.mime_type || "";
 
-    // Lay mime type cua file
-    const mime = version.mime_type || "";
-    mimeType.value = mime;
+    try {
+        // Goi api preview file
+        const res = await axios.get(
+            `/api/versions/${version.version_id}/preview`
+        );
 
-    // Chi xem truoc pdf va hinh anh
-    if (mime.includes("pdf") || mime.includes("image")) {
-        isPreviewable.value = true;
+        if (res.data.success) {
+            const preview = res.data.data;
+            // Neu co preview hợp lệ
+            previewUrl.value = preview.preview_path;
+            isPreviewable.value = true;
+        } else {
+            // fallback file goc
+            previewUrl.value = version.file_path.startsWith("docs/")
+                ? `/storage/${version.file_path}`
+                : version.file_path;
+
+            isPreviewable.value =
+                version.mime_type.includes("pdf") ||
+                version.mime_type.includes("image");
+        }
+    } catch (err) {
+        // fallback khi api error
+        previewUrl.value = version.file_path.startsWith("docs/")
+            ? `/storage/${version.file_path}`
+            : version.file_path;
+
+        isPreviewable.value =
+            version.mime_type.includes("pdf") ||
+            version.mime_type.includes("image");
+    } finally {
+        loading.value = false;
+
+        // Hien thi modal
+        const modalEl = document.getElementById("filePreviewModal");
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
     }
-
-    // Xac dinh url de hien thi
-    // Neu file nam trong storage thi them
-    previewUrl.value = version.file_path.startsWith("docs/")
-        ? `/storage/${version.file_path}`
-        : version.file_path;
-
-    // Lay element modal tu dom va hien thi modal
-    const modalEl = document.getElementById("filePreviewModal");
-    const modal = new bootstrap.Modal(modalEl);
-    modal.show();
-
-    // Tat loading sau khi modal da hien thi
-    setTimeout(() => (loading.value = false), 300);
 };
 
 onMounted(() => {
