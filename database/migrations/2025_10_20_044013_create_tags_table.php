@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('types', function (Blueprint $table) {
-            $table->increments('type_id');
+        Schema::create('tags', function (Blueprint $table) {
+            $table->increments('tag_id');
             $table->string('name', 150)->unique();
             $table->string('description', 255)->nullable();
             $table->timestamps();
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('types');
+        Schema::dropIfExists('tags');
     }
 };

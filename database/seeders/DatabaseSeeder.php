@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\VersionComparison;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -21,6 +22,7 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
+        // Các seeder cơ bản
         $this->call([
             UserSeeder::class,
             RoleSeeder::class,
@@ -28,13 +30,22 @@ class DatabaseSeeder extends Seeder
             SubjectSeeder::class,
             TypeSeeder::class,
             FolderSeeder::class,
+            TagSeeder::class,
+        ]);
+
+        // Document + Version + Preview
+        $this->call([
             DocumentSeeder::class,
             DocumentVersionSeeder::class,
             DocumentPreviewSeeder::class,
+        ]);
+
+        // Seeder khác nếu cần test logic app
+        $this->call([
             DocumentAccessSeeder::class,
             VersionComparisonSeeder::class,
-            ReportSeeder::class,
             ActivitySeeder::class,
+            ReportSeeder::class,
             FolderLogSeeder::class,
         ]);
     }

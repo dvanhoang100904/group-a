@@ -16,12 +16,15 @@ class VersionComparisonSeeder extends Seeder
 
     public function run(): void
     {
-        $versions = DB::table('document_versions')->pluck('version_id');
-        $users = DB::table('users')->pluck('user_id');
+        $versions = DB::table('document_versions')->pluck('version_id')->toArray();
+        $users = DB::table('users')->pluck('user_id')->toArray();
         $diffResults = ['No changes', 'Minor changes', 'Major changes'];
 
+        if (count($versions) < 2) return; // cần ít nhất 2 version
+
         for ($i = 1; $i <= self::MAX_RECORD; $i++) {
-            $selectedVersions = $versions->shuffle()->take(2)->values();
+            // Chọn 2 version khác nhau
+            $selectedVersions = collect($versions)->shuffle()->take(2)->values();
             $baseVersion = $selectedVersions[0];
             $compareVersion = $selectedVersions[1];
 
@@ -29,9 +32,9 @@ class VersionComparisonSeeder extends Seeder
                 'diff_result' => $diffResults[array_rand($diffResults)],
                 'base_version_id' => $baseVersion,
                 'compare_version_id' => $compareVersion,
-                'compared_by' => $users->random(),
+                'compared_by' => $users[array_rand($users)],
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
         }
     }

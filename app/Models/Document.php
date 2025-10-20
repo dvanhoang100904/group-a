@@ -62,4 +62,9 @@ class Document extends Model
     {
         return $this->hasMany(Activity::class, 'document_id');
     }
+
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'document_tags', 'document_id', 'tag_id');
+    }
 }
