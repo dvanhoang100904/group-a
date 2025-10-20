@@ -57,7 +57,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="#">
-                    <i class="bi bi-tags"></i>
+                    <i class="bi bi-collection"></i>
                     <span class="link-text">Loại tài liệu</span>
                 </a>
             </li>
@@ -71,6 +71,12 @@
                 <a class="nav-link" href="#">
                     <i class="bi bi-building"></i>
                     <span class="link-text">Khoa / Bộ môn</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-tags"></i>
+                    <span class="link-text">Thẻ</span>
                 </a>
             </li>
 
