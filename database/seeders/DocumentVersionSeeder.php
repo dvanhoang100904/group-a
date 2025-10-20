@@ -14,32 +14,31 @@ class DocumentVersionSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_RECORD = 100;
+    const MAX_RECORD = 20;
 
     public function run(): void
     {
-        $users = DB::table('users')->pluck('user_id');
-        $folders = DB::table('folders')->pluck('folder_id');
-        $types = DB::table('types')->pluck('type_id', 'name')->toArray();
-        $subjects = DB::table('subjects')->pluck('subject_id', 'name')->toArray();
-        $statuses = ['private', 'public', 'restricted'];
-        $tagIds = DB::table('tags')->pluck('tag_id')->toArray(); // Lấy danh sách tag
         $documents = DB::table('documents')->pluck('document_id')->toArray();
+        $users = DB::table('users')->pluck('user_id')->toArray();
 
-        for ($i = 1; $i <= self::MAX_RECORD; $i++) {
-            $documentId = $documents[array_rand($documents)]; // Lấy document có sẵn
-            $userId = $users->random();
+        foreach (range(1, self::MAX_RECORD) as $_) {
+            if (empty($documents) || empty($users)) continue;
 
-            // Lấy version mới tiếp theo
-            $versionNumber = DB::table('document_versions')
+            // Chọn ngẫu nhiên document và user
+            $documentId = $documents[array_rand($documents)];
+            $userId = $users[array_rand($users)];
+
+            // Xác định version tiếp theo
+            $versionNumber = (int) DB::table('document_versions')
                 ->where('document_id', $documentId)
                 ->max('version_number') + 1;
 
+            // Tạo file PDF placeholder
             $filePath = "docs/doc{$documentId}_v{$versionNumber}.pdf";
-            $pdf = Pdf::loadHTML("<h1>Document {$documentId}</h1><p>Version: {$versionNumber}</p>");
-            $pdfContent = $pdf->output();
+            $pdfContent = Pdf::loadHTML("<h1>Document {$documentId}</h1><p>Version: {$versionNumber}</p>")->output();
             Storage::disk('public')->put($filePath, $pdfContent);
 
+            // Lưu version vào DB
             DB::table('document_versions')->insert([
                 'version_number' => $versionNumber,
                 'file_path' => $filePath,
@@ -53,6 +52,7 @@ class DocumentVersionSeeder extends Seeder
                 'updated_at' => now(),
             ]);
 
+            // Đánh dấu version cũ không còn là current
             if ($versionNumber > 1) {
                 DB::table('document_versions')
                     ->where('document_id', $documentId)
