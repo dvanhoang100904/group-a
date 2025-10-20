@@ -20,6 +20,11 @@ class TypeSeeder extends Seeder
             ['name' => 'Hướng dẫn', 'description' => 'Tài liệu dạng hướng dẫn'],
             ['name' => 'Tham khảo', 'description' => 'Tài liệu tham khảo'],
             ['name' => 'Khác', 'description' => 'Các loại tài liệu khác'],
+            ['name' => 'Luận văn', 'description' => 'Tài liệu dạng luận văn'],
+            ['name' => 'Đề thi', 'description' => 'Tài liệu đề thi và đề kiểm tra'],
+            ['name' => 'Báo cáo nghiên cứu', 'description' => 'Tài liệu báo cáo nghiên cứu'],
+            ['name' => 'Tài liệu tham khảo nâng cao', 'description' => 'Tài liệu tham khảo chuyên sâu'],
+            ['name' => 'Tài liệu hướng dẫn lab', 'description' => 'Hướng dẫn thực hành lab'],
         ];
 
         foreach ($types as $type) {

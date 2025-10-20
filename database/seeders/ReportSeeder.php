@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReportSeeder extends Seeder
 {
-    const MAX_RECORD = 10;
+    const MAX_RECORD = 100;
 
     /**
      * Run the database seeds.
