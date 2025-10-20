@@ -134,19 +134,10 @@
 
         <!-- modal detail version -->
         <VersionDetailModal
-            :selected-version="selectedVersion"
+            v-model:selected-version="selectedVersion"
             :format-file-size="formatFileSize"
             :format-mime-type="formatMimeType"
             :format-date="formatDate"
-            @preview-file="previewFile"
-        />
-
-        <!-- modal preview file -->
-        <FilePreviewModal
-            :loading="loading"
-            :is-previewable="isPreviewable"
-            :mime-type="mimeType"
-            :preview-url="previewUrl"
         />
     </div>
 </template>
@@ -155,7 +146,6 @@
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import VersionDetailModal from "./VersionDetailModal.vue";
-import FilePreviewModal from "./FilePreviewModal.vue";
 
 // Nhan props
 const props = defineProps({
@@ -168,9 +158,6 @@ const versions = ref({ data: [] });
 const loading = ref(false);
 // Phien ban duoc chon
 const selectedVersion = ref(null);
-const previewUrl = ref(null);
-const isPreviewable = ref(false);
-const mimeType = ref("");
 
 // list document versions
 const fetchVersions = async (page = 1) => {
@@ -185,7 +172,7 @@ const fetchVersions = async (page = 1) => {
         if (res.data.success) {
             versions.value = res.data.data;
         } else {
-            alert(res.data.message);
+            alert(res.data.message ?? "Thông báo tồn tại");
         }
     } catch (error) {
         alert("Lỗi hệ thống, vui lòng thử lại!");
@@ -231,66 +218,6 @@ const formatMimeType = (mime) => {
 const showVersionDetail = (version) => {
     // Luu phien ban duoc chon vao state de hien trong modal
     selectedVersion.value = version;
-    // Lay element modal tu dom
-    const modalEl = document.getElementById("versionDetailModal");
-    // Tao instance modal bootstrap tu element
-    const modal = new bootstrap.Modal(modalEl);
-    // Hien thi modal
-    modal.show();
-};
-
-// modal preview file
-const previewFile = async (version) => {
-    // Luu phien ban duoc chon vao state de hien thi modal
-    selectedVersion.value = version;
-
-    // Reset cac trang thai preview truoc khi load file moi
-    // Duong dan file de preview
-    previewUrl.value = null;
-    // Kiem tra xem file co preview duoc khong
-    isPreviewable.value = false;
-    // Bat loading
-    loading.value = true;
-    mimeType.value = version.mime_type || "";
-
-    try {
-        // Goi api preview file
-        const res = await axios.get(
-            `/api/versions/${version.version_id}/preview`
-        );
-
-        if (res.data.success) {
-            const preview = res.data.data;
-            // Neu co preview hợp lệ
-            previewUrl.value = preview.preview_path;
-            isPreviewable.value = true;
-        } else {
-            // fallback file goc
-            previewUrl.value = version.file_path.startsWith("docs/")
-                ? `/storage/${version.file_path}`
-                : version.file_path;
-
-            isPreviewable.value =
-                version.mime_type.includes("pdf") ||
-                version.mime_type.includes("image");
-        }
-    } catch (err) {
-        // fallback khi api error
-        previewUrl.value = version.file_path.startsWith("docs/")
-            ? `/storage/${version.file_path}`
-            : version.file_path;
-
-        isPreviewable.value =
-            version.mime_type.includes("pdf") ||
-            version.mime_type.includes("image");
-    } finally {
-        loading.value = false;
-
-        // Hien thi modal
-        const modalEl = document.getElementById("filePreviewModal");
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-    }
 };
 
 onMounted(() => {
