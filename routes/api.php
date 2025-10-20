@@ -10,3 +10,4 @@ use App\Http\Controllers\Api\DocumentVersionApiController;
 // })->middleware('auth:sanctum');
 
 Route::get('/documents/{id}/versions', [DocumentVersionApiController::class, 'index']);
+Route::get('/versions/{id}/preview', [DocumentVersionApiController::class, 'preview']);
