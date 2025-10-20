@@ -12,30 +12,35 @@ class VersionComparisonSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_RECORD = 20; // số bản so sánh
-
     public function run(): void
     {
-        $versions = DB::table('document_versions')->pluck('version_id')->toArray();
+        $documents = DB::table('documents')->pluck('document_id')->toArray();
         $users = DB::table('users')->pluck('user_id')->toArray();
-        $diffResults = ['No changes', 'Minor changes', 'Major changes'];
 
-        if (count($versions) < 2) return; // ít nhất 2 version mới so sánh được
+        if (empty($documents) || empty($users)) return;
 
-        foreach (range(1, self::MAX_RECORD) as $_) {
-            // Chọn 2 version khác nhau
-            $selectedVersions = collect($versions)->shuffle()->take(2)->values();
-            $baseVersion = $selectedVersions[0];
-            $compareVersion = $selectedVersions[1];
+        foreach ($documents as $documentId) {
+            // Lấy tất cả version của document, sắp xếp theo version_number
+            $versions = DB::table('document_versions')
+                ->where('document_id', $documentId)
+                ->orderBy('version_number')
+                ->pluck('version_id')
+                ->toArray();
 
-            DB::table('version_comparisons')->insert([
-                'base_version_id' => $baseVersion,
-                'compare_version_id' => $compareVersion,
-                'diff_result' => $diffResults[array_rand($diffResults)],
-                'compared_by' => $users[array_rand($users)],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            if (count($versions) < 2) continue; // Chỉ tạo comparison nếu có ≥2 version
+
+            for ($i = 0; $i < count($versions) - 1; $i++) {
+                DB::table('version_comparisons')->insert([
+                    'diff_result' => json_encode([
+                        'changes' => "So sánh version {$versions[$i]} vs version {$versions[$i + 1]}"
+                    ]),
+                    'base_version_id' => $versions[$i],
+                    'compare_version_id' => $versions[$i + 1],
+                    'compared_by' => $users[array_rand($users)],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }
