@@ -12,7 +12,7 @@ class ActivitySeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_RECORD = 100;
+    const MAX_RECORD = 50;
 
     public function run(): void
     {
