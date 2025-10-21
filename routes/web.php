@@ -39,9 +39,7 @@ use App\Http\Controllers\UserController;
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
 
-
-
-
+// Folder - yen đẹp trai
 Route::get('/folders/search', [FolderController::class, 'search'])->name('folders.search');
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
 Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
@@ -71,7 +69,10 @@ Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
     ->name('documents.versions.index');
 Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
+<<<<<<< HEAD
 
 //profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
 Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
+=======
+>>>>>>> yen/5.fix_error_migrations
