@@ -11,3 +11,4 @@ use App\Http\Controllers\Api\DocumentVersionApiController;
 
 Route::get('/documents/{id}/versions', [DocumentVersionApiController::class, 'index']);
 Route::get('/versions/{id}/preview', [DocumentVersionApiController::class, 'preview']);
+Route::post('/documents/{id}/versions/upload', [DocumentVersionApiController::class, 'upload']);

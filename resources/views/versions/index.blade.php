@@ -24,17 +24,6 @@
                 <i class="bi bi-clock-history me-2"></i>
                 Phiên bản tài liệu
             </h3>
-            <div>
-                <!-- back -->
-                <a href="#!" class="btn btn-outline-secondary me-2">
-                    <i class="bi bi-arrow-left me-1"></i> Quay lại
-                </a>
-
-                <!-- upload -->
-                <button class="btn btn-primary" data-bs-toggle="modal" >
-                    <i class="bi bi-upload me-2"></i> Tải lên
-                </button>
-            </div>
         </div>
 
         {{-- detail document --}}
@@ -50,25 +39,13 @@
                 @else
                     <p class="text-danger">Tài liệu không tồn tại</p>
                 @endif
-
             </div>
         </div>
 
         {{-- list versions --}}
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <span class="fw-bold"><i class="bi bi-list-ul me-1"></i> Danh sách các phiên bản</span>
-            </div>
-
-            <div class="card-body">
-                <div class="table-responsive">
-                    @if ($document)
-                        <div id="document-version-list" data-document-id="{{ $document->document_id }}"></div>
-                    @endif
-                </div>
-            </div>
-        </div>
-
+        @if ($document)
+            <div id="document-version-list" data-document-id="{{ $document->document_id }}"></div>
+        @endif
     </div>
 
     {{-- vue js --}}
