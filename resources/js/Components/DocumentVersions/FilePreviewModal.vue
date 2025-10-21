@@ -36,7 +36,7 @@
                 <div class="modal-footer">
                     <button
                         type="button"
-                        class="btn btn-outline-secondary"
+                        class="btn btn-sm btn-outline-secondary"
                         @click="closeModal"
                     >
                         Đóng

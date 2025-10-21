@@ -3,21 +3,27 @@
 @section('title', 'Phiên bản tài liệu')
 
 @section('content')
-    <div class="container-fluid pt-4">
+    <div class="py-4">
         <!-- breadcrumb -->
-        <nav aria-label="breadcrumb" class="mb-4">
-            <ol class="breadcrumb">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-4">
                 <li class="breadcrumb-item">
-                    <a class="text-dark text-decoration-none" href="#!">Tài liệu</a>
+                    <a class="text-dark text-decoration-none" href="{{ route('documents.index') }}">
+                        </i> Danh sách tài liệu
+                    </a>
                 </li>
                 <li class="breadcrumb-item">
-                    <a class="text-dark text-decoration-none" href="#!">Chi tiết tài liệu</a>
+                    <a class="text-dark text-decoration-none"
+                        href="{{ route('documents.show', ['id' => $document->document_id]) }}">
+                        </i>{{ $document->title }}
+                    </a>
                 </li>
                 <li class="breadcrumb-item active" aria-current="page">
                     Phiên bản tài liệu
                 </li>
             </ol>
         </nav>
+
         <!-- header -->
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="mb-0 fw-bold text-primary fs-4">
