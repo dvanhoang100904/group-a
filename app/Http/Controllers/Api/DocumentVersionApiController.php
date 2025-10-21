@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\Element\Text;
+use PhpOffice\PhpWord\Element\TextRun;
+use PhpOffice\PhpWord\Element\Table;
+use PhpOffice\PhpWord\Element\Section;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Throwable;
 use Illuminate\Support\Str;
 
@@ -58,7 +65,7 @@ class DocumentVersionApiController extends Controller
             ], 404);
         }
 
-        // Lấy preview mới nhất còn hạn
+        // Lay preview moi nhat con han
         $preview = $version->previews()
             ->where(function ($q) {
                 $q->whereNull('expires_at')
@@ -78,9 +85,9 @@ class DocumentVersionApiController extends Controller
             ]);
         }
 
-        // Chuyển DOCX sang PDF nếu cần
         $filePath = storage_path('app/public/' . $version->file_path);
-        $ext = pathinfo($filePath, PATHINFO_EXTENSION);
+        $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $previewUrl = null;
 
         if ($ext === 'docx') {
             $pdfPreviewPath = 'previews/' . $version->version_id . '.pdf';
@@ -93,19 +100,53 @@ class DocumentVersionApiController extends Controller
 
                 try {
                     $phpWord = IOFactory::load($filePath);
-                    $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
-                    $pdfWriter->save($pdfFullPath);
-                } catch (\Exception $e) {
+
+                    // Set font Unicode cho toàn bộ document
+                    foreach ($phpWord->getSections() as $section) {
+                        $this->setFontRecursive($section, 'DejaVu Sans');
+                    }
+
+                    // Nếu DomPDF đã cài
+                    if (class_exists(Dompdf::class)) {
+
+                        // Cấu hình font directory & cache để DomPDF nhận font Unicode
+                        $fontDir = storage_path('fonts');
+                        if (!file_exists($fontDir)) {
+                            mkdir($fontDir, 0755, true);
+                        }
+
+                        $options = new Options();
+                        $options->set('fontDir', $fontDir);
+                        $options->set('fontCache', $fontDir);
+                        $options->set('defaultFont', 'DejaVu Sans');
+                        $options->set('isRemoteEnabled', true); // nếu muốn load asset ngoài
+
+                        // $dompdf = new Dompdf($options);
+
+                        Settings::setPdfRendererName(Settings::PDF_RENDERER_DOMPDF);
+                        Settings::setPdfRendererPath(base_path('vendor/dompdf/dompdf'));
+
+                        $pdfWriter = IOFactory::createWriter($phpWord, 'PDF');
+                        $pdfWriter->save($pdfFullPath);
+
+                        $previewUrl = Storage::url($pdfPreviewPath);
+                    } else {
+                        // Fallback Office Online Viewer
+                        $docxUrl = asset('storage/' . $version->file_path);
+                        $previewUrl = "https://view.officeapps.live.com/op/embed.aspx?src=" . urlencode($docxUrl);
+                    }
+                } catch (Throwable $e) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Không thể tạo preview PDF: ' . $e->getMessage()
+                        'message' => 'Không thể tạo preview PDF/Word: ' . $e->getMessage()
                     ]);
                 }
+            } else {
+                // PDF đã tồn tại thi dùng luôn
+                $previewUrl = Storage::url($pdfPreviewPath);
             }
-
-            $previewUrl = Storage::url($pdfPreviewPath);
         } else {
-            // File PDF hoặc khác
+            // PDF hoặc file khác thi trả thẳng
             $previewUrl = Storage::url($version->file_path);
         }
 
@@ -119,70 +160,35 @@ class DocumentVersionApiController extends Controller
     }
 
     /**
-     * Upload tai lieu phen ban moi
+     * set font
      */
-    public function upload(UploadDocumentVersionRequest $request, $id)
+    private function setFontRecursive($element, string $fontName = 'DejaVu Sans')
     {
-        $document = Document::find($id);
-
-        if (!$document) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
-        }
-
-        // if (auth()->id() !== $document->user_id) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Bạn không có quyền upload phiên bản mới'
-        //     ], 403);
-        // }
-
-        DB::beginTransaction();
-        try {
-            // Luu file 
-            $file = $request->file('file');
-            // Tao ten file an toan
-            $fileName = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('docs', $fileName, 'public');
-
-            // Xac dinh version_number tiep theo
-            $lastVersion = $document->versions()->orderByDesc('version_number')->first();
-            $newVersionNumber = $lastVersion ? $lastVersion->version_number + 1 : 1;
-
-            // Tao moi
-            $version = $document->versions()->create([
-                'version_number' => $newVersionNumber,
-                'file_path' => $path,
-                'file_size' => $file->getSize(),
-                'mime_type' => $file->getMimeType(),
-                'change_note' => $request->change_note,
-                'is_current_version' => true,
-                'user_id' => auth()->id() ?? 1,
-            ]);
-
-            // Cap nhat cac phien ban khac ve cu
-            $document->versions()
-                ->where('version_id', '!=', $version->version_id)
-                ->update(['is_current_version' => false]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Tải lên phiên bản mới thành công',
-                'data' => $version
-            ]);
-        } catch (Throwable $e) {
-            DB::rollBack();
-
-            // Xoa file neu da luu
-            if (isset($path) && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+        if ($element instanceof Text) {
+            $fontStyle = $element->getFontStyle();
+            if ($fontStyle) {
+                $fontStyle->setName($fontName);
             }
-
-            return response()->json(['success' => false, 'message' => 'Có lỗi xảy ra khi tải lên: ' . $e->getMessage()], 500);
+        } elseif ($element instanceof TextRun && method_exists($element, 'getElements')) {
+            foreach ($element->getElements() as $child) {
+                $this->setFontRecursive($child, $fontName);
+            }
+        } elseif ($element instanceof Table && method_exists($element, 'getRows')) {
+            foreach ($element->getRows() as $row) {
+                if (method_exists($row, 'getCells')) {
+                    foreach ($row->getCells() as $cell) {
+                        if (method_exists($cell, 'getElements')) {
+                            foreach ($cell->getElements() as $child) {
+                                $this->setFontRecursive($child, $fontName);
+                            }
+                        }
+                    }
+                }
+            }
+        } elseif ($element instanceof Section && method_exists($element, 'getElements')) {
+            foreach ($element->getElements() as $child) {
+                $this->setFontRecursive($child, $fontName);
+            }
         }
     }
 }
