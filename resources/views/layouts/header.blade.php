@@ -16,7 +16,7 @@
                         <strong class="d-none d-md-block">Admin</strong>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li><a class="dropdown-item" href="{{ route('profile.view') }}""><i class="bi bi-person me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ route('profile.view') }}"><i class="bi bi-person me-2"></i>Profile</a></li>
                         <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Cài đặt</a></li>
                         <li>
                             <hr class="dropdown-divider">
