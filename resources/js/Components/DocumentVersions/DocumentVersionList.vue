@@ -15,8 +15,9 @@
                     bản</span
                 >
                 <div class="d-flex justify-content-end mb-1">
+                    <!-- upload -->
                     <button
-                        class="btn btn-primary"
+                        class="btn btn-sm btn-primary"
                         @click="uploadModal.showModal()"
                     >
                         <i class="bi bi-upload me-2"></i> Tải lên

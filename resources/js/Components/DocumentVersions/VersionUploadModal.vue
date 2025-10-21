@@ -1,8 +1,10 @@
 <template>
     <div>
+        <!-- modal  -->
         <div class="modal fade" ref="modalRef" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
+                    <!-- header -->
                     <div class="modal-header">
                         <h5 class="modal-title">Tải lên phiên bản mới</h5>
                         <button
@@ -58,17 +60,29 @@
                                 {{ success }}
                             </div>
 
-                            <button
-                                type="submit"
-                                class="btn btn-primary"
-                                :disabled="loading"
+                            <div
+                                class="d-flex w-100 justify-content-between align-items-center"
                             >
-                                <span
-                                    v-if="loading"
-                                    class="spinner-border spinner-border-sm me-2"
-                                ></span>
-                                Tải lên
-                            </button>
+                                <button
+                                    type="submit"
+                                    class="btn btn-sm btn-primary"
+                                    :disabled="loading"
+                                >
+                                    <span
+                                        v-if="loading"
+                                        class="spinner-border spinner-border-sm me-2"
+                                    ></span>
+                                    <i class="bi bi-upload me-2"></i> Tải lên
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    @click="closeModal"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -86,6 +100,8 @@ const props = defineProps({
     documentId: { type: [String, Number], required: true },
 });
 
+const emit = defineEmits(["uploaded"]);
+
 // Ref modal chinh
 const modalRef = ref(null);
 
@@ -99,6 +115,7 @@ const error = ref(null);
 const success = ref(null);
 const progress = ref(0);
 
+// Hien thi modal
 const showModal = () => {
     if (!bsModal) bsModal = new bootstrap.Modal(modalRef.value);
     bsModal.show();
@@ -141,7 +158,7 @@ const submitUpload = async () => {
 
     const formData = new FormData();
     formData.append("file", fileInput.value.files[0]);
-    console.log("Ghi chú thay đổi:", changeNote.value);
+    // console.log("Ghi chú thay đổi:", changeNote.value);
     formData.append("change_note", changeNote.value);
 
     try {
@@ -158,13 +175,12 @@ const submitUpload = async () => {
 
         if (res.data.success) {
             success.value = res.data.message;
+
+            emit("uploaded", res.data.data);
+
             // Emit event để component cha refresh list
             resetForm();
             hideModal();
-            // Emit để highlight phiên bản mới
-            window.dispatchEvent(
-                new CustomEvent("version-uploaded", { detail: res.data.data })
-            );
         } else {
             error.value = res.data.message || "Upload thất bại";
         }
