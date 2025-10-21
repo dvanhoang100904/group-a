@@ -45,7 +45,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="{{ route('folders.index') }}">
                     <i class="bi bi-folder2-open"></i>
                     <span class="link-text">Quản lý thư mục</span>
                 </a>

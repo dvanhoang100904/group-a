@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
 
-
+// Folder - yen đẹp trai
 Route::get('/folders/search', [FolderController::class, 'search'])->name('folders.search');
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
 Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
@@ -41,4 +41,3 @@ Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
     ->name('documents.versions.index');
 Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
-
