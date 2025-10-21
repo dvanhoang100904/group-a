@@ -118,7 +118,7 @@ body {
 }
 
 .sidebar.collapsed .sidebar-content {
-    padding: 24px 8px;
+    padding: 16px 8px 80px 8px;
 }
 
 /* Thêm khoảng cách an toàn phía trên menu đầu tiên khi collapsed */
@@ -204,6 +204,9 @@ body {
 .sidebar.collapsed .nav-link .link-text {
     opacity: 0;
     display: none;
+    position: absolute;
+    left: -9999px;
+    pointer-events: none;
 }
 
 .sidebar .nav-link:hover {
