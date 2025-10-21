@@ -1,11 +1,11 @@
 <template>
     <div>
-        <!-- modal upload -->
+        <!-- modal  -->
         <div class="modal fade" ref="modalRef" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <!-- header -->
-                    <div class="modal-header btn-light">
+                    <div class="modal-header">
                         <h5 class="modal-title">Tải lên phiên bản mới</h5>
                         <button
                             type="button"
@@ -14,7 +14,6 @@
                         ></button>
                     </div>
 
-                    <!-- body -->
                     <div class="modal-body">
                         <form @submit.prevent="submitUpload">
                             <div class="mb-3">
@@ -60,37 +59,31 @@
                             <div v-if="success" class="text-success mb-2">
                                 {{ success }}
                             </div>
+
+                            <div
+                                class="d-flex w-100 justify-content-between align-items-center"
+                            >
+                                <button
+                                    type="submit"
+                                    class="btn btn-sm btn-primary"
+                                    :disabled="loading"
+                                >
+                                    <span
+                                        v-if="loading"
+                                        class="spinner-border spinner-border-sm me-2"
+                                    ></span>
+                                    <i class="bi bi-upload me-2"></i> Tải lên
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    @click="closeModal"
+                                >
+                                    Đóng
+                                </button>
+                            </div>
                         </form>
-                    </div>
-
-                    <!-- footer -->
-                    <div class="modal-footer bg-light">
-                        <!-- action -->
-                        <div
-                            class="d-flex w-100 justify-content-between align-items-center"
-                        >
-                            <!-- upload -->
-                            <button
-                                type="submit"
-                                class="btn btn-sm btn-primary"
-                                :disabled="loading"
-                            >
-                                <span
-                                    v-if="loading"
-                                    class="spinner-border spinner-border-sm me-2"
-                                ></span>
-                                <i class="bi bi-upload me-2"></i> Tải lên
-                            </button>
-
-                            <!-- close -->
-                            <button
-                                type="button"
-                                class="btn btn-sm btn-outline-secondary"
-                                @click="closeModal"
-                            >
-                                Đóng
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
