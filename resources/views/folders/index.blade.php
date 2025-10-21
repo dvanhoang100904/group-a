@@ -3,10 +3,10 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Header & Breadcrumbs -->
-    
-        <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
     <div class="flex justify-between items-center mb-6">
-        <div>                        
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
+            
             @if(!empty($breadcrumbs))
             <nav class="flex mt-2" aria-label="Breadcrumb">
                 <ol class="flex items-center space-x-2 text-sm">
@@ -35,57 +35,58 @@
         
         <div class="flex items-center space-x-4">
             <!-- Form tìm kiếm và lọc -->
-            <form action="{{ route('folders.index') }}" method="GET" class="flex items-center space-x-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2">
-                @if($currentFolder)
-                    <input type="hidden" name="parent_id" value="{{ $currentFolder->folder_id }}">
-                @endif
-                
-                <!-- Tìm theo tên -->
-                <div class="relative">
-                    <input type="text" 
-                           name="name" 
-                           value="{{ request('name') }}"
-                           placeholder="Tìm theo tên..." 
-                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                </div>
-                
-                <!-- Tìm theo ngày -->
-                <div class="relative">
-                    <input type="date" 
-                           name="date" 
-                           value="{{ request('date') }}"
-                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <i class="fas fa-calendar absolute left-3 top-3 text-gray-400"></i>
-                </div>
-                
-                <!-- Lọc theo trạng thái -->
-                <div class="relative">
-                    <select name="status" 
-                            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="public" {{ request('status') == 'public' ? 'selected' : '' }}>Công khai</option>
-                        <option value="private" {{ request('status') == 'private' ? 'selected' : '' }}>Riêng tư</option>
-                    </select>
-                    <i class="fas fa-filter absolute left-3 top-3 text-gray-400"></i>
-                </div>
-                
-                <!-- Nút tìm kiếm -->
-                <button type="submit" 
-                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
-                    <i class="fas fa-search mr-2"></i>
-                    Tìm kiếm
-                </button>
-                
-                <!-- Nút reset -->
-                @if(request('name') || request('date') || request('status'))
-                <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
-                   class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
-                    <i class="fas fa-times mr-2"></i>
-                    Reset
-                </a>
-                @endif
-            </form>
+           <!-- Form tìm kiếm và lọc -->
+<form action="{{ route('folders.index') }}" method="GET" class="flex items-center space-x-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+    @if($currentFolder)
+        <input type="hidden" name="parent_id" value="{{ $currentFolder->folder_id }}">
+    @endif
+    
+    <!-- Tìm theo tên -->
+    <div class="relative">
+        <input type="text" 
+               name="name" 
+               value="{{ request('name') }}"
+               placeholder="Tìm theo tên..." 
+               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48">
+        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+    </div>
+    
+    <!-- Tìm theo ngày -->
+    <div class="relative">
+        <input type="date" 
+               name="date" 
+               value="{{ request('date') }}"
+               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        <i class="fas fa-calendar absolute left-3 top-3 text-gray-400"></i>
+    </div>
+    
+    <!-- Lọc theo trạng thái -->
+    <div class="relative">
+        <select name="status" 
+                class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40">
+            <option value="">Tất cả trạng thái</option>
+            <option value="public" {{ request('status') == 'public' ? 'selected' : '' }}>Công khai</option>
+            <option value="private" {{ request('status') == 'private' ? 'selected' : '' }}>Riêng tư</option>
+        </select>
+        <i class="fas fa-filter absolute left-3 top-3 text-gray-400"></i>
+    </div>
+    
+    <!-- Nút tìm kiếm -->
+    <button type="submit" 
+            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+        <i class="fas fa-search mr-2"></i>
+        Tìm kiếm
+    </button>
+    
+    <!-- Nút reset -->
+    @if(request('name') || request('date') || request('status'))
+    <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
+       class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center">
+        <i class="fas fa-times mr-2"></i>
+        Reset
+    </a>
+    @endif
+</form>
             
             <!-- Nút tạo thư mục -->
             <a href="{{ route('folders.create', ['parent_id' => $currentFolder ? $currentFolder->folder_id : null]) }}" 
@@ -124,7 +125,8 @@
                             {{ request('status') == 'public' ? 'Công khai' : 'Riêng tư' }}
                         </strong>
                     @endif
-                    - Tìm thấy <strong>{{ $folders->count() }}</strong> thư mục
+                    - Tìm thấy <strong>{{ $folders->total() }}</strong> thư mục
+                    (Trang {{ $folders->currentPage() }}/{{ $folders->lastPage() }})
                 </span>
             </div>
             <a href="{{ $currentFolder ? route('folders.show', $currentFolder->folder_id) : route('folders.index') }}" 
@@ -155,7 +157,7 @@
     @endif
 
     <!-- Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
         <table class="min-w-full">
             <thead class="bg-gray-100">
                 <tr>
@@ -291,7 +293,86 @@
                 @endforelse
             </tbody>
         </table>
-    </div>   
+    </div>
+
+    <!-- Phân trang -->
+    @if($folders->hasPages())
+    <!-- Thay thế phần phân trang hiện tại bằng: -->
+
+<!-- Phân trang và điều khiển hiển thị -->
+<div class="flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow border-t border-gray-200">
+    <!-- Thông tin số lượng -->
+    <div class="flex items-center text-sm text-gray-700">
+        <span>
+            @if($folders->total() > 0)
+                Hiển thị 
+                <strong>{{ $folders->firstItem() }}-{{ $folders->lastItem() }}</strong>
+                của <strong>{{ $folders->total() }}</strong> kết quả
+            @else
+                Không có kết quả nào
+            @endif
+        </span>
+    </div>
+
+    <!-- Các nút phân trang (chỉ hiển thị khi có nhiều trang) -->
+    <div class="flex items-center space-x-2">
+        <!-- Nút trang trước -->
+        @if($folders->onFirstPage())
+        <span class="px-3 py-1 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
+            <i class="fas fa-chevron-left mr-1"></i> Trước
+        </span>
+        @else
+        <a href="{{ $folders->previousPageUrl() }}{{ request('name') || request('date') || request('status') ? '&' . http_build_query(request()->except('page')) : '' }}" 
+           class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
+            <i class="fas fa-chevron-left mr-1"></i> Trước
+        </a>
+        @endif
+
+        <!-- Các số trang -->
+        @foreach($folders->getUrlRange(1, $folders->lastPage()) as $page => $url)
+            @if($page == $folders->currentPage())
+            <span class="px-3 py-1 bg-blue-500 text-white rounded-lg font-medium">
+                {{ $page }}
+            </span>
+            @else
+            <a href="{{ $url }}{{ request('name') || request('date') || request('status') ? '&' . http_build_query(request()->except('page')) : '' }}" 
+               class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
+                {{ $page }}
+            </a>
+            @endif
+        @endforeach
+
+        <!-- Nút trang sau -->
+        @if($folders->hasMorePages())
+        <a href="{{ $folders->nextPageUrl() }}{{ request('name') || request('date') || request('status') ? '&' . http_build_query(request()->except('page')) : '' }}" 
+           class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
+            Sau <i class="fas fa-chevron-right ml-1"></i>
+        </a>
+        @else
+        <span class="px-3 py-1 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
+            Sau <i class="fas fa-chevron-right ml-1"></i>
+        </span>
+        @endif
+    </div>
+    @else
+    <!-- Hiển thị thông báo khi chỉ có 1 trang -->
+    <div class="text-sm text-gray-500">
+        Tất cả kết quả đang được hiển thị
+    </div>
+    @endif
+
+    <!-- Chọn số items mỗi trang (LUÔN HIỂN THỊ) -->
+    <div class="flex items-center space-x-2">
+        <span class="text-sm text-gray-700">Hiển thị:</span>
+        <select onchange="changePerPage(this.value)" 
+                class="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+            <option value="25" {{ request('per_page', 10) == 25 ? 'selected' : '' }}>25</option>
+            <option value="50" {{ request('per_page', 10) == 50 ? 'selected' : '' }}>50</option>
+            <option value="100" {{ request('per_page', 10) == 100 ? 'selected' : '' }}>100</option>
+        </select>
+    </div>
+</div>
 </div>
 
 <script>
@@ -346,6 +427,20 @@
             currentOpenMenu = null;
         }
     });
+
+    // Thay đổi số items mỗi trang
+    function changePerPage(perPage) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', perPage);
+    url.searchParams.delete('page'); // Quay về trang đầu tiên
+    
+    // Giữ lại parent_id nếu có
+    @if($currentFolder)
+    url.searchParams.set('parent_id', '{{ $currentFolder->folder_id }}');
+    @endif
+    
+    window.location.href = url.toString();
+}
 </script>
 
 <style>
