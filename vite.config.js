@@ -10,4 +10,12 @@ export default defineConfig({
         }),
         vue(),
     ],
+    server: {
+        host: true,
+        port: 5173,
+        hmr: { host: "localhost" },
+        proxy: {
+            "/api": "http://localhost:8080",
+        },
+    },
 });
