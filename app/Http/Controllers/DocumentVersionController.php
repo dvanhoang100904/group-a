@@ -7,11 +7,16 @@ use Illuminate\Http\Request;
 
 class DocumentVersionController extends Controller
 {
-    public function index(Request $request, $id)
+    /**
+     * Hien thi trang phien ban tai lieu
+     */
+    public function index($id)
     {
-        $document = Document::with('subject.department', 'versions.user')->find($id);
+        $document = Document::with('subject.department')
+            ->withCount('versions')
+            ->find($id);
 
-        return view('documents.versions.index', [
+        return view('versions.index', [
             'document' => $document,
         ]);
     }

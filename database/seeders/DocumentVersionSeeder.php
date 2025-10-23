@@ -5,6 +5,10 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\IOFactory;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentVersionSeeder extends Seeder
 {
@@ -12,42 +16,40 @@ class DocumentVersionSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_RECORD = 50;
+    const MAX_VERSION_PER_DOCUMENT = 5; // Số version tối đa mỗi document
 
     public function run(): void
     {
-        $documents = DB::table('documents')->pluck('document_id');
-        $users = DB::table('users')->pluck('user_id');
+        $documents = DB::table('documents')->pluck('document_id')->toArray();
+        $users = DB::table('users')->pluck('user_id')->toArray();
 
-        foreach (range(1, self::MAX_RECORD) as $i) {
-            $documentId = $documents->random();
-            $userId = $users->random();
+        if (empty($documents) || empty($users)) return;
 
-            $lastVersion = DB::table('document_versions')
-                ->where('document_id', $documentId)
-                ->orderByDesc('version_number')
-                ->first();
-            $versionNumber = $lastVersion ? $lastVersion->version_number + 1 : 1;
+        foreach ($documents as $documentId) {
+            $numVersions = rand(1, self::MAX_VERSION_PER_DOCUMENT);
 
-            DB::table('document_versions')->insert([
-                'version_number' => $versionNumber,
-                'file_path' => "docs/doc{$documentId}_v{$versionNumber}.pdf",
-                'file_size' => rand(2, 8) * 1024 * 1024,
-                'mime_type' => 'application/pdf',
-                'is_current_version' => 1,
-                'change_note' => $versionNumber === 1 ? 'Initial version' : 'Updated version',
-                'document_id' => $documentId,
-                'user_id' => $userId,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            for ($v = 1; $v <= $numVersions; $v++) {
+                $userId = $users[array_rand($users)];
+                $versionNumber = $v; // dùng số nguyên
 
+                // Tạo file PDF thực tế
+                $pdfContent = Pdf::loadHTML("<h1>Document #$documentId</h1><p>Version: v$versionNumber</p>")->output();
+                $filePath = "documents/$documentId/version_$v.pdf";
+                Storage::disk('public')->put($filePath, $pdfContent);
 
-            if ($versionNumber > 1) {
-                DB::table('document_versions')
-                    ->where('document_id', $documentId)
-                    ->where('version_number', '<', $versionNumber)
-                    ->update(['is_current_version' => 0]);
+                // Insert version
+                DB::table('document_versions')->insert([
+                    'version_number' => $versionNumber, // số nguyên
+                    'file_path' => $filePath,
+                    'file_size' => Storage::disk('public')->size($filePath),
+                    'mime_type' => 'application/pdf',
+                    'is_current_version' => $v === $numVersions ? 1 : 0,
+                    'change_note' => $v === 1 ? 'Initial version' : 'Updated version',
+                    'document_id' => $documentId,
+                    'user_id' => $userId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
         }
     }

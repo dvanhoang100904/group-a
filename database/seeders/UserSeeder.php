@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class UserSeeder extends Seeder
 {
-    const MAX_RECORD = 50;
+    const MAX_RECORD = 100;
     /**
      * Run the database seeds.
      */

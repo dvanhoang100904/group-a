@@ -12,7 +12,7 @@ class FolderLogSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_RECORD = 20;
+    const MAX_RECORD = 50;
 
     public function run(): void
     {

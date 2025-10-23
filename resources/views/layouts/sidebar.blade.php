@@ -10,7 +10,7 @@
                 <span class="sidebar-section-title">Tổng quan</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link active" href="#">
+                <a class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                     <i class="bi bi-speedometer2"></i>
                     <span class="link-text">Dashboard</span>
                 </a>
@@ -21,13 +21,14 @@
                 <span class="sidebar-section-title">Tài liệu</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ Request::routeIs('documents.*') ? 'active' : '' }}"
+                    href="{{ route('documents.index') }}">
                     <i class="bi bi-files"></i>
                     <span class="link-text">Danh sách tài liệu</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="{{ route('upload.index') }}">
                     <i class="bi bi-upload"></i>
                     <span class="link-text">Upload tài liệu</span>
                 </a>
@@ -45,7 +46,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="{{ route('folders.index') }}">
                     <i class="bi bi-folder2-open"></i>
                     <span class="link-text">Quản lý thư mục</span>
                 </a>
@@ -57,7 +58,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="#">
-                    <i class="bi bi-tags"></i>
+                    <i class="bi bi-collection"></i>
                     <span class="link-text">Loại tài liệu</span>
                 </a>
             </li>
@@ -71,6 +72,12 @@
                 <a class="nav-link" href="#">
                     <i class="bi bi-building"></i>
                     <span class="link-text">Khoa / Bộ môn</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-tags"></i>
+                    <span class="link-text">Thẻ</span>
                 </a>
             </li>
 
@@ -97,11 +104,13 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('reports') ? 'active' : '' }}" href="{{ route('reports.index') }}">
                     <i class="bi bi-flag"></i>
                     <span class="link-text">Báo cáo vi phạm</span>
                 </a>
             </li>
+
+
         </ul>
     </div>
 </div>

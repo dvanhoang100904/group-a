@@ -1,167 +1,344 @@
 <template>
     <div>
-        <!-- Table -->
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th class="text-center">#</th>
-                    <th>Phiên bản</th>
-                    <th>Ghi chú thay đổi</th>
-                    <th>Người cập nhật</th>
-                    <th>Ngày cập nhật</th>
-                    <th>Kích thước</th>
-                    <th>Loại file</th>
-                    <th>Trạng thái</th>
-                    <th class="text-center">Hành động</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <tr
-                    v-for="(version, index) in versions.data"
-                    :key="version.version_id"
+        <!-- LOADING -->
+        <div v-if="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-2 text-muted">Đang tải danh sách phiên bản...</div>
+        </div>
+        <div v-else class="card shadow-sm border-0">
+            <div
+                class="card-header bg-light d-flex justify-content-between align-items-center"
+            >
+                <span class="fw-bold">
+                    <i class="bi bi-list-ul me-1"></i>
+                    Danh sách phiên bản
+                </span>
+                <button
+                    class="btn btn-sm btn-primary"
+                    @click="uploadModal.showModal()"
                 >
-                    <td class="text-center">{{ index + 1 }}</td>
-                    <td>
-                        <strong>v{{ version.version_number }}</strong>
-                    </td>
-                    <td>{{ version.change_note || "-" }}</td>
-                    <td>{{ version.user?.name || "Không rõ" }}</td>
-                    <td>{{ formatDate(version.created_at) }}</td>
-                    <td>{{ formatFileSize(version.file_size) || "—" }}</td>
-                    <td>{{ formatMimeType(version.mime_type) }}</td>
-                    <td>
-                        <span
-                            v-if="version.is_current_version"
-                            class="badge bg-success-subtle text-success"
-                        >
-                            <i class="bi bi-check-circle me-1"></i>Hiện tại
-                        </span>
-                        <span
-                            v-else
-                            class="badge bg-secondary-subtle text-secondary"
-                        >
-                            <i class="bi bi-clock-history me-1"></i>Cũ
-                        </span>
-                    </td>
+                    <i class="bi bi-upload me-1"></i> Tải lên
+                </button>
+            </div>
 
-                    <!-- Actions -->
-                    <td class="text-center">
-                        <!-- View -->
-                        <button
-                            class="btn btn-sm btn-outline-primary me-1"
-                            title="Xem chi tiết"
-                        >
-                            <i class="bi bi-eye"></i>
-                        </button>
-
-                        <!-- Download -->
-                        <button
-                            class="btn btn-sm btn-outline-primary me-1"
-                            title="Tải xuống"
-                        >
-                            <i class="bi bi-download"></i>
-                        </button>
-
-                        <!-- Restore -->
-                        <button
-                            class="btn btn-sm btn-outline-primary me-1"
-                            title="Khôi phục phiên bản này"
-                        >
-                            <i class="bi bi-arrow-counterclockwise"></i>
-                        </button>
-
-                        <!-- Delete -->
-                        <button
-                            class="btn btn-sm btn-outline-danger"
-                            title="Xóa phiên bản"
-                        >
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-
-                <!-- No data -->
-                <tr v-if="versions.data.length === 0">
-                    <td colspan="9" class="text-center text-muted py-4">
-                        Không có phiên bản nào
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
-        <!-- Pagination -->
-        <nav v-if="versions.last_page && versions.last_page > 1" class="mt-3">
-            <ul class="pagination justify-content-end mb-0">
-                <li
-                    class="page-item"
-                    :class="{ disabled: !versions.prev_page_url }"
+            <div class="card-body">
+                <!-- filter search -->
+                <form
+                    class="row g-3 align-items-end mb-3"
+                    @submit.prevent="fetchVersions()"
                 >
-                    <button
-                        class="page-link"
-                        @click="changePage(versions.current_page - 1)"
+                    <div class="col-md-3">
+                        <label class="form-label">Từ khóa</label>
+                        <input
+                            v-model="filters.keyword"
+                            type="text"
+                            class="form-control form-control-sm"
+                            placeholder="Tìm theo ghi chú hoặc số phiên bản"
+                        />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Người upload</label>
+                        <select
+                            v-model="filters.user_id"
+                            class="form-select form-select-sm"
+                        >
+                            <option value="">Tất cả</option>
+                            <option
+                                v-for="u in users"
+                                :key="u.id"
+                                :value="u.id"
+                            >
+                                {{ u.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Từ ngày</label>
+                        <input
+                            v-model="filters.date_from"
+                            type="date"
+                            class="form-control form-control-sm"
+                        />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Đến ngày</label>
+                        <input
+                            v-model="filters.date_to"
+                            type="date"
+                            class="form-control form-control-sm"
+                        />
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-search"></i> Lọc
+                        </button>
+                    </div>
+                </form>
+                <div
+                    v-if="!versions.data || versions.data.length === 0"
+                    class="text-center text-muted py-4"
+                >
+                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                    Chưa có phiên bản nào
+                </div>
+                <div v-else class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-primary">
+                            <tr>
+                                <th class="text-center">#</th>
+                                <th>Phiên bản</th>
+                                <th>Người cập nhật</th>
+                                <th>Ngày cập nhật</th>
+                                <th>Trạng thái</th>
+                                <th class="text-center">Hành động</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr
+                                v-for="(version, index) in versions.data"
+                                :key="version.version_id"
+                            >
+                                <td class="text-center">{{ index + 1 }}</td>
+                                <td>
+                                    <strong
+                                        >v{{ version.version_number }}</strong
+                                    >
+                                </td>
+                                <td>{{ version.user?.name || "Không rõ" }}</td>
+                                <td>{{ formatDate(version.created_at) }}</td>
+                                <td>
+                                    <span
+                                        v-if="version.is_current_version"
+                                        class="badge bg-success-subtle text-success"
+                                    >
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        Hiện tại
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="badge bg-secondary-subtle text-secondary"
+                                    >
+                                        <i class="bi bi-clock-history me-1"></i>
+                                        Cũ
+                                    </span>
+                                </td>
+
+                                <td class="text-center">
+                                    <!-- View -->
+                                    <button
+                                        class="btn btn-sm btn-outline-primary me-1"
+                                        title="Xem chi tiết"
+                                        @click="showVersionDetail(version)"
+                                    >
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+
+                                    <!-- Download -->
+                                    <button
+                                        class="btn btn-sm btn-outline-primary me-1"
+                                        title="Tải xuống"
+                                    >
+                                        <i class="bi bi-download"></i>
+                                    </button>
+
+                                    <!-- Restore -->
+                                    <button
+                                        class="btn btn-sm btn-outline-primary me-1"
+                                        title="Khôi phục phiên bản này"
+                                    >
+                                        <i
+                                            class="bi bi-arrow-counterclockwise"
+                                        ></i>
+                                    </button>
+
+                                    <!-- Delete -->
+                                    <button
+                                        class="btn btn-sm btn-outline-danger"
+                                        title="Xóa phiên bản"
+                                    >
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- PAGINATION -->
+                    <nav
+                        v-if="versions.last_page && versions.last_page > 1"
+                        class="mt-3"
                     >
-                        Trước
-                    </button>
-                </li>
+                        <ul class="pagination justify-content-end mb-0">
+                            <li
+                                class="page-item"
+                                :class="{ disabled: !versions.prev_page_url }"
+                            >
+                                <button
+                                    class="page-link"
+                                    @click="
+                                        changePage(versions.current_page - 1)
+                                    "
+                                >
+                                    Trước
+                                </button>
+                            </li>
 
-                <li
-                    v-for="page in versions.last_page"
-                    :key="page"
-                    class="page-item"
-                    :class="{ active: page === versions.current_page }"
-                >
-                    <button class="page-link" @click="changePage(page)">
-                        {{ page }}
-                    </button>
-                </li>
+                            <li
+                                v-for="page in versions.last_page"
+                                :key="page"
+                                class="page-item"
+                                :class="{
+                                    active: page === versions.current_page,
+                                }"
+                            >
+                                <button
+                                    class="page-link"
+                                    @click="changePage(page)"
+                                >
+                                    {{ page }}
+                                </button>
+                            </li>
 
-                <li
-                    class="page-item"
-                    :class="{ disabled: !versions.next_page_url }"
-                >
-                    <button
-                        class="page-link"
-                        @click="changePage(versions.current_page + 1)"
-                    >
-                        Sau
-                    </button>
-                </li>
-            </ul>
-        </nav>
+                            <li
+                                class="page-item"
+                                :class="{ disabled: !versions.next_page_url }"
+                            >
+                                <button
+                                    class="page-link"
+                                    @click="
+                                        changePage(versions.current_page + 1)
+                                    "
+                                >
+                                    Sau
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+
+                <!-- Modals -->
+                <VersionDetailModal
+                    v-model:selected-version="selectedVersion"
+                    :format-file-size="formatFileSize"
+                    :format-mime-type="formatMimeType"
+                    :format-date="formatDate"
+                />
+
+                <VersionUploadModal
+                    ref="uploadModal"
+                    :document-id="documentId"
+                    @uploaded="fetchVersions"
+                />
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import axios from "axios";
+import VersionDetailModal from "./VersionDetailModal.vue";
+import VersionUploadModal from "./VersionUploadModal.vue";
 
+// Nhan props
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
 });
 
-const versions = ref({ data: [] });
-const loading = ref(false);
+// Luu danh sach cac phien ban
+const versions = ref({
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    next_page_url: null,
+    prev_page_url: null,
+});
+// Trang thai loading
+const loading = ref(true);
+// Phien ban duoc chon
+const selectedVersion = ref(null);
+// Upload
+const uploadModal = ref(null);
+// filter search
+const filters = ref({
+    user_id: "",
+    date_from: "",
+    date_to: "",
+    keyword: "",
+});
 
+const users = ref([]);
+
+// list users
+const fetchUsers = async () => {
+    try {
+        const res = await axios.get("/api/users");
+        if (res.data.success) {
+            users.value = res.data.data;
+        }
+    } catch (error) {
+        console.error("Không thể tải danh sách người dùng");
+    }
+};
+
+// list document versions
 const fetchVersions = async (page = 1) => {
+    // Bat loading khi bat dau goi api
     loading.value = true;
     try {
+        const params = {
+            page,
+            ...filters.value,
+        };
+
+        // Goi api lay danh sach phien ban cua tai lieu theo id
         const res = await axios.get(
-            `/api/documents/${props.documentId}/versions?page=${page}`
+            `/api/documents/${props.documentId}/versions`,
+            { params }
         );
-        versions.value = res.data;
+        // Luu du lieu tra ve vao state versions
+        if (res.data.success) {
+            versions.value = res.data.data;
+        } else {
+            versions.value = { data: [] };
+            alert(res.data?.message ?? "Không thể tải danh sách phiên bản");
+        }
+    } catch (error) {
+        alert("Lỗi hệ thống, vui lòng thử lại!");
     } finally {
+        // Tat loading
         loading.value = false;
     }
 };
 
+// pagination
 const changePage = (page) => {
     if (page < 1 || page > versions.value.last_page) return;
     fetchVersions(page);
 };
 
+// reset fillter
+const resetFilters = () => {
+    filters.value = {
+        user_id: "",
+        date_from: "",
+        date_to: "",
+        keyword: "",
+    };
+    fetchVersions();
+};
+
+// format date
 const formatDate = (dateStr) => new Date(dateStr).toLocaleString("vi-VN");
 
+// format file size
 const formatFileSize = (bytes) => {
     if (!bytes) return null;
     const sizes = ["B", "KB", "MB", "GB", "TB"];
@@ -174,6 +351,7 @@ const formatFileSize = (bytes) => {
     return `${size.toFixed(2)} ${sizes[i]}`;
 };
 
+// format mime type
 const formatMimeType = (mime) => {
     if (!mime) return "-";
     if (mime.includes("pdf")) return "PDF";
@@ -183,5 +361,23 @@ const formatMimeType = (mime) => {
     return mime;
 };
 
-onMounted(() => fetchVersions());
+// modal detail version
+const showVersionDetail = (version) => {
+    // Luu phien ban duoc chon vao state de hien trong modal
+    selectedVersion.value = version;
+};
+
+onMounted(() => {
+    loading.value = true;
+    fetchVersions();
+    fetchUsers();
+});
+
+watch(
+    () => props.documentId,
+    () => {
+        loading.value = true;
+        fetchVersions();
+    }
+);
 </script>
