@@ -12,7 +12,7 @@ class FolderSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_RECORD = 10;
+    const MAX_RECORD = 100;
 
     public function run(): void
     {

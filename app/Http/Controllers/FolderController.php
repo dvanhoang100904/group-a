@@ -14,42 +14,101 @@ class FolderController extends Controller
      */
     public function index(Request $request)
     {
+        $searchName = $request->get('name');
+        $searchDate = $request->get('date');
+        $filterStatus = $request->get('status');
         $parentFolderId = $request->get('parent_id');
 
+        $query = Folder::with(['childFolders', 'user', 'documents']);
+
+        // Tìm kiếm theo tên
+        if ($searchName) {
+            $query->where('name', 'like', '%' . $searchName . '%');
+        }
+
+        // Tìm kiếm theo ngày tạo
+        if ($searchDate) {
+            $query->whereDate('created_at', $searchDate);
+        }
+
+        // Lọc theo trạng thái
+        if ($filterStatus && in_array($filterStatus, ['public', 'private'])) {
+            $query->where('status', $filterStatus);
+        }
+
+        // Nếu có parent_id, tìm trong thư mục cụ thể, ngược lại tìm trong thư mục gốc
         if ($parentFolderId) {
             $currentFolder = Folder::with(['parentFolder'])->findOrFail($parentFolderId);
-            $folders = Folder::with(['childFolders', 'user', 'documents'])
-                ->where('parent_folder_id', $parentFolderId)
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $query->where('parent_folder_id', $parentFolderId);
         } else {
             $currentFolder = null;
-            $folders = Folder::with(['childFolders', 'user', 'documents'])
-                ->whereNull('parent_folder_id')
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $query->whereNull('parent_folder_id');
+        }
+
+        // Phân trang - 10 items mỗi trang
+        $perPage = $request->get('per_page', 10);
+        $folders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        // Giữ lại các tham số tìm kiếm khi phân trang
+        if ($request->has('name') || $request->has('date') || $request->has('status')) {
+            $folders->appends([
+                'name' => $searchName,
+                'date' => $searchDate,
+                'status' => $filterStatus,
+                'parent_id' => $parentFolderId
+            ]);
         }
 
         $breadcrumbs = $this->getBreadcrumbs($currentFolder);
 
-        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs'));
+        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs', 'searchName', 'searchDate', 'filterStatus'));
     }
-
     /**
      * Hiển thị chi tiết thư mục và các thư mục con
      */
-    public function show($folderId)
+    public function show(Request $request, $folderId)
     {
         $currentFolder = Folder::with(['parentFolder'])->findOrFail($folderId);
 
-        $folders = Folder::with(['childFolders', 'user', 'documents'])
-            ->where('parent_folder_id', $folderId)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $searchName = $request->get('name');
+        $searchDate = $request->get('date');
+        $filterStatus = $request->get('status');
+
+        $query = Folder::with(['childFolders', 'user', 'documents'])
+            ->where('parent_folder_id', $folderId);
+
+        // Tìm kiếm theo tên
+        if ($searchName) {
+            $query->where('name', 'like', '%' . $searchName . '%');
+        }
+
+        // Tìm kiếm theo ngày tạo
+        if ($searchDate) {
+            $query->whereDate('created_at', $searchDate);
+        }
+
+        // Lọc theo trạng thái
+        if ($filterStatus && in_array($filterStatus, ['public', 'private'])) {
+            $query->where('status', $filterStatus);
+        }
+
+        // Phân trang
+        $perPage = $request->get('per_page', 10);
+        $folders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        // Giữ lại các tham số tìm kiếm khi phân trang
+        if ($request->has('name') || $request->has('date') || $request->has('status')) {
+            $folders->appends([
+                'name' => $searchName,
+                'date' => $searchDate,
+                'status' => $filterStatus,
+                'parent_id' => $folderId
+            ]);
+        }
 
         $breadcrumbs = $this->getBreadcrumbs($currentFolder);
 
-        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs'));
+        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs', 'searchName', 'searchDate', 'filterStatus'));
     }
 
     /**
@@ -183,5 +242,9 @@ class FolderController extends Controller
             return redirect()->back()
                 ->with('error', $e->getMessage());
         }
+    }
+    public function search(Request $request)
+    {
+        return $this->index($request);
     }
 }

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UploadDocumentVersionRequest;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\IOFactory;
@@ -17,15 +19,16 @@ use PhpOffice\PhpWord\Element\Section;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Throwable;
+use Illuminate\Support\Str;
 
 class DocumentVersionApiController extends Controller
 {
-    const PER_PAGE = 3;
+    const PER_PAGE = 5;
 
     /**
      * Hien thi danh sach phien ban tai lieu co phan trang
      */
-    public function index($id)
+    public function index(Request $request, $id)
     {
         $document = Document::find($id);
 
@@ -36,15 +39,39 @@ class DocumentVersionApiController extends Controller
             ], 404);
         }
 
-        $versions = $document->versions()
-            ->with('user')
-            ->latest()
+        $query = $document->versions()->with('user');
+
+        // filter nguoi upload
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        // filter ngay
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // search ghi chu hoac so phien ban
+        if ($request->filled('keyword')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('note', 'like', '%' . $request->keyword . '%')
+                    ->orWhere('version_number', 'like', '%' . $request->keyword . '%');
+            });
+        }
+
+        $versions = $query
+            ->orderByDesc('version_number')
+            ->orderByDesc('created_at')
             ->paginate(self::PER_PAGE);
 
         return response()->json([
             'success' => true,
             'data' => $versions,
-            'message' => 'Danh sách phiên bản'
+            'message' => 'Danh sách phiên bản tải thành công'
         ]);
     }
 
@@ -186,6 +213,81 @@ class DocumentVersionApiController extends Controller
             foreach ($element->getElements() as $child) {
                 $this->setFontRecursive($child, $fontName);
             }
+        }
+    }
+
+    /**
+     * Upload tai lieu phen ban moi
+     */
+    public function upload(UploadDocumentVersionRequest $request, $id)
+    {
+        $document = Document::find($id);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại'
+            ], 404);
+        }
+
+        if (!$request->hasFile('file')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không có tệp nào được tải lên.'
+            ], 400);
+        }
+
+        // if (auth()->id() !== $document->user_id) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Bạn không có quyền upload phiên bản mới'
+        //     ], 403);
+        // }
+
+        DB::beginTransaction();
+        try {
+            // Luu file 
+            $file = $request->file('file');
+            // Tao ten file an toan
+            $fileName = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('docs', $fileName, 'public');
+
+            // Xac dinh version_number tiep theo
+            $lastVersion = $document->versions()->orderByDesc('version_number')->first();
+            $newVersionNumber = $lastVersion ? $lastVersion->version_number + 1 : 1;
+
+            // Tao moi
+            $version = $document->versions()->create([
+                'version_number' => $newVersionNumber,
+                'file_path' => $path,
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'change_note' => $request->change_note,
+                'is_current_version' => true,
+                'user_id' => auth()->id() ?? 1,
+            ]);
+
+            // Cap nhat cac phien ban khac ve cu
+            $document->versions()
+                ->where('version_id', '!=', $version->version_id)
+                ->update(['is_current_version' => false]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tải lên phiên bản mới thành công',
+                'data' => $version
+            ]);
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            // Xoa file neu da luu
+            if (isset($path) && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+
+            return response()->json(['success' => false, 'message' => 'Có lỗi xảy ra khi tải lên: ' . $e->getMessage()], 500);
         }
     }
 }
