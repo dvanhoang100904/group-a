@@ -28,7 +28,7 @@ class DocumentVersionApiController extends Controller
     /**
      * Hien thi danh sach phien ban tai lieu co phan trang
      */
-    public function index($id)
+    public function index(Request $request, $id)
     {
         $document = Document::find($id);
 
@@ -39,15 +39,39 @@ class DocumentVersionApiController extends Controller
             ], 404);
         }
 
-        $versions = $document->versions()
-            ->with('user')
-            ->latest()
+        $query = $document->versions()->with('user');
+
+        // filter nguoi upload
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        // filter ngay
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // search ghi chu hoac so phien ban
+        if ($request->filled('keyword')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('note', 'like', '%' . $request->keyword . '%')
+                    ->orWhere('version_number', 'like', '%' . $request->keyword . '%');
+            });
+        }
+
+        $versions = $query
+            ->orderByDesc('version_number')
+            ->orderByDesc('created_at')
             ->paginate(self::PER_PAGE);
 
         return response()->json([
             'success' => true,
             'data' => $versions,
-            'message' => 'Danh sách phiên bản'
+            'message' => 'Danh sách phiên bản tải thành công'
         ]);
     }
 
