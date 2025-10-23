@@ -117,7 +117,7 @@ body {
 }
 
 .sidebar.collapsed .sidebar-content {
-    padding: 24px 8px;
+    padding: 16px 8px 80px 8px;
 }
 
 .sidebar.collapsed .sidebar-content .nav:first-child {
@@ -197,6 +197,9 @@ body {
 .sidebar.collapsed .nav-link .link-text {
     opacity: 0;
     display: none;
+    position: absolute;
+    left: -9999px;
+    pointer-events: none;
 }
 
 .sidebar .nav-link:hover {

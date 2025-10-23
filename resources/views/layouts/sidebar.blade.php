@@ -10,8 +10,7 @@
                 <span class="sidebar-section-title">Tổng quan</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ Request::routeIs('dashboard.*') ? 'active' : '' }}"
-                    href="{{ route('dashboard') }}">
+                <a class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                     <i class="bi bi-speedometer2"></i>
                     <span class="link-text">Dashboard</span>
                 </a>
@@ -110,6 +109,7 @@
                     <span class="link-text">Báo cáo vi phạm</span>
                 </a>
             </li>
+
 
         </ul>
     </div>
