@@ -207,7 +207,7 @@
                         <div class="file-actions">
                             <button
                                 v-if="selectedVersion?.version_id"
-                                class="btn btn-primary"
+                                class="btn btn-sm btn-primary"
                                 @click="previewFile"
                                 title="Xem trước tài liệu"
                             >
@@ -217,7 +217,7 @@
 
                         <button
                             type="button"
-                            class="btn btn-outline-secondary"
+                            class="btn btn-sm btn-outline-secondary"
                             @click="closeModal"
                         >
                             Đóng

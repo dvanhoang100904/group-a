@@ -10,7 +10,7 @@
                 <span class="sidebar-section-title">Tổng quan</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link active" href="#">
+                <a class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                     <i class="bi bi-speedometer2"></i>
                     <span class="link-text">Dashboard</span>
                 </a>
@@ -21,7 +21,8 @@
                 <span class="sidebar-section-title">Tài liệu</span>
             </li>
             <li class="nav-item">
-                  <a class="nav-link" href="{{ route('documents.index') }}">
+                <a class="nav-link {{ Request::routeIs('documents.*') ? 'active' : '' }}"
+                    href="{{ route('documents.index') }}">
                     <i class="bi bi-files"></i>
                     <span class="link-text">Danh sách tài liệu</span>
                 </a>
@@ -33,7 +34,7 @@
                 </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="#">
+                <a class="nav-link" href="#">
                     <i class="bi bi-person-lines-fill"></i>
                     <span class="link-text">Tài liệu của tôi</span>
                 </a>
@@ -45,7 +46,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="{{ route('folders.index') }}">
                     <i class="bi bi-folder2-open"></i>
                     <span class="link-text">Quản lý thư mục</span>
                 </a>
@@ -108,6 +109,7 @@
                     <span class="link-text">Báo cáo vi phạm</span>
                 </a>
             </li>
+
 
         </ul>
     </div>

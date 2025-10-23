@@ -31,11 +31,12 @@ class DocumentController extends Controller
             'subject',
             'versions',
             'previews',
-            'accesses'
+            'accesses',
+            'tags'
         ])->findOrFail($id);
 
         // Trả về view hiển thị chi tiết tài liệu
-      return view('documents.documents_detail.document_detail', compact('document'));
+        return view('documents.documents_detail.document_detail', compact('document'));
     }
 
 

@@ -6,9 +6,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\UploadController;
-use App\Http\Controllers\DocumentVersionController;
+use App\Http\Controllers\DocumentVersionController as VersionController;
 use App\Http\Controllers\UserController;
-
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -19,7 +18,7 @@ Route::prefix('dashboard')->group(function () {
     Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 });
 
-
+// Folder - yen đẹp trai
 Route::get('/folders/search', [FolderController::class, 'search'])->name('folders.search');
 Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
 Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
@@ -29,8 +28,7 @@ Route::get('/folders/{folder}/edit', [FolderController::class, 'edit'])->name('f
 Route::put('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
 Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
 
-
-// Uplods
+// Uploads
 Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
 
@@ -42,10 +40,9 @@ Route::put('/documents/{id}', [DocumentController::class, 'update'])->name('docu
 Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
 
-// document versions
-Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])
-    ->name('documents.versions.index');
+// Document Versions
+Route::get('/documents/{id}/versions', [VersionController::class, 'index'])->name('documents.versions.index');
 
-//profile
+// Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
 Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
