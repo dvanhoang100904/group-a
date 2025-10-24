@@ -29,6 +29,11 @@ class DocumentVersion extends Model
         return $query->orderByDesc('version_number')->orderByDesc('created_at');
     }
 
+    public function latestPreview()
+    {
+        return $this->hasOne(DocumentPreview::class, 'version_id')->latest('created_at');
+    }
+
     public function document()
     {
         return $this->belongsTo(Document::class, 'document_id');

@@ -229,7 +229,7 @@
         <!-- modal preview file -->
         <FilePreviewModal
             v-model:version-id="versionToPreview"
-            :file-path="selectedVersion?.file_path"
+            :document-id="selectedVersion?.document_id"
         />
     </div>
 </template>
@@ -293,3 +293,66 @@ const previewFile = () => {
 
 defineExpose({ showModal, hideModal, closeModal });
 </script>
+
+<style scoped>
+.info-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.info-icon {
+    font-size: 1.2rem;
+    width: 40px;
+    text-align: center;
+    margin-right: 12px;
+}
+
+.info-content {
+    flex: 1;
+}
+
+.info-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 2px;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    color: #212529;
+}
+
+.section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 8px;
+}
+
+.icon-wrapper {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-actions .btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.modal-header {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+}
+
+.card.bg-light {
+    background-color: #f8f9fa !important;
+}
+</style>
