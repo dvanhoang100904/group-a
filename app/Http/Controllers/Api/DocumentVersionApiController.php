@@ -27,9 +27,11 @@ class DocumentVersionApiController extends Controller
     /**
      * Hien thi danh sach phien ban tai lieu co phan trang
      */
-    public function index($id)
+    public function index(Request $request, $id)
     {
-        $versions = $this->documentVersionService->getDocumentVersionsHasPaginated($id);
+        $filters = $request->only(['keyword', 'user_id', 'status', 'from_date', 'to_date']);
+
+        $versions = $this->documentVersionService->getDocumentVersionsHasPaginated($id, $filters);
 
         if (!$versions) {
             return response()->json([
