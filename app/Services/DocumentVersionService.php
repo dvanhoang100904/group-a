@@ -29,8 +29,7 @@ class DocumentVersionService
 
         return $document->versions()
             ->with('user')
-            ->orderByDesc('version_number')
-            ->orderByDesc('created_at')
+            ->latestOrder()
             ->paginate(self::PER_PAGE);
     }
 }
