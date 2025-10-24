@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UploadDocumentVersionRequest;
 use App\Models\Document;
 use App\Models\DocumentVersion;
+use App\Services\DocumentVersionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -23,50 +24,26 @@ use Illuminate\Support\Str;
 
 class DocumentVersionApiController extends Controller
 {
-    const PER_PAGE = 5;
+    protected $documentVersionService;
+
+    public function __construct(DocumentVersionService $documentVersionService)
+    {
+        $this->documentVersionService = $documentVersionService;
+    }
 
     /**
      * Hien thi danh sach phien ban tai lieu co phan trang
      */
-    public function index(Request $request, $id)
+    public function index($id)
     {
-        $document = Document::find($id);
+        $versions = $this->documentVersionService->getDocumentVersionsHasPaginated($id);
 
-        if (!$document) {
+        if (!$versions) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tài liệu không tồn tại'
             ], 404);
         }
-
-        $query = $document->versions()->with('user');
-
-        // filter nguoi upload
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->user_id);
-        }
-
-        // filter ngay
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
-
-        // search ghi chu hoac so phien ban
-        if ($request->filled('keyword')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('note', 'like', '%' . $request->keyword . '%')
-                    ->orWhere('version_number', 'like', '%' . $request->keyword . '%');
-            });
-        }
-
-        $versions = $query
-            ->orderByDesc('version_number')
-            ->orderByDesc('created_at')
-            ->paginate(self::PER_PAGE);
 
         return response()->json([
             'success' => true,
