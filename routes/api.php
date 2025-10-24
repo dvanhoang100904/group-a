@@ -12,7 +12,7 @@ use App\Http\Controllers\Api\UserApiController;
 // Document Versions
 Route::get('/documents/{id}/versions', [DocumentVersionApiController::class, 'index']);
 Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionApiController::class, 'preview']);
-Route::post('/documents/{id}/versions/upload', [DocumentVersionApiController::class, 'upload']);
+Route::post('/documents/{id}/versions', [DocumentVersionApiController::class, 'store']);
 
 // Users
 Route::get('/users', [UserApiController::class, 'index']);
