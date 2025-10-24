@@ -96,3 +96,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
+
+// alert message
+const alerts = document.querySelectorAll(".alert");
+alerts.forEach((alert) => {
+    setTimeout(() => {
+        if (typeof bootstrap !== "undefined") {
+            const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+            bsAlert.close();
+        } else {
+            alert.style.display = "none";
+        }
+    }, 3000);
+});
