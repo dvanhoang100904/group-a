@@ -40,7 +40,7 @@
                     <p class="text-muted small mb-0">
                         Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
                         Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong> |
-                        Số phiên bản: <strong>{{ $document->versions()->count() }}</strong>
+                        Số phiên bản: <strong>{{ $document->versions_count }}</strong>
                     </p>
                 @else
                     <p class="text-danger">Tài liệu không tồn tại</p>
