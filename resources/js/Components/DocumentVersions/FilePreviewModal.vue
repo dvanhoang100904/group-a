@@ -54,6 +54,7 @@ import axios from "axios";
 // Nhan props tu cha
 const props = defineProps({
     versionId: Number,
+    documentId: Number,
 });
 // ref modal chinh
 const modalRef = ref(null);
@@ -90,8 +91,8 @@ const closeModal = () => {
 
 watch(
     () => props.versionId,
-    async (id) => {
-        if (!id) return;
+    async (versionId) => {
+        if (!versionId || !props.documentId) return;
 
         // Hien thi modal truoc khi load
         showModal();
@@ -100,7 +101,9 @@ watch(
         previewUrl.value = null;
 
         try {
-            const res = await axios.get(`/api/versions/${id}/preview`);
+            const res = await axios.get(
+                `/api/documents/${props.documentId}/versions/${versionId}/preview`
+            );
             if (res.data.success && res.data.data?.preview_path) {
                 previewUrl.value = res.data.data.preview_path;
             } else {
