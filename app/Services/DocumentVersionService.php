@@ -19,7 +19,7 @@ class DocumentVersionService
     /**
      * Lay danh sach phien ban cua tai lieu co phan trang
      */
-    public function getDocumentVersionsHasPaginated(int $documentId)
+    public function getDocumentVersionsHasPaginated(int $documentId, array $filters = [])
     {
         $document = Document::find($documentId);
 
@@ -27,9 +27,13 @@ class DocumentVersionService
             return null;
         }
 
+        $filters = is_array($filters) ? $filters : [];
+
         return $document->versions()
-            ->with('user')
+            ->select('version_id', 'version_number', 'user_id', 'created_at', 'is_current_version')
+            ->filter($filters)
             ->latestOrder()
-            ->paginate(self::PER_PAGE);
+            ->paginate(self::PER_PAGE)
+            ->withQueryString();
     }
 }

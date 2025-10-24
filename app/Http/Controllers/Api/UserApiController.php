@@ -13,7 +13,7 @@ class UserApiController extends Controller
      */
     public function index()
     {
-        $users = User::select('id', 'name')->orderBy('name')->get();
+        $users = User::select('user_id', 'name')->orderBy('name')->get();
 
         return response()->json([
             'success' => true,
