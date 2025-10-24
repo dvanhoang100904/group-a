@@ -24,9 +24,34 @@ class DocumentVersion extends Model
         'file_size' => 'integer'
     ];
 
+    public function scopeByDocument($query, $documentId)
+    {
+        return $query->where('document_id', $documentId);
+    }
+
+    public function scopeByVersion($query, $versionId)
+    {
+        return $query->where('version_id', $versionId);
+    }
+
     public function scopeLatestOrder($query)
     {
         return $query->orderByDesc('version_number')->orderByDesc('created_at');
+    }
+
+    /** Lay moi nhat theo ngay tao */
+    public function scopeLatestCreated($query)
+    {
+        return $query->orderByDesc('created_at');
+    }
+
+    /** Chi lay preview con hieu luc */
+    public function scopeActive($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('expires_at')
+                ->orWhere('expires_at', '>', now());
+        });
     }
 
     public function scopeFilter($query, array $filters = [])
@@ -53,15 +78,15 @@ class DocumentVersion extends Model
         if (!empty($filters['to_date'])) {
             $query->whereDate('created_at', '<=', $filters['to_date']);
         }
-
-
-
         return $query;
     }
 
     public function latestPreview()
     {
-        return $this->hasOne(DocumentPreview::class, 'version_id')->latest('created_at');
+        return $this->hasOne(DocumentPreview::class, 'version_id')
+            ->select('preview_id', 'version_id', 'preview_path', 'expires_at', 'created_at')
+            ->active()
+            ->latestCreated();
     }
 
     public function document()
