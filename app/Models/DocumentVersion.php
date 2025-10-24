@@ -24,6 +24,11 @@ class DocumentVersion extends Model
         'file_size' => 'integer'
     ];
 
+    public function scopeLatestOrder($query)
+    {
+        return $query->orderByDesc('version_number')->orderByDesc('created_at');
+    }
+
     public function document()
     {
         return $this->belongsTo(Document::class, 'document_id');
