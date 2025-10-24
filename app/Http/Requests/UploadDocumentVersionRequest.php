@@ -22,7 +22,7 @@ class UploadDocumentVersionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => 'required|file|max:10240',
+            'file' => 'required|file|mimes:pdf,doc,docx|max:10240',
             'change_note' => 'nullable|string|max:500',
         ];
     }
@@ -32,6 +32,7 @@ class UploadDocumentVersionRequest extends FormRequest
         return [
             'file.required' => 'Vui lòng chọn file để tải lên.',
             'file.file' => 'File tải lên không hợp lệ.',
+            'file.mimes' => 'Chỉ cho phép định dạng PDF, DOC, DOCX.',
             'file.max' => 'Dung lượng file không được vượt quá 10MB.',
             'change_note.string' => 'Ghi chú phải là chuỗi.',
             'change_note.max' => 'Ghi chú tối đa 500 ký tự.',

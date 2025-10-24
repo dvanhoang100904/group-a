@@ -27,9 +27,9 @@
                 <!-- filter search -->
                 <form
                     class="row g-3 align-items-end mb-3"
-                    @submit.prevent="fetchVersions()"
+                    @submit.prevent="fetchVersions(1)"
                 >
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Từ khóa</label>
                         <input
                             v-model="filters.keyword"
@@ -39,7 +39,7 @@
                         />
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Người upload</label>
                         <select
                             v-model="filters.user_id"
@@ -53,6 +53,18 @@
                             >
                                 {{ u.name }}
                             </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Trạng thái</label>
+                        <select
+                            v-model="filters.status"
+                            class="form-select form-select-sm"
+                        >
+                            <option value="">Tất cả</option>
+                            <option :value="true">Phiên bản hiện tại</option>
+                            <option :value="false">Phiên bản cũ</option>
                         </select>
                     </div>
 
@@ -74,12 +86,22 @@
                         />
                     </div>
 
-                    <div class="col-md-2 d-grid">
+                    <div class="col-md-1 d-grid">
                         <button type="submit" class="btn btn-primary btn-sm">
                             <i class="bi bi-search"></i> Lọc
                         </button>
                     </div>
+                    <div class="col-md-1 d-grid">
+                        <button
+                            type="button"
+                            class="btn btn-secondary btn-sm"
+                            @click="resetFilters"
+                        >
+                            <i class="bi bi-x-circle"></i> Reset
+                        </button>
+                    </div>
                 </form>
+
                 <div
                     v-if="!versions.data || versions.data.length === 0"
                     class="text-center text-muted py-4"
@@ -223,7 +245,7 @@
                     </nav>
                 </div>
 
-                <!-- Modals -->
+                <!-- Modal detail version-->
                 <VersionDetailModal
                     v-model:selected-version="selectedVersion"
                     :format-file-size="formatFileSize"
@@ -231,6 +253,7 @@
                     :format-date="formatDate"
                 />
 
+                <!-- Modal upload version -->
                 <VersionUploadModal
                     ref="uploadModal"
                     :document-id="documentId"
@@ -268,10 +291,11 @@ const selectedVersion = ref(null);
 const uploadModal = ref(null);
 // filter search
 const filters = ref({
+    keyword: "",
     user_id: "",
+    status: "",
     date_from: "",
     date_to: "",
-    keyword: "",
 });
 
 const users = ref([]);
@@ -295,7 +319,11 @@ const fetchVersions = async (page = 1) => {
     try {
         const params = {
             page,
-            ...filters.value,
+            keyword: filters.value.keyword || "",
+            user_id: filters.value.user_id || "",
+            status: filters.value.status !== "" ? filters.value.status : "",
+            from_date: filters.value.date_from || "",
+            to_date: filters.value.date_to || "",
         };
 
         // Goi api lay danh sach phien ban cua tai lieu theo id
@@ -321,18 +349,21 @@ const fetchVersions = async (page = 1) => {
 // pagination
 const changePage = (page) => {
     if (page < 1 || page > versions.value.last_page) return;
-    fetchVersions(page);
+    fetchVersions(page).then(() =>
+        window.scrollTo({ top: 0, behavior: "smooth" })
+    );
 };
 
 // reset fillter
 const resetFilters = () => {
     filters.value = {
+        keyword: "",
         user_id: "",
+        status: "",
         date_from: "",
         date_to: "",
-        keyword: "",
     };
-    fetchVersions();
+    fetchVersions(1);
 };
 
 // format date

@@ -29,6 +29,36 @@ class DocumentVersion extends Model
         return $query->orderByDesc('version_number')->orderByDesc('created_at');
     }
 
+    public function scopeFilter($query, array $filters = [])
+    {
+        if (!empty($filters['keyword'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('change_note', 'like', "%{$filters['keyword']}%")
+                    ->orWhere('version_number', 'like', "%{$filters['keyword']}%");
+            });
+        }
+
+        if (!empty($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
+        }
+
+        if (isset($filters['status']) && $filters['status'] !== '') {
+            $query->where('is_current_version', filter_var($filters['status'], FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if (!empty($filters['from_date'])) {
+            $query->whereDate('created_at', '>=', $filters['from_date']);
+        }
+
+        if (!empty($filters['to_date'])) {
+            $query->whereDate('created_at', '<=', $filters['to_date']);
+        }
+
+
+
+        return $query;
+    }
+
     public function latestPreview()
     {
         return $this->hasOne(DocumentPreview::class, 'version_id')->latest('created_at');
