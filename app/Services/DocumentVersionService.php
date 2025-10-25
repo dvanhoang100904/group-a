@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Document;
+use App\Models\DocumentVersion;
 
 class DocumentVersionService
 {
@@ -30,10 +31,23 @@ class DocumentVersionService
         $filters = is_array($filters) ? $filters : [];
 
         return $document->versions()
+            ->with('user:user_id,name')
             ->select('version_id', 'version_number', 'user_id', 'created_at', 'is_current_version')
             ->filter($filters)
             ->latestOrder()
             ->paginate(self::PER_PAGE)
             ->withQueryString();
+    }
+
+    public function getDocumentVersion(int $documentId, int $versionId)
+    {
+        return DocumentVersion::with([
+            'user:user_id,name',
+            'latestPreview'
+        ])
+            ->select('version_id', 'version_number', 'user_id', 'created_at', 'is_current_version', 'document_id', 'change_note', 'file_size', 'mime_type')
+            ->byDocument($documentId)
+            ->byVersion($versionId)
+            ->first();
     }
 }

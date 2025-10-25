@@ -49,7 +49,7 @@
                             <option
                                 v-for="u in users"
                                 :key="u.id"
-                                :value="u.id"
+                                :value="Number(u.id)"
                             >
                                 {{ u.name }}
                             </option>
@@ -88,7 +88,7 @@
 
                     <div class="col-md-1 d-grid">
                         <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-search"></i> Lọc
+                            <i class="bi bi-search me-1"></i> Lọc
                         </button>
                     </div>
                     <div class="col-md-1 d-grid">
@@ -97,7 +97,7 @@
                             class="btn btn-secondary btn-sm"
                             @click="resetFilters"
                         >
-                            <i class="bi bi-x-circle"></i> Reset
+                            <i class="bi bi-x-circle me-1"></i> Reset
                         </button>
                     </div>
                 </form>
@@ -157,7 +157,9 @@
                                     <button
                                         class="btn btn-sm btn-outline-primary me-1"
                                         title="Xem chi tiết"
-                                        @click="showVersionDetail(version)"
+                                        @click="
+                                            versionIdToShow = version.version_id
+                                        "
                                     >
                                         <i class="bi bi-eye"></i>
                                     </button>
@@ -247,10 +249,12 @@
 
                 <!-- Modal detail version-->
                 <VersionDetailModal
-                    v-model:selected-version="selectedVersion"
+                    :document-id="documentId"
+                    :version-id="versionIdToShow"
                     :format-file-size="formatFileSize"
                     :format-mime-type="formatMimeType"
                     :format-date="formatDate"
+                    @update:versionId="versionIdToShow = $event"
                 />
 
                 <!-- Modal upload version -->
@@ -285,8 +289,8 @@ const versions = ref({
 });
 // Trang thai loading
 const loading = ref(true);
-// Phien ban duoc chon
-const selectedVersion = ref(null);
+// Detail
+const versionIdToShow = ref(null);
 // Upload
 const uploadModal = ref(null);
 // filter search
@@ -320,7 +324,7 @@ const fetchVersions = async (page = 1) => {
         const params = {
             page,
             keyword: filters.value.keyword || "",
-            user_id: filters.value.user_id || "",
+            user_id: filters.value.user_id ? filters.value.user_id : undefined,
             status: filters.value.status !== "" ? filters.value.status : "",
             from_date: filters.value.date_from || "",
             to_date: filters.value.date_to || "",
@@ -390,12 +394,6 @@ const formatMimeType = (mime) => {
     if (mime.includes("excel")) return "Excel";
     if (mime.includes("image")) return "Hình ảnh";
     return mime;
-};
-
-// modal detail version
-const showVersionDetail = (version) => {
-    // Luu phien ban duoc chon vao state de hien trong modal
-    selectedVersion.value = version;
 };
 
 onMounted(() => {

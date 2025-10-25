@@ -47,6 +47,27 @@ class DocumentVersionApiController extends Controller
         ]);
     }
 
+    /** 
+     * Xem chi tiet phien ban tai lieu
+     */
+
+    public function show($documentId, $versionId)
+    {
+        $version = $this->documentVersionService->getDocumentVersion($documentId, $versionId);
+
+        if (!$version) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Phiên bản không tồn tại'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $version
+        ]);
+    }
+
     /**
      * Hien thi preview file
      */
