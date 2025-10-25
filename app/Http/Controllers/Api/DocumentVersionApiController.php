@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UploadDocumentVersionRequest;
 use App\Models\Document;
+use App\Models\DocumentVersion;
 use App\Services\DocumentVersionPreviewService;
 use App\Services\DocumentVersionService;
 use App\Services\DocumentVersionUploadService;
 use Illuminate\Http\Request;
 use Throwable;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentVersionApiController extends Controller
 {
@@ -50,7 +52,6 @@ class DocumentVersionApiController extends Controller
     /** 
      * Xem chi tiet phien ban tai lieu
      */
-
     public function show($documentId, $versionId)
     {
         $version = $this->documentVersionService->getDocumentVersion($documentId, $versionId);
@@ -118,5 +119,14 @@ class DocumentVersionApiController extends Controller
                 'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+
+    /**
+     * Tai xuong phien ban tai lieu
+     */
+    public function download($documentId, $versionId)
+    {
+        return $this->documentVersionService->downloadVersion($documentId, $versionId);
     }
 }

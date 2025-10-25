@@ -24,22 +24,25 @@ class DocumentVersion extends Model
         'file_size' => 'integer'
     ];
 
+    /** Loc theo document id */
     public function scopeByDocument($query, $documentId)
     {
         return $query->where('document_id', $documentId);
     }
 
+    /** Loc theo version id */
     public function scopeByVersion($query, $versionId)
     {
         return $query->where('version_id', $versionId);
     }
 
+    /** Sap xep moi nhat theo version number va create at */
     public function scopeLatestOrder($query)
     {
         return $query->orderByDesc('version_number')->orderByDesc('created_at');
     }
 
-    /** Lay moi nhat theo ngay tao */
+    /** Sap theo ngay tao moi nhat */
     public function scopeLatestCreated($query)
     {
         return $query->orderByDesc('created_at');
@@ -54,6 +57,7 @@ class DocumentVersion extends Model
         });
     }
 
+    /** tim kiem loc theo keyword, user, status, ngay */
     public function scopeFilter($query, array $filters = [])
     {
         if (!empty($filters['keyword'])) {
@@ -63,14 +67,17 @@ class DocumentVersion extends Model
             });
         }
 
+        /** Loc theo user id */
         if (!empty($filters['user_id'])) {
             $query->where('user_id', $filters['user_id']);
         }
 
+        /** Loc theo status */
         if (isset($filters['status']) && $filters['status'] !== '') {
             $query->where('is_current_version', filter_var($filters['status'], FILTER_VALIDATE_BOOLEAN));
         }
 
+        /** Loc theo khoang ngay */
         if (!empty($filters['from_date'])) {
             $query->whereDate('created_at', '>=', $filters['from_date']);
         }
@@ -81,6 +88,19 @@ class DocumentVersion extends Model
         return $query;
     }
 
+    /** Kiem tra co the xoa phien ban hay khong */
+    public function isDeletable(): bool
+    {
+        return !$this->is_current_version;
+    }
+
+    /** Danh dau phien ban nay la hien tai */
+    public function markAsCurrent()
+    {
+        $this->update(['is_current_version' => true]);
+    }
+
+    /** Preview moi nhat con hieu luc */
     public function latestPreview()
     {
         return $this->hasOne(DocumentPreview::class, 'version_id')
