@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DocumentVersionApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\DashboardController;

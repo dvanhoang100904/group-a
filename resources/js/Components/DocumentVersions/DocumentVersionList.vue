@@ -152,8 +152,9 @@
                                     </span>
                                 </td>
 
+                                <!-- action -->
                                 <td class="text-center">
-                                    <!-- View -->
+                                    <!-- view -->
                                     <button
                                         class="btn btn-sm btn-outline-primary me-1"
                                         title="Xem chi tiết"
@@ -164,15 +165,17 @@
                                         <i class="bi bi-eye"></i>
                                     </button>
 
-                                    <!-- Download -->
+                                    <!-- download -->
                                     <button
                                         class="btn btn-sm btn-outline-primary me-1"
+                                        :disabled="loading"
                                         title="Tải xuống"
+                                        @click="downloadVersion(version)"
                                     >
                                         <i class="bi bi-download"></i>
                                     </button>
 
-                                    <!-- Restore -->
+                                    <!-- restore -->
                                     <button
                                         class="btn btn-sm btn-outline-primary me-1"
                                         title="Khôi phục phiên bản này"
@@ -182,7 +185,7 @@
                                         ></i>
                                     </button>
 
-                                    <!-- Delete -->
+                                    <!-- delete -->
                                     <button
                                         class="btn btn-sm btn-outline-danger"
                                         title="Xóa phiên bản"
@@ -287,6 +290,9 @@ const versions = ref({
     next_page_url: null,
     prev_page_url: null,
 });
+
+const users = ref([]);
+
 // Trang thai loading
 const loading = ref(true);
 // Detail
@@ -301,8 +307,6 @@ const filters = ref({
     date_from: "",
     date_to: "",
 });
-
-const users = ref([]);
 
 // list users
 const fetchUsers = async () => {
@@ -342,10 +346,49 @@ const fetchVersions = async (page = 1) => {
             versions.value = { data: [] };
             alert(res.data?.message ?? "Không thể tải danh sách phiên bản");
         }
-    } catch (error) {
+    } catch (err) {
+        console.error(err);
         alert("Lỗi hệ thống, vui lòng thử lại!");
     } finally {
         // Tat loading
+        loading.value = false;
+    }
+};
+
+// download version
+const downloadVersion = async (version) => {
+    if (!version.file_path) {
+        alert("Không tìm thấy đường dẫn file.");
+        return;
+    }
+
+    loading.value = true;
+
+    try {
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/versions/${version.version_id}/download`,
+            { responseType: "blob" }
+        );
+
+        // Ten file
+        const fileName =
+            version.file_name ||
+            version.file_path.split("/").pop() ||
+            "file_download";
+
+        // Tao link download
+        const url = window.URL.createObjectURL(res.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("Lỗi tải file:", err);
+        alert("Không thể tải file. Kiểm tra console để biết lỗi chi tiết.");
+    } finally {
         loading.value = false;
     }
 };
@@ -367,7 +410,9 @@ const resetFilters = () => {
         date_from: "",
         date_to: "",
     };
-    fetchVersions(1);
+    fetchVersions(1).then(() =>
+        window.scrollTo({ top: 0, behavior: "smooth" })
+    );
 };
 
 // format date
@@ -397,7 +442,6 @@ const formatMimeType = (mime) => {
 };
 
 onMounted(() => {
-    loading.value = true;
     fetchVersions();
     fetchUsers();
 });
