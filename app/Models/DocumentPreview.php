@@ -16,6 +16,21 @@ class DocumentPreview extends Model
         'version_id'
     ];
 
+    /** Chi lay preview con hieu luc */
+    public function scopeActive($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('expires_at')
+                ->orWhere('expires_at', '>', now());
+        });
+    }
+
+    /** Lay moi nhat theo ngay tao */
+    public function scopeLatestCreated($query)
+    {
+        return $query->orderByDesc('created_at');
+    }
+
     public function document()
     {
         return $this->belongsTo(Document::class, 'document_id');
