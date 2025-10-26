@@ -18,9 +18,10 @@ return new class extends Migration
             $table->unsignedInteger('parent_folder_id')->nullable();
             $table->unsignedInteger('user_id');
             $table->timestamps();
-            $table->index('name');
-            $table->index('parent_folder_id');
-            $table->index('user_id');
+
+            $table->index(['user_id', 'parent_folder_id'], 'idx_folder_user_parent');
+            $table->index('status', 'idx_folder_status');
+            $table->index(['user_id', 'created_at'], 'idx_folder_user_created');
         });
     }
 

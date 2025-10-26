@@ -18,9 +18,10 @@ return new class extends Migration
             $table->unsignedInteger('compare_version_id');
             $table->unsignedInteger('compared_by')->nullable();
             $table->timestamps();
-            $table->index('base_version_id');
-            $table->index('compare_version_id');
-            $table->index('compared_by');
+
+            $table->index('compared_by', 'idx_compared_by');
+
+            $table->unique(['base_version_id', 'compare_version_id'], 'uq_base_compare_unique');
         });
     }
 
