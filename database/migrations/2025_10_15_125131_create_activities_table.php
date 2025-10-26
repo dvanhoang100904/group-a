@@ -22,12 +22,14 @@ return new class extends Migration
             $table->unsignedInteger('version_id')->nullable();
             $table->unsignedInteger('folder_id')->nullable();
             $table->timestamps();
-            $table->index('document_id');
-            $table->index('user_id');
-            $table->index('version_id');
-            $table->index('folder_id');
 
-            $table->index(['document_id', 'user_id']);
+            $table->index(['document_id', 'user_id'], 'idx_doc_user');
+
+            $table->index('version_id', 'idx_version');
+            $table->index('folder_id', 'idx_folder');
+
+
+            $table->index(['document_id', 'user_id', 'created_at'], 'idx_doc_user_created');
         });
     }
 

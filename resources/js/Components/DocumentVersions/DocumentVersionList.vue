@@ -275,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, version } from "vue";
+import { ref, onMounted, watch } from "vue";
 import axios from "axios";
 import VersionDetailModal from "./VersionDetailModal.vue";
 import VersionUploadModal from "./VersionUploadModal.vue";
@@ -293,9 +293,7 @@ const versions = ref({
     next_page_url: null,
     prev_page_url: null,
 });
-
 const users = ref([]);
-
 // Trang thai loading
 const loading = ref(true);
 // Detail
@@ -311,14 +309,38 @@ const filters = ref({
     date_to: "",
 });
 
+// format date
+const formatDate = (dateStr) => new Date(dateStr).toLocaleString("vi-VN");
+
+// format file size
+const formatFileSize = (bytes) => {
+    if (!bytes) return null;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    let i = 0;
+    let size = bytes;
+    while (size >= 1024 && i < sizes.length - 1) {
+        size /= 1024;
+        i++;
+    }
+    return `${size.toFixed(2)} ${sizes[i]}`;
+};
+
+// format mime type
+const formatMimeType = (mime) => {
+    if (!mime) return "-";
+    if (mime.includes("pdf")) return "PDF";
+    if (mime.includes("word")) return "Word";
+    if (mime.includes("excel")) return "Excel";
+    if (mime.includes("image")) return "Hình ảnh";
+    return mime;
+};
+
 // list users
 const fetchUsers = async () => {
     try {
         const res = await axios.get("/api/users");
-        if (res.data.success) {
-            users.value = res.data.data;
-        }
-    } catch (error) {
+        if (res.data.success) users.value = res.data.data;
+    } catch (e) {
         console.error("Không thể tải danh sách người dùng");
     }
 };
@@ -328,14 +350,16 @@ const fetchVersions = async (page = 1) => {
     // Bat loading khi bat dau goi api
     loading.value = true;
     try {
-        const params = {
-            page,
-            keyword: filters.value.keyword || "",
-            user_id: filters.value.user_id ? filters.value.user_id : undefined,
-            status: filters.value.status !== "" ? filters.value.status : "",
-            from_date: filters.value.date_from || "",
-            to_date: filters.value.date_to || "",
-        };
+        const params = Object.fromEntries(
+            Object.entries({
+                page,
+                keyword: filters.value.keyword,
+                user_id: filters.value.user_id,
+                status: filters.value.status,
+                from_date: filters.value.date_from,
+                to_date: filters.value.date_to,
+            }).filter(([_, v]) => v !== "")
+        );
 
         // Goi api lay danh sach phien ban cua tai lieu theo id
         const res = await axios.get(
@@ -442,7 +466,7 @@ const changePage = (page) => {
     );
 };
 
-// reset fillter
+// reset filter
 const resetFilters = () => {
     filters.value = {
         keyword: "",
@@ -454,32 +478,6 @@ const resetFilters = () => {
     fetchVersions(1).then(() =>
         window.scrollTo({ top: 0, behavior: "smooth" })
     );
-};
-
-// format date
-const formatDate = (dateStr) => new Date(dateStr).toLocaleString("vi-VN");
-
-// format file size
-const formatFileSize = (bytes) => {
-    if (!bytes) return null;
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    let i = 0;
-    let size = bytes;
-    while (size >= 1024 && i < sizes.length - 1) {
-        size /= 1024;
-        i++;
-    }
-    return `${size.toFixed(2)} ${sizes[i]}`;
-};
-
-// format mime type
-const formatMimeType = (mime) => {
-    if (!mime) return "-";
-    if (mime.includes("pdf")) return "PDF";
-    if (mime.includes("word")) return "Word";
-    if (mime.includes("excel")) return "Excel";
-    if (mime.includes("image")) return "Hình ảnh";
-    return mime;
 };
 
 onMounted(() => {
