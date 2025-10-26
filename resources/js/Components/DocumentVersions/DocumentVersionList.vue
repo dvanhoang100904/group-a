@@ -102,6 +102,7 @@
                     </div>
                 </form>
 
+                <!-- tables -->
                 <div
                     v-if="!versions.data || versions.data.length === 0"
                     class="text-center text-muted py-4"
@@ -179,6 +180,8 @@
                                     <button
                                         class="btn btn-sm btn-outline-primary me-1"
                                         title="Khôi phục phiên bản này"
+                                        :disabled="loading"
+                                        @click="restoreVersion(version)"
                                     >
                                         <i
                                             class="bi bi-arrow-counterclockwise"
@@ -272,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, version } from "vue";
 import axios from "axios";
 import VersionDetailModal from "./VersionDetailModal.vue";
 import VersionUploadModal from "./VersionUploadModal.vue";
@@ -362,6 +365,14 @@ const downloadVersion = async (version) => {
         return;
     }
 
+    if (
+        !confirm(
+            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number} này không?`
+        )
+    ) {
+        return;
+    }
+
     loading.value = true;
 
     try {
@@ -388,6 +399,36 @@ const downloadVersion = async (version) => {
     } catch (err) {
         console.error("Lỗi tải file:", err);
         alert("Không thể tải file. Kiểm tra console để biết lỗi chi tiết.");
+    } finally {
+        loading.value = false;
+    }
+};
+
+// restore version
+const restoreVersion = async (version) => {
+    if (
+        !confirm(
+            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number} này không?`
+        )
+    ) {
+        return;
+    }
+
+    loading.value = true;
+
+    try {
+        const res = await axios.post(
+            `/api/documents/${props.documentId}/versions/${version.version_id}/restore`
+        );
+        alert(res.data.message || "Đã khôi phục thành công!");
+        // Sau khi khoi phuc reload lai danh sach
+        await fetchVersions();
+    } catch (err) {
+        console.log(err);
+        alert(
+            err.response?.data?.message ||
+                "Không thể khôi phục phiên bản này. Vui lòng thử lại."
+        );
     } finally {
         loading.value = false;
     }

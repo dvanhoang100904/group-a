@@ -60,32 +60,25 @@ class DocumentVersion extends Model
     /** tim kiem loc theo keyword, user, status, ngay */
     public function scopeFilter($query, array $filters = [])
     {
-        if (!empty($filters['keyword'])) {
-            $query->where(function ($q) use ($filters) {
-                $q->where('change_note', 'like', "%{$filters['keyword']}%")
-                    ->orWhere('version_number', 'like', "%{$filters['keyword']}%");
-            });
-        }
+        return $query
+            ->when(!empty($filters['keyword']), function ($q) use ($filters) {
+                $q->where(function ($sub) use ($filters) {
+                    $sub->where('change_note', 'like', "%{$filters['keyword']}%")
+                        ->orWhere('version_number', 'like', "%{$filters['keyword']}%");
+                });
+            })
+            ->when(!empty($filters['user_id']), fn($q) => $q->where('user_id', $filters['user_id']))
+            ->when(isset($filters['status']) && $filters['status'] !== '', function ($q) use ($filters) {
+                $q->where('is_current_version', filter_var($filters['status'], FILTER_VALIDATE_BOOLEAN));
+            })
+            ->when(!empty($filters['from_date']), fn($q) => $q->whereDate('created_at', '>=', $filters['from_date']))
+            ->when(!empty($filters['to_date']), fn($q) => $q->whereDate('created_at', '<=', $filters['to_date']));
+    }
 
-        /** Loc theo user id */
-        if (!empty($filters['user_id'])) {
-            $query->where('user_id', $filters['user_id']);
-        }
-
-        /** Loc theo status */
-        if (isset($filters['status']) && $filters['status'] !== '') {
-            $query->where('is_current_version', filter_var($filters['status'], FILTER_VALIDATE_BOOLEAN));
-        }
-
-        /** Loc theo khoang ngay */
-        if (!empty($filters['from_date'])) {
-            $query->whereDate('created_at', '>=', $filters['from_date']);
-        }
-
-        if (!empty($filters['to_date'])) {
-            $query->whereDate('created_at', '<=', $filters['to_date']);
-        }
-        return $query;
+    /** Lay phien ban hien tai cua 1 tai lieu */
+    public function scopeCurrent($query)
+    {
+        return $query->where('is_current_version', true);
     }
 
     /** Kiem tra co the xoa phien ban hay khong */
@@ -98,6 +91,14 @@ class DocumentVersion extends Model
     public function markAsCurrent()
     {
         $this->update(['is_current_version' => true]);
+    }
+
+    /** Bo current version hien tai cua document */
+    public static function clearCurrent(int $documentId): void
+    {
+        static::where('document_id', $documentId)
+            ->where('is_current_version', true)
+            ->update(['is_current_version' => false]);
     }
 
     /** Preview moi nhat con hieu luc */
