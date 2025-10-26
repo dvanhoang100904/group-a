@@ -64,15 +64,26 @@ class DocumentVersionService
     /**
      * Chi tiet phien ban tai lieu
      */
-    public function getDocumentVersion(int $documentId, int $versionId)
+    public function getDocumentVersion(int $documentId, int $versionId): ?DocumentVersion
     {
-        return DocumentVersion::with([
-            'user:user_id,name',
-            'latestPreview'
-        ])
-            ->select('version_id', 'version_number', 'user_id', 'created_at', 'is_current_version', 'document_id', 'change_note', 'file_size', 'mime_type')
+        return DocumentVersion::query()
+            ->select([
+                'version_id',
+                'version_number',
+                'user_id',
+                'document_id',
+                'change_note',
+                'file_size',
+                'mime_type',
+                'is_current_version',
+                'created_at'
+            ])
             ->byDocument($documentId)
             ->byVersion($versionId)
+            ->with([
+                'user:user_id,name',
+                'latestPreview:preview_id,version_id,preview_path,expires_at,created_at'
+            ])
             ->first();
     }
 
