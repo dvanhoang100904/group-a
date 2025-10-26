@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\DocumentVersion;
 
 use App\Models\Document;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +10,13 @@ use Illuminate\Support\Str;
 
 class DocumentVersionUploadService
 {
+    protected DocumentVersionPreviewService $previewService;
+
+    public function __construct(DocumentVersionPreviewService $previewService)
+    {
+        $this->previewService = $previewService;
+    }
+
     /**
      * Upload file va tao phien ban moi cho tai lieu
      */
@@ -37,6 +44,9 @@ class DocumentVersionUploadService
 
             // Cap nhat cac version khac ve khong current
             $document->setCurrentVersion($version);
+
+            // Sinh preview file
+            $this->previewService->getOrGeneratePreview($version->version_id, $document->document_id);
 
             DB::commit();
 

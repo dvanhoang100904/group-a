@@ -14,7 +14,7 @@ class DocumentVersionSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_VERSION_PER_DOCUMENT = 20; // Số version tối đa mỗi document
+    const MAX_VERSION_PER_DOCUMENT = 30; // Số version tối đa mỗi document
 
     public function run(): void
     {

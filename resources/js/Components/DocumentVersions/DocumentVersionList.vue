@@ -49,7 +49,7 @@
                             <option
                                 v-for="u in users"
                                 :key="u.id"
-                                :value="u.id"
+                                :value="Number(u.id)"
                             >
                                 {{ u.name }}
                             </option>
@@ -88,7 +88,7 @@
 
                     <div class="col-md-1 d-grid">
                         <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-search"></i> Lọc
+                            <i class="bi bi-search me-1"></i> Lọc
                         </button>
                     </div>
                     <div class="col-md-1 d-grid">
@@ -97,11 +97,12 @@
                             class="btn btn-secondary btn-sm"
                             @click="resetFilters"
                         >
-                            <i class="bi bi-x-circle"></i> Reset
+                            <i class="bi bi-x-circle me-1"></i> Reset
                         </button>
                     </div>
                 </form>
 
+                <!-- tables -->
                 <div
                     v-if="!versions.data || versions.data.length === 0"
                     class="text-center text-muted py-4"
@@ -152,35 +153,42 @@
                                     </span>
                                 </td>
 
+                                <!-- action -->
                                 <td class="text-center">
-                                    <!-- View -->
+                                    <!-- view -->
                                     <button
                                         class="btn btn-sm btn-outline-primary me-1"
                                         title="Xem chi tiết"
-                                        @click="showVersionDetail(version)"
+                                        @click="
+                                            versionIdToShow = version.version_id
+                                        "
                                     >
                                         <i class="bi bi-eye"></i>
                                     </button>
 
-                                    <!-- Download -->
+                                    <!-- download -->
                                     <button
                                         class="btn btn-sm btn-outline-primary me-1"
+                                        :disabled="loading"
                                         title="Tải xuống"
+                                        @click="downloadVersion(version)"
                                     >
                                         <i class="bi bi-download"></i>
                                     </button>
 
-                                    <!-- Restore -->
+                                    <!-- restore -->
                                     <button
                                         class="btn btn-sm btn-outline-primary me-1"
                                         title="Khôi phục phiên bản này"
+                                        :disabled="loading"
+                                        @click="restoreVersion(version)"
                                     >
                                         <i
                                             class="bi bi-arrow-counterclockwise"
                                         ></i>
                                     </button>
 
-                                    <!-- Delete -->
+                                    <!-- delete -->
                                     <button
                                         class="btn btn-sm btn-outline-danger"
                                         title="Xóa phiên bản"
@@ -247,10 +255,12 @@
 
                 <!-- Modal detail version-->
                 <VersionDetailModal
-                    v-model:selected-version="selectedVersion"
+                    :document-id="documentId"
+                    :version-id="versionIdToShow"
                     :format-file-size="formatFileSize"
                     :format-mime-type="formatMimeType"
                     :format-date="formatDate"
+                    @update:versionId="versionIdToShow = $event"
                 />
 
                 <!-- Modal upload version -->
@@ -283,10 +293,11 @@ const versions = ref({
     next_page_url: null,
     prev_page_url: null,
 });
+const users = ref([]);
 // Trang thai loading
 const loading = ref(true);
-// Phien ban duoc chon
-const selectedVersion = ref(null);
+// Detail
+const versionIdToShow = ref(null);
 // Upload
 const uploadModal = ref(null);
 // filter search
@@ -297,74 +308,6 @@ const filters = ref({
     date_from: "",
     date_to: "",
 });
-
-const users = ref([]);
-
-// list users
-const fetchUsers = async () => {
-    try {
-        const res = await axios.get("/api/users");
-        if (res.data.success) {
-            users.value = res.data.data;
-        }
-    } catch (error) {
-        console.error("Không thể tải danh sách người dùng");
-    }
-};
-
-// list document versions
-const fetchVersions = async (page = 1) => {
-    // Bat loading khi bat dau goi api
-    loading.value = true;
-    try {
-        const params = {
-            page,
-            keyword: filters.value.keyword || "",
-            user_id: filters.value.user_id || "",
-            status: filters.value.status !== "" ? filters.value.status : "",
-            from_date: filters.value.date_from || "",
-            to_date: filters.value.date_to || "",
-        };
-
-        // Goi api lay danh sach phien ban cua tai lieu theo id
-        const res = await axios.get(
-            `/api/documents/${props.documentId}/versions`,
-            { params }
-        );
-        // Luu du lieu tra ve vao state versions
-        if (res.data.success) {
-            versions.value = res.data.data;
-        } else {
-            versions.value = { data: [] };
-            alert(res.data?.message ?? "Không thể tải danh sách phiên bản");
-        }
-    } catch (error) {
-        alert("Lỗi hệ thống, vui lòng thử lại!");
-    } finally {
-        // Tat loading
-        loading.value = false;
-    }
-};
-
-// pagination
-const changePage = (page) => {
-    if (page < 1 || page > versions.value.last_page) return;
-    fetchVersions(page).then(() =>
-        window.scrollTo({ top: 0, behavior: "smooth" })
-    );
-};
-
-// reset fillter
-const resetFilters = () => {
-    filters.value = {
-        keyword: "",
-        user_id: "",
-        status: "",
-        date_from: "",
-        date_to: "",
-    };
-    fetchVersions(1);
-};
 
 // format date
 const formatDate = (dateStr) => new Date(dateStr).toLocaleString("vi-VN");
@@ -392,14 +335,152 @@ const formatMimeType = (mime) => {
     return mime;
 };
 
-// modal detail version
-const showVersionDetail = (version) => {
-    // Luu phien ban duoc chon vao state de hien trong modal
-    selectedVersion.value = version;
+// list users
+const fetchUsers = async () => {
+    try {
+        const res = await axios.get("/api/users");
+        if (res.data.success) users.value = res.data.data;
+    } catch (e) {
+        console.error("Không thể tải danh sách người dùng");
+    }
+};
+
+// list document versions
+const fetchVersions = async (page = 1) => {
+    // Bat loading khi bat dau goi api
+    loading.value = true;
+    try {
+        const params = Object.fromEntries(
+            Object.entries({
+                page,
+                keyword: filters.value.keyword,
+                user_id: filters.value.user_id,
+                status: filters.value.status,
+                from_date: filters.value.date_from,
+                to_date: filters.value.date_to,
+            }).filter(([_, v]) => v !== "")
+        );
+
+        // Goi api lay danh sach phien ban cua tai lieu theo id
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/versions`,
+            { params }
+        );
+        // Luu du lieu tra ve vao state versions
+        if (res.data.success) {
+            versions.value = res.data.data;
+        } else {
+            versions.value = { data: [] };
+            alert(res.data?.message ?? "Không thể tải danh sách phiên bản");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Lỗi hệ thống, vui lòng thử lại!");
+    } finally {
+        // Tat loading
+        loading.value = false;
+    }
+};
+
+// download version
+const downloadVersion = async (version) => {
+    if (!version.file_path) {
+        alert("Không tìm thấy đường dẫn file.");
+        return;
+    }
+
+    if (
+        !confirm(
+            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number} này không?`
+        )
+    ) {
+        return;
+    }
+
+    loading.value = true;
+
+    try {
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/versions/${version.version_id}/download`,
+            { responseType: "blob" }
+        );
+
+        // Ten file
+        const fileName =
+            version.file_name ||
+            version.file_path.split("/").pop() ||
+            "file_download";
+
+        // Tao link download
+        const url = window.URL.createObjectURL(res.data);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("Lỗi tải file:", err);
+        alert("Không thể tải file. Kiểm tra console để biết lỗi chi tiết.");
+    } finally {
+        loading.value = false;
+    }
+};
+
+// restore version
+const restoreVersion = async (version) => {
+    if (
+        !confirm(
+            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number} này không?`
+        )
+    ) {
+        return;
+    }
+
+    loading.value = true;
+
+    try {
+        const res = await axios.post(
+            `/api/documents/${props.documentId}/versions/${version.version_id}/restore`
+        );
+        alert(res.data.message || "Đã khôi phục thành công!");
+        // Sau khi khoi phuc reload lai danh sach
+        await fetchVersions();
+    } catch (err) {
+        console.log(err);
+        alert(
+            err.response?.data?.message ||
+                "Không thể khôi phục phiên bản này. Vui lòng thử lại."
+        );
+    } finally {
+        loading.value = false;
+    }
+};
+
+// pagination
+const changePage = (page) => {
+    if (page < 1 || page > versions.value.last_page) return;
+    fetchVersions(page).then(() =>
+        window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+};
+
+// reset filter
+const resetFilters = () => {
+    filters.value = {
+        keyword: "",
+        user_id: "",
+        status: "",
+        date_from: "",
+        date_to: "",
+    };
+    fetchVersions(1).then(() =>
+        window.scrollTo({ top: 0, behavior: "smooth" })
+    );
 };
 
 onMounted(() => {
-    loading.value = true;
     fetchVersions();
     fetchUsers();
 });

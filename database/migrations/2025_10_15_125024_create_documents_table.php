@@ -21,11 +21,13 @@ return new class extends Migration
             $table->unsignedInteger('type_id');
             $table->unsignedInteger('subject_id');
             $table->timestamps();
-            $table->index('user_id');
-            $table->index('folder_id');
-            $table->index('type_id');
-            $table->index('subject_id');
-            $table->index('status');
+
+            $table->index(['user_id', 'status', 'created_at'], 'idx_user_status_created');
+            $table->index(['subject_id', 'type_id'], 'idx_subject_type');
+            $table->index(['folder_id', 'created_at'], 'idx_folder_created');
+
+            $table->index('status', 'idx_status');
+            $table->fullText(['title', 'description'], 'ft_title_description');
         });
     }
 

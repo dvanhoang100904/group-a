@@ -52,7 +52,10 @@ class Document extends Model
 
     public function subject()
     {
-        return $this->belongsTo(Subject::class, 'subject_id');
+        return $this->belongsTo(Subject::class, 'subject_id')->withDefault([
+            'name' => 'Chưa có',
+            'department_id' => null,
+        ]);
     }
 
     public function versions()

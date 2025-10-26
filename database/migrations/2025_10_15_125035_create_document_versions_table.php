@@ -22,10 +22,12 @@ return new class extends Migration
             $table->unsignedInteger('document_id');
             $table->unsignedInteger('user_id');
             $table->timestamps();
-            $table->index('version_number');
-            $table->index('is_current_version');
-            $table->index('document_id');
-            $table->index('user_id');
+
+            $table->index('user_id', 'idx_user');
+
+            $table->index(['document_id', 'created_at'], 'idx_doc_created');
+            $table->index(['document_id', 'version_number'], 'idx_doc_version');
+            $table->index(['document_id', 'is_current_version'], 'idx_doc_current');
         });
     }
 
