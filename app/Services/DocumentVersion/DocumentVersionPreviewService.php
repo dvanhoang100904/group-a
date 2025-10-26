@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\DocumentVersion;
 
 use App\Models\DocumentVersion;
 use Illuminate\Support\Facades\Storage;
