@@ -19,12 +19,12 @@ return new class extends Migration
             $table->unsignedInteger('moved_by');
             $table->timestamp('moved_at')->nullable();
             $table->timestamps();
-            $table->index('document_id');
-            $table->index('from_folder_id');
-            $table->index('to_folder_id');
-            $table->index('moved_by');
 
-            $table->index(['document_id', 'moved_at']);
+            $table->index(['document_id', 'moved_at'], 'idx_doc_moved');
+
+            $table->index('from_folder_id', 'idx_from_folder');
+            $table->index('to_folder_id', 'idx_to_folder');
+            $table->index('moved_by', 'idx_moved_by');
         });
     }
 

@@ -17,7 +17,24 @@ class DocumentVersionService
      */
     public function getDocumentWithRelations(int $documentId): ?Document
     {
-        return Document::with('subject.department')->withCount('versions')->find($documentId);
+        return Document::select(['document_id', 'title', 'subject_id', 'folder_id'])
+            ->with([
+                'folder:folder_id,name',
+                'subject:subject_id,name,department_id',
+                'subject.department:department_id,name',
+                'versions' => fn($q) => $q
+                    ->current()
+                    ->select('version_id', 'document_id', 'version_number'),
+                'accesses' => fn($q) => $q
+                    ->select('access_id', 'document_id', 'granted_to_type', 'granted_to_user_id', 'granted_to_role_id', 'granted_by')
+                    ->with([
+                        'grantedToUser:user_id,name',
+                        'grantedBy:user_id,name'
+                    ])
+            ])
+            ->withCount('versions')
+            ->whereKey($documentId)
+            ->first();
     }
 
     /**
@@ -25,20 +42,22 @@ class DocumentVersionService
      */
     public function getDocumentVersionsHasPaginated(int $documentId, array $filters = [])
     {
-        $document = Document::find($documentId);
-
-        if (!$document) {
-            return null;
-        }
-
-        $filters = is_array($filters) ? $filters : [];
-
-        return $document->versions()
-            ->with('user:user_id,name')
-            ->select('version_id', 'version_number', 'user_id', 'created_at', 'is_current_version', 'file_path')
+        return DocumentVersion::query()
+            ->where('document_id', $documentId)
+            ->select([
+                'version_id',
+                'version_number',
+                'user_id',
+                'created_at',
+                'is_current_version',
+                'file_path',
+            ])
+            ->with([
+                'user:user_id,name'
+            ])
             ->filter($filters)
             ->latestOrder()
-            ->paginate(self::PER_PAGE)
+            ->paginate(self::PER_PAGE, ['*'], 'page')
             ->withQueryString();
     }
 
