@@ -5,13 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UploadDocumentVersionRequest;
 use App\Models\Document;
-use App\Models\DocumentVersion;
-use App\Services\DocumentVersionPreviewService;
-use App\Services\DocumentVersionService;
-use App\Services\DocumentVersionUploadService;
+use App\Services\DocumentVersion\DocumentVersionService;
+use App\Services\DocumentVersion\DocumentVersionPreviewService;
+use App\Services\DocumentVersion\DocumentVersionUploadService;
 use Illuminate\Http\Request;
 use Throwable;
-use Illuminate\Support\Facades\Storage;
 
 class DocumentVersionApiController extends Controller
 {
@@ -128,5 +126,13 @@ class DocumentVersionApiController extends Controller
     public function download($documentId, $versionId)
     {
         return $this->documentVersionService->downloadVersion($documentId, $versionId);
+    }
+
+    /**
+     * Khoi phuc phien ban tai lieu
+     */
+    public function restore($documentId, $versionId)
+    {
+        return $this->documentVersionService->restoreVersion($documentId, $versionId);
     }
 }

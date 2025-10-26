@@ -15,6 +15,8 @@ Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionApiCo
 Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionApiController::class, 'preview']);
 Route::post('/documents/{id}/versions', [DocumentVersionApiController::class, 'store']);
 Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionApiController::class, 'download']);
+Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionApiController::class, 'restore']);
+
 
 // Users
 Route::get('/users', [UserApiController::class, 'index']);
