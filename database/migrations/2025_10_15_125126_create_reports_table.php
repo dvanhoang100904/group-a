@@ -10,7 +10,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
-       Schema::create('reports', function (Blueprint $table) {
+        Schema::create('reports', function (Blueprint $table) {
             $table->increments('report_id');
             $table->string('reason', 255);
             $table->enum('status', ['new', 'processing', 'resolved'])->default('new');
@@ -19,7 +19,9 @@ return new class extends Migration {
             $table->timestamp('resolved_at')->nullable();
             $table->timestamps();
 
-            $table->index(['document_id', 'user_id', 'status']);
+            $table->index(['document_id', 'user_id', 'status'], 'idx_report_doc_user_status');
+
+            $table->index('resolved_at', 'idx_report_resolved_at');
         });
     }
 

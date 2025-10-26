@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\DocumentVersionService;
+use App\Services\DocumentVersion\DocumentVersionService;
 use Illuminate\Http\Request;
 
 class DocumentVersionController extends Controller
