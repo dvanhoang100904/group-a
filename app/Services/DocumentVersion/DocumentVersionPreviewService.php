@@ -17,27 +17,25 @@ use Throwable;
 
 class DocumentVersionPreviewService
 {
-    // Dinh nghia thu muc luu file
-    private const PREVIEW_DIR = 'previews/';
-
     /** 
      * Lay preview neu co, neu chua co thi sinh moi
      */
     public function getOrGeneratePreview(int $versionId, ?int $documentId = null): ?array
     {
         // Lay phien ban tai lieu kem previews
-        $version = DocumentVersion::with('previews')->find($versionId);
-
+        $version = DocumentVersion::with(['previews' => function ($q) {
+            $q->active()->latestCreated()->limit(1);
+        }])->find($versionId);
         if (!$version) {
             return null;
         }
 
-        if ($documentId && $version->document_id != $documentId) {
+        if (!$version || ($documentId && $version->document_id != $documentId)) {
             return null;
         }
 
         // Lay preview Con thoi han, moi nhat
-        $preview = $version->previews()->active()->latestCreated()->first();
+        $preview = $version->previews->first();
 
         // Neu preview ton tai và file thuc su con trên disk
         if ($preview && Storage::disk('public')->exists($preview->preview_path)) {

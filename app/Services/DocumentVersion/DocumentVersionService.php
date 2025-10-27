@@ -64,15 +64,26 @@ class DocumentVersionService
     /**
      * Chi tiet phien ban tai lieu
      */
-    public function getDocumentVersion(int $documentId, int $versionId)
+    public function getDocumentVersion(int $documentId, int $versionId): ?DocumentVersion
     {
-        return DocumentVersion::with([
-            'user:user_id,name',
-            'latestPreview'
-        ])
-            ->select('version_id', 'version_number', 'user_id', 'created_at', 'is_current_version', 'document_id', 'change_note', 'file_size', 'mime_type')
+        return DocumentVersion::query()
+            ->select([
+                'version_id',
+                'version_number',
+                'user_id',
+                'document_id',
+                'change_note',
+                'file_size',
+                'mime_type',
+                'is_current_version',
+                'created_at'
+            ])
             ->byDocument($documentId)
             ->byVersion($versionId)
+            ->with([
+                'user:user_id,name',
+                'latestPreview:preview_id,version_id,preview_path,expires_at,created_at'
+            ])
             ->first();
     }
 
@@ -84,6 +95,7 @@ class DocumentVersionService
         try {
             // Lay phien ban can tai
             $version = DocumentVersion::query()
+                ->with('document:document_id')
                 ->byDocument($documentId)
                 ->byVersion($versionId)
                 ->select(['version_id', 'version_number', 'file_path', 'document_id'])
@@ -124,13 +136,13 @@ class DocumentVersionService
                             'message' => "Tải xuống phiên bản #{$version->version_number}."
                         ]),
                     ]);
-                } catch (\Throwable $e) {
+                } catch (\Throwable $th) {
                     // khong lam gian doan response neu loi log
-                    report($e);
+                    report($th);
                 }
             }, $fileName);
-        } catch (\Throwable $e) {
-            report($e);
+        } catch (\Throwable $th) {
+            report($th);
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi tải xuống tệp.',
@@ -146,7 +158,8 @@ class DocumentVersionService
         DB::beginTransaction();
         try {
             // Lay phien ban can khoi phuc cung tai lieu 
-            $version = DocumentVersion::with('document')
+            $version = DocumentVersion::query()
+                ->with('document:document_id')
                 ->byDocument($documentId)
                 ->byVersion($versionId)
                 ->select(['version_id', 'version_number', 'document_id', 'is_current_version'])
@@ -182,9 +195,9 @@ class DocumentVersionService
                         'message' => "Khôi phục phiên bản #{$version->version_number} làm phiên bản hiện tại."
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
-            } catch (\Throwable $e) {
+            } catch (\Throwable $th) {
                 // Khong lam gian doan response neu loi log
-                report($e);
+                report($th);
             }
 
             DB::commit();
@@ -193,14 +206,83 @@ class DocumentVersionService
                 'success' => true,
                 'message' => "Đã khôi phục phiên bản #{$version->version_number} thành công.",
             ]);
-        } catch (\Throwable $e) {
+        } catch (\Throwable $th) {
             //throw $th;
             DB::rollBack();
-            report($e);
+            report($th);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi khôi phục phiên bản.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Xoa phien ban tai lieu
+     */
+    public function deleteVersion(int $documentId, int $versionId)
+    {
+        DB::beginTransaction();
+        try {
+            $version = DocumentVersion::query()
+                ->with('document:document_id')
+                ->byDocument($documentId)
+                ->byVersion($versionId)
+                ->select(['version_id', 'file_path', 'is_current_version', 'version_number', 'document_id'])
+                ->first();
+
+            if (!$version) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Phiên bản không tồn tại hoặc đã bị xó.',
+                ], 404);
+            }
+
+            // Khong cho xoa phien ban hien tai
+            if (!$version->isDeletable()) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => "Không thể xóa phiên bản hiện tại (#{$version->version_number}).",
+                ]);
+            }
+
+            // Xoa file neu ton tai
+            if ($version->file_path && Storage::disk('public')->exists($version->file_path)) {
+                Storage::disk('public')->delete($version->file_path);
+            }
+
+            // Xoa ban ghi
+            $version->delete();
+
+            // Ghi log
+            try {
+                $version->document?->activities()->create([
+                    'action' => 'delete',
+                    'user_id' => Auth::id() ?? 1,
+                    'action_detail' => json_encode([
+                        'message' => "Đã xóa phiên bản #{$version->version_number}.",
+                    ], JSON_UNESCAPED_UNICODE),
+                ]);
+            } catch (\Throwable $th) {
+                report($th);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Phiên bản #{$version->version_number} đã được xóa thành công.",
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            report($th);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi xóa phiên bản.',
             ], 500);
         }
     }
