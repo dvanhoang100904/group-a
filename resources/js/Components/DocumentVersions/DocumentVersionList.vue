@@ -192,6 +192,8 @@
                                     <button
                                         class="btn btn-sm btn-outline-danger"
                                         title="Xóa phiên bản"
+                                        :disabled="loading"
+                                        @click="deleteVersion(version)"
                                     >
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -452,6 +454,38 @@ const restoreVersion = async (version) => {
         alert(
             err.response?.data?.message ||
                 "Không thể khôi phục phiên bản này. Vui lòng thử lại."
+        );
+    } finally {
+        loading.value = false;
+    }
+};
+
+// delete version
+const deleteVersion = async (version) => {
+    if (
+        !confirm(
+            `Bạn có chắc chắn muốn xóa phiên bản #${version.version_number} này không?`
+        )
+    ) {
+        return;
+    }
+
+    loading.value = true;
+
+    try {
+        const res = await axios.delete(
+            `/api/documents/${props.documentId}/versions/${version.version_id}`
+        );
+
+        alert(res.data.message || "Đã xóa phiên bản thành công!");
+
+        // Sau khi xoa, reload lai danh sach phien ban
+        await fetchVersions();
+    } catch (err) {
+        console.error(err);
+        alert(
+            err.response?.data?.message ||
+                "Không thể xóa phiên bản này. Vui lòng thử lại."
         );
     } finally {
         loading.value = false;

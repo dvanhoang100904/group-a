@@ -16,6 +16,8 @@ Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVers
 Route::post('/documents/{id}/versions', [DocumentVersionApiController::class, 'store']);
 Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionApiController::class, 'download']);
 Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionApiController::class, 'restore']);
+Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionApiController::class, 'destroy']);
+
 
 
 // Users
