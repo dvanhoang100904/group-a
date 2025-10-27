@@ -119,7 +119,6 @@ class DocumentVersionApiController extends Controller
         }
     }
 
-
     /**
      * Tai xuong phien ban tai lieu
      */
@@ -134,5 +133,13 @@ class DocumentVersionApiController extends Controller
     public function restore($documentId, $versionId)
     {
         return $this->documentVersionService->restoreVersion($documentId, $versionId);
+    }
+
+    /**
+     * Xoa phien ban tai lieu
+     */
+    public function destroy($documentId, $versionId)
+    {
+        return $this->documentVersionService->deleteVersion($documentId, $versionId);
     }
 }
