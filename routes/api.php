@@ -3,22 +3,31 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\DocumentVersionApiController;
-use App\Http\Controllers\Api\UserApiController;
+use App\Http\Controllers\Api\DocumentVersionController;
+use App\Http\Controllers\Api\DocumentVersionCompareController;
+use App\Http\Controllers\Api\DocumentVersionActionController;
+use App\Http\Controllers\Api\UserController;
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
 
 // Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionApiController::class, 'index']);
-Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionApiController::class, 'show']);
-Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionApiController::class, 'preview']);
-Route::post('/documents/{id}/versions', [DocumentVersionApiController::class, 'store']);
-Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionApiController::class, 'download']);
-Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionApiController::class, 'restore']);
-Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionApiController::class, 'destroy']);
-
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index']);
+// Compare
+Route::get('/documents/{documentId}/versions/compare', [DocumentVersionCompareController::class, 'compare']);
+// Detail
+Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'show']);
+// Preview
+Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionController::class, 'preview']);
+// Upload
+Route::post('/documents/{id}/versions', [DocumentVersionActionController::class, 'store']);
+// Download
+Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionActionController::class, 'download']);
+// Restore
+Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionActionController::class, 'restore']);
+// Delete
+Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionActionController::class, 'destroy']);
 
 
 // Users
-Route::get('/users', [UserApiController::class, 'index']);
+Route::get('/users', [UserController::class, 'index']);
