@@ -17,7 +17,7 @@ class DocumentVersionApiController extends Controller
     protected $previewService;
     protected $uploadService;
 
-    public function __construct(DocumentVersionService $documentVersionService, DocumentVersionPreviewService $previewService, DocumentVersionUploadService $uploadService)
+    public function __construct(DocumentVersionService $documentVersionService, DocumentVersionPreviewService $previewService, DocumentVersionUploadService $uploadService,)
     {
         $this->documentVersionService = $documentVersionService;
         $this->previewService = $previewService;
