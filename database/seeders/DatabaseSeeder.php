@@ -35,7 +35,6 @@ class DatabaseSeeder extends Seeder
             DocumentVersionSeeder::class,
             DocumentPreviewSeeder::class,
             DocumentAccessSeeder::class,
-            VersionComparisonSeeder::class,
             ActivitySeeder::class,
             ReportSeeder::class,
             FolderLogSeeder::class,

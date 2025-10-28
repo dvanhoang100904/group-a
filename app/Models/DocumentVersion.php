@@ -125,16 +125,6 @@ class DocumentVersion extends Model
         return $this->hasMany(DocumentPreview::class, 'version_id');
     }
 
-    public function baseComparisons()
-    {
-        return $this->hasMany(VersionComparison::class, 'base_version_id');
-    }
-
-    public function compareComparisons()
-    {
-        return $this->hasMany(VersionComparison::class, 'compare_version_id');
-    }
-
     public function activities()
     {
         return $this->hasMany(Activity::class, 'version_id');
