@@ -269,7 +269,15 @@
                 <VersionUploadModal
                     ref="uploadModal"
                     :document-id="documentId"
+                    :format-file-size="formatFileSize"
                     @uploaded="fetchVersions"
+                />
+
+                <!-- Compare version -->
+                <DocumentVersionCompare
+                    :document-id="props.documentId"
+                    :versions="versions.data"
+                    :format-file-size="formatFileSize"
                 />
             </div>
         </div>
@@ -281,6 +289,7 @@ import { ref, onMounted, watch } from "vue";
 import axios from "axios";
 import VersionDetailModal from "./VersionDetailModal.vue";
 import VersionUploadModal from "./VersionUploadModal.vue";
+import DocumentVersionCompare from "./DocumentVersionCompare.vue";
 
 // Nhan props
 const props = defineProps({
