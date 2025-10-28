@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('name', 150)->unique();
             $table->string('description', 255)->nullable();
             $table->timestamps();
+            $table->boolean('status')->default(true)->comment('1=active, 0=inactive');
             $table->index('name');
+            $table->index('status');
         });
     }
 

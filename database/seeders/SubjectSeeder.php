@@ -56,8 +56,6 @@ class SubjectSeeder extends Seeder
 
         $departments = DB::table('departments')->get();
 
-        $assignedSubjects = [];
-
         foreach ($departments as $department) {
             $availableSubjects = array_diff($sampleSubjects, DB::table('subjects')->pluck('name')->toArray());
             $subjectsCount = min(rand(3, 5), count($availableSubjects));
@@ -73,6 +71,7 @@ class SubjectSeeder extends Seeder
                         'name' => $subjectName,
                         'description' => "Môn $subjectName thuộc {$department->name}",
                         'department_id' => $department->department_id,
+                        'status' => rand(0, 1),
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
