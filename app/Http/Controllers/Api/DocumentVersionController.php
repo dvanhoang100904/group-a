@@ -3,25 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\UploadDocumentVersionRequest;
-use App\Models\Document;
-use App\Services\DocumentVersion\DocumentVersionService;
 use App\Services\DocumentVersion\DocumentVersionPreviewService;
-use App\Services\DocumentVersion\DocumentVersionUploadService;
+use App\Services\DocumentVersion\DocumentVersionService;
 use Illuminate\Http\Request;
-use Throwable;
 
-class DocumentVersionApiController extends Controller
+class DocumentVersionController extends Controller
 {
     protected $documentVersionService;
     protected $previewService;
-    protected $uploadService;
 
-    public function __construct(DocumentVersionService $documentVersionService, DocumentVersionPreviewService $previewService, DocumentVersionUploadService $uploadService)
+    public function __construct(DocumentVersionService $documentVersionService, DocumentVersionPreviewService $previewService)
     {
         $this->documentVersionService = $documentVersionService;
         $this->previewService = $previewService;
-        $this->uploadService = $uploadService;
     }
 
     /**
@@ -83,56 +77,7 @@ class DocumentVersionApiController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $data,
+            'data' => $data,
         ]);
-    }
-
-    /**
-     * Upload tai lieu phen ban moi
-     */
-    public function store(UploadDocumentVersionRequest $request, $id)
-    {
-        $document = Document::find($id);
-
-        if (!$document) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
-        }
-
-        try {
-            $file = $request->file('file');
-            $changeNote = $request->change_note;
-            $version = $this->uploadService->upload($document, $file, $changeNote);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Tải lên phiên bản mới thành công',
-                'data' => $version
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-
-    /**
-     * Tai xuong phien ban tai lieu
-     */
-    public function download($documentId, $versionId)
-    {
-        return $this->documentVersionService->downloadVersion($documentId, $versionId);
-    }
-
-    /**
-     * Khoi phuc phien ban tai lieu
-     */
-    public function restore($documentId, $versionId)
-    {
-        return $this->documentVersionService->restoreVersion($documentId, $versionId);
     }
 }
