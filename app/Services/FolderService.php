@@ -123,11 +123,14 @@ class FolderService
             $parentFolderName = 'Thư mục gốc';
             $breadcrumbs = [];
 
-            if ($parentFolderId) {
-                $parentFolder = Folder::findOrFail($parentFolderId);
+            // FIX: Kiểm tra parentFolderId hợp lệ
+            if ($parentFolderId && $parentFolderId !== 'null' && $parentFolderId !== '') {
+                $parentFolder = Folder::find($parentFolderId);
                 if ($parentFolder) {
                     $parentFolderName = $parentFolder->name;
                     $breadcrumbs = $this->getBreadcrumbs($parentFolder);
+                } else {
+                    throw new \Exception('Thư mục cha không tồn tại');
                 }
             }
 
@@ -137,6 +140,8 @@ class FolderService
             ];
         } catch (ModelNotFoundException $e) {
             throw new \Exception('Thư mục cha không tồn tại');
+        } catch (\Exception $e) {
+            throw new \Exception('Lỗi khi lấy thông tin vị trí: ' . $e->getMessage());
         }
     }
 

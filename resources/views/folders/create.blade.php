@@ -3,12 +3,11 @@
 @section('content')
 <div id="app">
     <folder-create
-        parent-folder-id="{{ $parentFolderId }}"
+        parent-folder-id="{{ $parentFolderId ?? '' }}"
         parent-folder-name="{{ $parentFolderName ?? 'Danh sách hiện tại' }}"
-        :initial-errors='@json($errors->getMessages())'
-        :initial-old='@json(old())'
+        :breadcrumbs='@json($breadcrumbs ?? [])'
         success="{{ session('success') ?? '' }}"
-        error="{{ session('error') ?? '' }}"
+        error="{{ session('error') ?? ($error ?? '') }}"
     ></folder-create>
 </div>
 @endsection
