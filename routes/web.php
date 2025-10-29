@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\DocumentVersionApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\DashboardController;
@@ -20,14 +19,19 @@ Route::prefix('dashboard')->group(function () {
 });
 
 // Folder - yen đẹp trai
-Route::get('/folders/search', [FolderController::class, 'search'])->name('folders.search');
-Route::get('/folders', [FolderController::class, 'index'])->name('folders.index');
-Route::get('/folders/create', [FolderController::class, 'create'])->name('folders.create');
-Route::post('/folders', [FolderController::class, 'store'])->name('folders.store');
-Route::get('/folders/{folder}', [FolderController::class, 'show'])->name('folders.show');
-Route::get('/folders/{folder}/edit', [FolderController::class, 'edit'])->name('folders.edit');
-Route::put('/folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
-Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
+Route::prefix('folders')->name('folders.')->group(function () {
+    Route::get('/test-create', function () {
+        return view('folders.test-create');
+    })->name('test-create');
+    Route::get('/', [FolderController::class, 'index'])->name('index');
+    Route::get('/search', [FolderController::class, 'search'])->name('search');
+    Route::get('/create', [FolderController::class, 'create'])->name('create');
+    Route::post('/', [FolderController::class, 'store'])->name('store');
+    Route::get('/{folder}', [FolderController::class, 'show'])->name('show');
+    Route::get('/{folder}/edit', [FolderController::class, 'edit'])->name('edit');
+    Route::put('/{folder}', [FolderController::class, 'update'])->name('update');
+    Route::delete('/{folder}', [FolderController::class, 'destroy'])->name('destroy');
+});
 
 // Uploads
 Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
