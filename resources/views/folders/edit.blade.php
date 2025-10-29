@@ -5,10 +5,10 @@
     <folder-edit
         :folder='@json($folder)'
         :parent-folders='@json($parentFolders)'
-        :initial-errors='@json($errors->getMessages())'
-        :initial-old='@json(old())'
+        :descendant-ids='@json($descendantIds)'
+        :breadcrumbs='@json($breadcrumbs ?? [])'
         success="{{ session('success') ?? '' }}"
-        error="{{ session('error') ?? '' }}"
+        error="{{ session('error') ?? ($error ?? '') }}"
     ></folder-edit>
 </div>
 @endsection

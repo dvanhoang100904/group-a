@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Folder;
 
 use Illuminate\Foundation\Http\FormRequest;
-use App\Models\Folder;
 
 class UpdateFolderRequest extends FormRequest
 {
@@ -14,10 +13,10 @@ class UpdateFolderRequest extends FormRequest
 
     public function rules(): array
     {
-        $folderId = $this->route('folder');
+        $folderId = $this->route('folder');  // Get {folder} from route
 
         return [
-            'name' => 'required|string|max:255|unique:folders,name,' . $folderId . ',folder_id',
+            'name' => 'required|string|max:255|unique:folders,name,' . $folderId . ',folder_id',  // FIX: Ignore current for unique
             'status' => 'required|in:public,private',
             'parent_folder_id' => 'nullable|exists:folders,folder_id'
         ];
@@ -34,18 +33,13 @@ class UpdateFolderRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator)
+    // FIX: Chuẩn bị data trước khi validation (tương tự Store)
+    public function prepareForValidation()
     {
-        $validator->after(function ($validator) {
-            $folderId = $this->route('folder');
-            $parentFolderId = $this->input('parent_folder_id');
-
-            if ($parentFolderId == $folderId) {
-                $validator->errors()->add(
-                    'parent_folder_id',
-                    'Không thể chọn chính thư mục này làm thư mục cha!'
-                );
-            }
-        });
+        if ($this->has('parent_folder_id') && ($this->parent_folder_id === '' || $this->parent_folder_id === 'null')) {
+            $this->merge([
+                'parent_folder_id' => null
+            ]);
+        }
     }
 }

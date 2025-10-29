@@ -214,7 +214,7 @@
                   <div class="py-1" role="none">
                     <!-- Edit -->
                     <a :href="route('folders.edit', folder.folder_id)" 
-                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 no-underline">
                       <i class="fas fa-edit mr-3 text-blue-500"></i>
                       Chỉnh sửa
                     </a>
@@ -252,7 +252,7 @@
                   Xóa bộ lọc
                 </button>
                 <a v-else :href="createFolderUrl" 
-                   class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
+                   class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center no-underline">
                   <i class="fas fa-plus mr-2"></i>
                   Tạo Thư Mục Mới
                 </a>

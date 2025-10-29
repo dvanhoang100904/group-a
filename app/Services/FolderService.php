@@ -214,20 +214,65 @@ class FolderService
         try {
             $folder = Folder::findOrFail($folderId);
 
-            $parentFolders = Folder::whereNull('parent_folder_id')
-                ->where('folder_id', '!=', $folderId)
+            // FIX: Lấy all descendant IDs để prevent cycle
+            $descendantIds = $this->getDescendantIds($folderId);
+
+            // FIX: Lấy all possible parent folders (không phải current hoặc descendants), với indented name cho hierarchy
+            $allFolders = Folder::where('folder_id', '!=', $folderId)
+                ->whereNotIn('folder_id', $descendantIds)
                 ->get();
+
+            $parentFolders = $this->buildHierarchicalFolders($allFolders);  // FIX: Build with indent
 
             $breadcrumbs = $this->getBreadcrumbs($folder);
 
             return [
                 'folder' => $folder,
                 'parentFolders' => $parentFolders,
+                'descendantIds' => $descendantIds,  // FIX: Pass to Vue for disable
                 'breadcrumbs' => $breadcrumbs
             ];
         } catch (ModelNotFoundException $e) {
             throw new \Exception('Thư mục không tồn tại');
         }
+    }
+    private function getDescendantIds(string $folderId): array
+    {
+        $descendants = [];
+        $children = Folder::where('parent_folder_id', $folderId)->pluck('folder_id')->toArray();
+
+        foreach ($children as $childId) {
+            $descendants[] = $childId;
+            $descendants = array_merge($descendants, $this->getDescendantIds($childId));
+        }
+
+        return $descendants;
+    }
+
+    /**
+     * FIX: Build hierarchical list with indented names (e.g., "Root > Child")
+     */
+    private function buildHierarchicalFolders($folders, $parentId = null, $level = 0, $path = ''): array
+    {
+        $hierarchical = [];
+
+        $children = $folders->where('parent_folder_id', $parentId);
+
+        foreach ($children as $folder) {
+            $indentedName = str_repeat('─ ', $level) . $folder->name;
+            if ($path) {
+                $indentedName = $path . ' > ' . $indentedName;
+            }
+            $folder->indented_name = $indentedName;  // Add attribute
+
+            $hierarchical[] = $folder;
+
+            // Recursive for sub-children
+            $sub = $this->buildHierarchicalFolders($folders, $folder->folder_id, $level + 1, $indentedName);
+            $hierarchical = array_merge($hierarchical, $sub);
+        }
+
+        return $hierarchical;
     }
 
     /**
