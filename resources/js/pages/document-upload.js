@@ -1,4 +1,10 @@
-import { createApp } from 'vue';
-import UploadDocuments from '../Components/DocumentUploads/UploadDocuments.vue';
+import { createApp } from 'vue'
+import UploadDocuments from '../Components/DocumentUploads/UploadDocuments.vue'
 
-createApp(UploadDocuments).mount('#document-upload');
+// Mount Vue app vào #document-upload
+const el = document.getElementById('document-upload')
+if (el) {
+    createApp(UploadDocuments).mount(el)
+} else {
+    console.error('❌ Không tìm thấy #document-upload element!')
+}

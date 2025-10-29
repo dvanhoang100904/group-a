@@ -1,35 +1,48 @@
 <?php
 
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DocumentVersionApiController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\UploadController;
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
-
-// Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionApiController::class, 'index']);
-Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionApiController::class, 'show']);
-Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionApiController::class, 'preview']);
-Route::post('/documents/{id}/versions', [DocumentVersionApiController::class, 'store']);
-Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionApiController::class, 'download']);
-Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionApiController::class, 'restore']);
-Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionApiController::class, 'destroy']);
+use App\Http\Controllers\Api\DocumentVersionController;
+use App\Http\Controllers\Api\DocumentVersionCompareController;
+use App\Http\Controllers\Api\DocumentVersionActionController;
 
 
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Đây là nơi định nghĩa các route API cho ứng dụng.
+| Các route này sẽ được gắn prefix "/api" tự động.
+|
+*/
 
-// Users
+// =========================
+// 📄 Document Versions
+// =========================
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index']);
+Route::get('/documents/{documentId}/versions/compare', [DocumentVersionCompareController::class, 'compare']);
+Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'show']);
+Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionController::class, 'preview']);
+Route::post('/documents/{id}/versions', [DocumentVersionActionController::class, 'store']);
+Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionActionController::class, 'download']);
+Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionActionController::class, 'restore']);
+Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionActionController::class, 'destroy']);
+
+// =========================
+// 👤 Users
+// =========================
 Route::get('/users', [UserApiController::class, 'index']);
 
-
-//Document Uploads
-Route::middleware(['auth'])->group(function () {
-    Route::get('/upload', [UploadController::class, 'create'])->name('upload.create');
-    Route::post('/upload/store', [UploadController::class, 'store'])->name('upload.store');
-    Route::get('/upload/metadata', [UploadController::class, 'getMetadata'])->name('upload.metadata');
-    Route::get('/download/{version}', [UploadController::class, 'download'])->name('download');
-    Route::delete('/documents/{document}', [UploadController::class, 'destroy'])->name('documents.destroy');
+// =========================
+// 📤 Document Uploads (auth required)
+// =========================
+// Chỉ dùng khi cần auth middleware
+Route::middleware(['api'])->group(function () {
+    Route::get('/upload/metadata', [UploadController::class, 'getMetadata']);
+    Route::get('/download/{version}', [UploadController::class, 'download']);
+    Route::delete('/documents/{document}', [UploadController::class, 'destroy']);
 });

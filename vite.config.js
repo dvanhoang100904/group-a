@@ -8,6 +8,7 @@ export default defineConfig({
             input: [
                 "resources/js/app.js",
                 "resources/js/pages/document-versions.js",
+                "resources/js/pages/document-upload.js",
             ],
             refresh: true,
         }),

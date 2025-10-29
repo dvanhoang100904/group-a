@@ -7,11 +7,17 @@
     <div class="row">
         <div class="col-12">
             <!-- Breadcrumb -->
-            <nav aria-label="breadcrumb" class="mb-3">
+            <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ route('home') }}">Trang chủ</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('documents.index') }}">Tài liệu</a></li>
-                    <li class="breadcrumb-item active">Upload</li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ url('/') }}">Trang chủ</a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('documents.index', [], false) }}">Tài liệu</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        Upload
+                    </li>
                 </ol>
             </nav>
 
@@ -22,6 +28,6 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
     @vite(['resources/js/pages/document-upload.js'])
-@endsection
+@endpush
