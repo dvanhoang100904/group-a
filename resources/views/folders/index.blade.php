@@ -6,8 +6,6 @@
         :initial-folders='@json($folders)'
         :current-folder='@json($currentFolder)'
         :breadcrumbs='@json($breadcrumbs)'
-        success="{{ session('success') ?? '' }}"
-        error="{{ session('error') ?? '' }}"
         :search-params='@json(request()->all())'
     ></folder-index>
 </div>

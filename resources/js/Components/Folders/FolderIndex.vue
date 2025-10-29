@@ -6,13 +6,13 @@
     </div>
 
     <!-- Button thêm folder -->
-    <div class="mb-6">
-      <a :href="createFolderUrl" 
-         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center w-fit">
-        <i class="fas fa-plus mr-2"></i>
-        Tạo Thư Mục Mới
-      </a>
-    </div>
+<div class="mb-6">
+  <a :href="createFolderUrl" 
+     class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center w-fit no-underline">
+    <i class="fas fa-plus mr-2"></i>
+    Tạo Thư Mục Mới
+  </a>
+</div>
 
     <!-- Tìm kiếm & lọc -->
     <div class="mb-6">
