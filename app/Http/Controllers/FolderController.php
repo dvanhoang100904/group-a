@@ -136,7 +136,19 @@ class FolderController extends Controller
     public function create(Request $request)
     {
         $parentFolderId = $request->get('parent_id');
-        return view('folders.create', compact('parentFolderId'));
+        $parentFolderName = 'Danh sách hiện tại';
+
+        if ($parentFolderId) {
+            $parentFolder = Folder::find($parentFolderId);
+            if ($parentFolder) {
+                $parentFolderName = $parentFolder->name;
+            }
+        }
+
+        return view('folders.create', [
+            'parentFolderId' => $parentFolderId,
+            'parentFolderName' => $parentFolderName,
+        ]);
     }
 
     /**

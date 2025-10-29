@@ -6,13 +6,26 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
+<<<<<<< HEAD
                 "resources/js/app.js",
                 "resources/js/pages/document-versions.js",
+=======
+                "resources/css/app.css",
+                "resources/js/app.js"
+>>>>>>> yen/8.1.chuyen_giao_dien_vueJs
             ],
             refresh: true,
         }),
-        vue(),
+        vue({
+            template: {
+                transformAssetUrls: {
+                    base: null,
+                    includeAbsolute: false,
+                },
+            },
+        }),
     ],
+<<<<<<< HEAD
     server: {
         host: true,
         port: 5173,
@@ -22,3 +35,11 @@ export default defineConfig({
         },
     },
 });
+=======
+    resolve: {
+        alias: {
+            vue: 'vue/dist/vue.esm-bundler.js',
+        },
+    },
+});
+>>>>>>> yen/8.1.chuyen_giao_dien_vueJs
