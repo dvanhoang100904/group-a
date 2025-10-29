@@ -17,12 +17,13 @@
     <!-- Tìm kiếm & lọc -->
     <div class="mb-6">
       <form @submit.prevent="handleSearch" class="flex items-center space-x-2 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <!-- FIX: Sửa input hidden - không có comment trong attribute -->
         <input v-if="currentFolder" type="hidden" name="parent_id" :value="currentFolder.folder_id">
         
         <!-- Tìm theo tên -->
         <div class="relative">
           <input type="text" 
-                 v-model="searchParams.name"
+                 v-model="localSearchParams.name"  <!-- FIX: bind đúng -->
                  placeholder="Tìm theo tên..." 
                  class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48">
           <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
@@ -31,14 +32,14 @@
         <!-- Tìm theo ngày -->
         <div class="relative">
           <input type="date" 
-                 v-model="searchParams.date"
+                 v-model="localSearchParams.date"  <!-- FIX: bind đúng -->
                  class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           <i class="fas fa-calendar absolute left-3 top-3 text-gray-400"></i>
         </div>
         
         <!-- Lọc theo trạng thái -->
         <div class="relative">
-          <select v-model="searchParams.status" 
+          <select v-model="localSearchParams.status"  <!-- FIX: bind đúng -->
                   class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40">
             <option value="">Tất cả trạng thái</option>
             <option value="public">Công khai</option>
@@ -111,12 +112,12 @@
           <i class="fas fa-info-circle text-blue-500 mr-2"></i>
           <span class="text-sm text-blue-700">
             Kết quả tìm kiếm:
-            <span v-if="searchParams.name"><strong>"{{ searchParams.name }}"</strong></span>
-            <span v-if="searchParams.name && (searchParams.date || searchParams.status)"> và </span>
-            <span v-if="searchParams.date"> ngày <strong>{{ formatDate(searchParams.date) }}</strong></span>
-            <span v-if="searchParams.date && searchParams.status"> và </span>
-            <span v-if="searchParams.status">
-              <strong>{{ searchParams.status == 'public' ? 'Công khai' : 'Riêng tư' }}</strong>
+            <span v-if="localSearchParams.name"><strong>"{{ localSearchParams.name }}"</strong></span>
+            <span v-if="localSearchParams.name && (localSearchParams.date || localSearchParams.status)"> và </span>
+            <span v-if="localSearchParams.date"> ngày <strong>{{ formatDate(localSearchParams.date) }}</strong></span>
+            <span v-if="localSearchParams.date && localSearchParams.status"> và </span>
+            <span v-if="localSearchParams.status">
+              <strong>{{ localSearchParams.status == 'public' ? 'Công khai' : 'Riêng tư' }}</strong>
             </span>
             - Tìm thấy <strong>{{ folders.total }}</strong> thư mục
             (Trang {{ folders.current_page }}/{{ folders.last_page }})
@@ -328,7 +329,6 @@
     </div>
   </div>
 </template>
-
 <script>
 export default {
   name: 'FolderIndex',
@@ -353,7 +353,7 @@ export default {
       type: String,
       default: null
     },
-    searchParams: {
+    searchParams: {  // ← Prop từ Laravel
       type: Object,
       default: () => ({
         name: '',
@@ -370,7 +370,8 @@ export default {
       perPage: this.searchParams.per_page || 10,
       successMessage: this.success,
       errorMessage: this.error,
-      search: {
+      // FIX: Đổi tên để không trùng với prop
+      localSearchParams: {  // ← Đổi tên thành localSearchParams
         name: this.searchParams.name || '',
         date: this.searchParams.date || '',
         status: this.searchParams.status || ''
@@ -379,7 +380,7 @@ export default {
   },
   computed: {
     hasActiveFilters() {
-      return this.search.name || this.search.date || this.search.status;
+      return this.localSearchParams.name || this.localSearchParams.date || this.localSearchParams.status;
     },
     createFolderUrl() {
       const parentId = this.currentFolder ? this.currentFolder.folder_id : null;
@@ -473,7 +474,9 @@ export default {
       this.updateUrl();
     },
     resetFilters() {
-      this.search = { name: '', date: '', status: '' };
+      // FIX: Sử dụng localSearchParams
+      this.localSearchParams = { name: '', date: '', status: '' };
+      this.perPage = 10;
       this.updateUrl();
     },
     changePerPage() {
@@ -488,21 +491,21 @@ export default {
     updateUrl() {
       const url = new URL(window.location.href);
       
-      // Cập nhật search params
-      if (this.search.name) {
-        url.searchParams.set('name', this.search.name);
+      // FIX: Sử dụng localSearchParams thay vì searchParams
+      if (this.localSearchParams.name) {
+        url.searchParams.set('name', this.localSearchParams.name);
       } else {
         url.searchParams.delete('name');
       }
       
-      if (this.search.date) {
-        url.searchParams.set('date', this.search.date);
+      if (this.localSearchParams.date) {
+        url.searchParams.set('date', this.localSearchParams.date);
       } else {
         url.searchParams.delete('date');
       }
       
-      if (this.search.status) {
-        url.searchParams.set('status', this.search.status);
+      if (this.localSearchParams.status) {
+        url.searchParams.set('status', this.localSearchParams.status);
       } else {
         url.searchParams.delete('status');
       }
@@ -529,8 +532,9 @@ export default {
       });
     },
     highlightText(text) {
-      if (!this.search.name) return text;
-      const regex = new RegExp(`(${this.escapeRegExp(this.search.name)})`, 'gi');
+      // FIX: Sử dụng localSearchParams
+      if (!this.localSearchParams.name) return text;
+      const regex = new RegExp(`(${this.escapeRegExp(this.localSearchParams.name)})`, 'gi');
       return text.replace(regex, '<span class="highlight">$1</span>');
     },
     escapeRegExp(string) {

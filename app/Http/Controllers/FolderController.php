@@ -2,226 +2,174 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Folder;
+use App\Services\FolderService;
+use App\Http\Requests\Folder\StoreFolderRequest;
+use App\Http\Requests\Folder\UpdateFolderRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class FolderController extends Controller
 {
-    /**
-     * Hiển thị danh sách thư mục (gốc hoặc theo parent)
-     */
-    public function index(Request $request)
+    protected $folderService;
+
+    public function __construct(FolderService $folderService)
     {
-        $searchName = $request->get('name');
-        $searchDate = $request->get('date');
-        $filterStatus = $request->get('status');
-        $parentFolderId = $request->get('parent_id');
-
-        $query = Folder::with(['childFolders', 'user', 'documents']);
-
-        // Tìm kiếm theo tên
-        if ($searchName) {
-            $query->where('name', 'like', '%' . $searchName . '%');
-        }
-
-        // Tìm kiếm theo ngày tạo
-        if ($searchDate) {
-            $query->whereDate('created_at', $searchDate);
-        }
-
-        // Lọc theo trạng thái
-        if ($filterStatus && in_array($filterStatus, ['public', 'private'])) {
-            $query->where('status', $filterStatus);
-        }
-
-        // Nếu có parent_id, tìm trong thư mục cụ thể, ngược lại tìm trong thư mục gốc
-        if ($parentFolderId) {
-            $currentFolder = Folder::with(['parentFolder'])->findOrFail($parentFolderId);
-            $query->where('parent_folder_id', $parentFolderId);
-        } else {
-            $currentFolder = null;
-            $query->whereNull('parent_folder_id');
-        }
-
-        // Phân trang - 10 items mỗi trang
-        $perPage = $request->get('per_page', 10);
-        $folders = $query->orderBy('created_at', 'desc')->paginate($perPage);
-
-        // Giữ lại các tham số tìm kiếm khi phân trang
-        if ($request->has('name') || $request->has('date') || $request->has('status')) {
-            $folders->appends([
-                'name' => $searchName,
-                'date' => $searchDate,
-                'status' => $filterStatus,
-                'parent_id' => $parentFolderId
-            ]);
-        }
-
-        $breadcrumbs = $this->getBreadcrumbs($currentFolder);
-
-        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs', 'searchName', 'searchDate', 'filterStatus'));
-    }
-    /**
-     * Hiển thị chi tiết thư mục và các thư mục con
-     */
-    public function show(Request $request, $folderId)
-    {
-        $currentFolder = Folder::with(['parentFolder'])->findOrFail($folderId);
-
-        $searchName = $request->get('name');
-        $searchDate = $request->get('date');
-        $filterStatus = $request->get('status');
-
-        $query = Folder::with(['childFolders', 'user', 'documents'])
-            ->where('parent_folder_id', $folderId);
-
-        // Tìm kiếm theo tên
-        if ($searchName) {
-            $query->where('name', 'like', '%' . $searchName . '%');
-        }
-
-        // Tìm kiếm theo ngày tạo
-        if ($searchDate) {
-            $query->whereDate('created_at', $searchDate);
-        }
-
-        // Lọc theo trạng thái
-        if ($filterStatus && in_array($filterStatus, ['public', 'private'])) {
-            $query->where('status', $filterStatus);
-        }
-
-        // Phân trang
-        $perPage = $request->get('per_page', 10);
-        $folders = $query->orderBy('created_at', 'desc')->paginate($perPage);
-
-        // Giữ lại các tham số tìm kiếm khi phân trang
-        if ($request->has('name') || $request->has('date') || $request->has('status')) {
-            $folders->appends([
-                'name' => $searchName,
-                'date' => $searchDate,
-                'status' => $filterStatus,
-                'parent_id' => $folderId
-            ]);
-        }
-
-        $breadcrumbs = $this->getBreadcrumbs($currentFolder);
-
-        return view('folders.index', compact('folders', 'currentFolder', 'breadcrumbs', 'searchName', 'searchDate', 'filterStatus'));
+        $this->folderService = $folderService;
     }
 
     /**
-     * Tạo breadcrumbs
+     * Hiển thị danh sách thư mục
      */
-    private function getBreadcrumbs($currentFolder)
+    public function index(Request $request): View
     {
-        $breadcrumbs = [];
+        try {
+            // Validate thủ công các tham số tìm kiếm
+            $validatedData = $request->validate([
+                'name' => 'nullable|string|max:255',
+                'date' => 'nullable|date',
+                'status' => 'nullable|in:public,private',
+                'parent_id' => 'nullable|exists:folders,folder_id',
+                'per_page' => 'nullable|integer|min:1|max:100'
+            ]);
 
-        if ($currentFolder) {
-            $folder = $currentFolder;
-            while ($folder) {
-                $breadcrumbs[] = $folder;
-                $folder = $folder->parentFolder;
-            }
-            $breadcrumbs = array_reverse($breadcrumbs);
+            $result = $this->folderService->getFoldersWithFilters($validatedData);
+
+            return view('folders.index', [
+                'folders' => $result['folders'],
+                'currentFolder' => $result['currentFolder'],
+                'breadcrumbs' => $result['breadcrumbs'],
+                'searchParams' => $validatedData
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Xử lý lỗi validation
+            return redirect('/folders')
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            // Xử lý lỗi chung
+            return redirect('/folders')
+                ->with('error', 'Lỗi khi tải danh sách thư mục: ' . $e->getMessage());
         }
+    }
 
-        return $breadcrumbs;
+    /**
+     * Hiển thị chi tiết thư mục
+     */
+    public function show(Request $request, $folder): View
+    {
+        try {
+            // Validate thủ công các tham số tìm kiếm
+            $validatedData = $request->validate([
+                'name' => 'nullable|string|max:255',
+                'date' => 'nullable|date',
+                'status' => 'nullable|in:public,private',
+                'per_page' => 'nullable|integer|min:1|max:100'
+            ]);
+
+            $params = array_merge($validatedData, ['parent_id' => $folder]);
+            $result = $this->folderService->getFoldersWithFilters($params);
+
+            return view('folders.index', [
+                'folders' => $result['folders'],
+                'currentFolder' => $result['currentFolder'],
+                'breadcrumbs' => $result['breadcrumbs'],
+                'searchParams' => $validatedData
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Xử lý lỗi validation
+            return redirect('/folders')
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            // Xử lý lỗi chung
+            return redirect('/folders')
+                ->with('error', 'Lỗi khi tải thư mục: ' . $e->getMessage());
+        }
     }
 
     /**
      * Hiển thị form tạo thư mục
      */
-    public function create(Request $request)
+    public function create(Request $request): View
     {
-        $parentFolderId = $request->get('parent_id');
-        $parentFolderName = 'Danh sách hiện tại';
+        try {
+            $parentFolderId = $request->get('parent_id');
+            $locationInfo = $this->folderService->getFolderLocationInfo($parentFolderId);
 
-        if ($parentFolderId) {
-            $parentFolder = Folder::find($parentFolderId);
-            if ($parentFolder) {
-                $parentFolderName = $parentFolder->name;
-            }
+            return view('folders.create', [
+                'parentFolderId' => $parentFolderId,
+                'parentFolderName' => $locationInfo['name'],
+                'breadcrumbs' => $locationInfo['breadcrumbs']
+            ]);
+        } catch (\Exception $e) {
+            return redirect('/folders')
+                ->with('error', 'Lỗi khi tải form tạo thư mục: ' . $e->getMessage());
         }
-
-        return view('folders.create', [
-            'parentFolderId' => $parentFolderId,
-            'parentFolderName' => $parentFolderName,
-        ]);
     }
 
     /**
      * Lưu thư mục mới
      */
-    public function store(Request $request)
+    public function store(StoreFolderRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255|unique:folders,name',
-            'status' => 'required|in:public,private',
-        ]);
-
         try {
-            Folder::create([
-                'name' => $request->name,
-                'status' => $request->status,
-                'parent_folder_id' => $request->parent_folder_id,
-                'user_id' => Auth::id() ?? 1,
-            ]);
+            $folder = $this->folderService->createFolder($request->validated());
 
-            // Redirect về đúng thư mục hiện tại
-            $redirectParams = $request->parent_folder_id ? ['parent_id' => $request->parent_folder_id] : [];
+            // Build redirect URL
+            $redirectUrl = '/folders';
+            if ($folder->parent_folder_id) {
+                $redirectUrl .= '?parent_id=' . $folder->parent_folder_id;
+            }
 
-            return redirect()->route('folders.index', $redirectParams)
-                ->with('success', 'Thư mục đã được tạo thành công!');
+            return redirect($redirectUrl)
+                ->with('success', 'Thư mục "' . $folder->name . '" đã được tạo thành công!');
         } catch (\Exception $e) {
             return redirect()->back()
+                ->withInput()
                 ->with('error', 'Lỗi khi tạo thư mục: ' . $e->getMessage());
         }
     }
 
-
-
-    public function edit($folderId)
+    /**
+     * Hiển thị form chỉnh sửa thư mục
+     */
+    public function edit($folder): View
     {
-        $folder = Folder::findOrFail($folderId);
-        $parentFolders = Folder::whereNull('parent_folder_id')
-            ->where('folder_id', '!=', $folderId)
-            ->get();
+        try {
+            $folderData = $this->folderService->getFolderForEdit($folder);
 
-        return view('folders.edit', compact('folder', 'parentFolders'));
+            return view('folders.edit', [
+                'folder' => $folderData['folder'],
+                'parentFolders' => $folderData['parentFolders'],
+                'breadcrumbs' => $folderData['breadcrumbs']
+            ]);
+        } catch (\Exception $e) {
+            return redirect('/folders')
+                ->with('error', 'Lỗi khi tải form chỉnh sửa: ' . $e->getMessage());
+        }
     }
 
     /**
      * Cập nhật thư mục
      */
-    public function update(Request $request, $folderId)
+    public function update(UpdateFolderRequest $request, $folder): RedirectResponse
     {
-        $folder = Folder::findOrFail($folderId);
-
-        $request->validate([
-            'name' => 'required|string|max:255|unique:folders,name,' . $folderId . ',folder_id',
-            'status' => 'required|in:public,private',
-            'parent_folder_id' => 'nullable|exists:folders,folder_id'
-        ]);
-
         try {
-            // Kiểm tra không cho phép chọn chính nó làm parent
-            if ($request->parent_folder_id == $folderId) {
-                return redirect()->back()
-                    ->with('error', 'Không thể chọn chính thư mục này làm thư mục cha!');
+            $folder = $this->folderService->updateFolder($folder, $request->validated());
+
+            // Build redirect URL
+            $redirectUrl = '/folders';
+            if ($folder->parent_folder_id) {
+                $redirectUrl .= '?parent_id=' . $folder->parent_folder_id;
             }
 
-            $folder->update([
-                'name' => $request->name,
-                'status' => $request->status,
-                'parent_folder_id' => $request->parent_folder_id,
-            ]);
-
-            return redirect()->route('folders.index', ['parent_id' => $folder->parent_folder_id])
-                ->with('success', 'Thư mục đã được cập nhật thành công!');
+            return redirect($redirectUrl)
+                ->with('success', 'Thư mục "' . $folder->name . '" đã được cập nhật thành công!');
         } catch (\Exception $e) {
             return redirect()->back()
+                ->withInput()
                 ->with('error', 'Lỗi khi cập nhật thư mục: ' . $e->getMessage());
         }
     }
@@ -229,34 +177,72 @@ class FolderController extends Controller
     /**
      * Xóa thư mục
      */
-    public function destroy($folderId)
+    public function destroy($folder): RedirectResponse
     {
-        $folder = Folder::with(['childFolders', 'documents'])->findOrFail($folderId);
-
         try {
-            DB::transaction(function () use ($folder) {
-                // Kiểm tra nếu thư mục có thư mục con
-                if ($folder->childFolders->count() > 0) {
-                    throw new \Exception('Không thể xóa thư mục có chứa thư mục con!');
-                }
-
-                // Kiểm tra nếu thư mục có tài liệu
-                if ($folder->documents->count() > 0) {
-                    throw new \Exception('Không thể xóa thư mục có chứa tài liệu!');
-                }
-
-                $folder->delete();
-            });
+            $folderName = $this->folderService->deleteFolder($folder);
 
             return redirect()->back()
-                ->with('success', 'Thư mục đã được xóa thành công!');
+                ->with('success', 'Thư mục "' . $folderName . '" đã được xóa thành công!');
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage());
         }
     }
-    public function search(Request $request)
+
+    /**
+     * Tìm kiếm thư mục
+     */
+    public function search(Request $request): JsonResponse|View
     {
-        return $this->index($request);
+        try {
+            // Validate thủ công các tham số tìm kiếm
+            $validatedData = $request->validate([
+                'name' => 'nullable|string|max:255',
+                'date' => 'nullable|date',
+                'status' => 'nullable|in:public,private',
+                'parent_id' => 'nullable|exists:folders,folder_id',
+                'per_page' => 'nullable|integer|min:1|max:100'
+            ]);
+
+            $result = $this->folderService->getFoldersWithFilters($validatedData);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $result
+                ]);
+            }
+
+            return view('folders.index', [
+                'folders' => $result['folders'],
+                'currentFolder' => $result['currentFolder'],
+                'breadcrumbs' => $result['breadcrumbs'],
+                'searchParams' => $validatedData
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Xử lý lỗi validation
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $e->errors()
+                ], 422);
+            }
+
+            return redirect('/folders')
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (\Exception $e) {
+            // Xử lý lỗi chung
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ], 500);
+            }
+
+            return redirect('/folders')
+                ->with('error', 'Lỗi khi tìm kiếm: ' . $e->getMessage());
+        }
     }
 }
