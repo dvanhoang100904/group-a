@@ -197,6 +197,7 @@ class FolderController extends Controller
             return view('folders.edit', [
                 'folder' => $folderData['folder'],
                 'parentFolders' => $folderData['parentFolders'],
+                'descendantIds' => $folderData['descendantIds'],  // FIX: Pass new data for cycle prevention
                 'breadcrumbs' => $folderData['breadcrumbs']
             ]);
         } catch (\Exception $e) {
@@ -204,6 +205,7 @@ class FolderController extends Controller
             return view('folders.edit', [
                 'folder' => null,
                 'parentFolders' => [],
+                'descendantIds' => [],
                 'breadcrumbs' => [],
                 'error' => 'Lỗi khi tải form chỉnh sửa: ' . $e->getMessage()
             ]);
@@ -213,20 +215,38 @@ class FolderController extends Controller
     /**
      * Cập nhật thư mục
      */
-    public function update(UpdateFolderRequest $request, $folder): RedirectResponse
+    public function update(UpdateFolderRequest $request, $folder): RedirectResponse|JsonResponse
     {
         try {
-            $folder = $this->folderService->updateFolder($folder, $request->validated());
+            $updatedFolder = $this->folderService->updateFolder($folder, $request->validated());
 
-            // Build redirect URL
-            $redirectUrl = '/folders';
-            if ($folder->parent_folder_id) {
-                $redirectUrl .= '?parent_id=' . $folder->parent_folder_id;
+            $message = 'Thư mục "' . $updatedFolder->name . '" đã được cập nhật thành công!';
+
+            if ($request->expectsJson()) {
+                // FIX: Trả JSON cho AJAX request (Vue)
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'folder' => $updatedFolder  // Pass updated data for redirect in Vue
+                ]);
             }
 
-            return redirect($redirectUrl)
-                ->with('success', 'Thư mục "' . $folder->name . '" đã được cập nhật thành công!');
+            // Sync request: Build redirect URL
+            $redirectUrl = '/folders';
+            if ($updatedFolder->parent_folder_id) {
+                $redirectUrl .= '?parent_id=' . $updatedFolder->parent_folder_id;
+            }
+
+            return redirect($redirectUrl)->with('success', $message);
         } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                // FIX: Trả error JSON cho AJAX
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lỗi khi cập nhật thư mục: ' . $e->getMessage()
+                ], 500);
+            }
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Lỗi khi cập nhật thư mục: ' . $e->getMessage());

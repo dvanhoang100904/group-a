@@ -1,18 +1,34 @@
 <template>
   <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto">
-      <!-- Header -->
-      <div class="flex items-center mb-6">
-        <a :href="route('folders.index')" class="text-blue-500 hover:text-blue-700 mr-4">
-          <i class="fas fa-arrow-left"></i>
-        </a>
+      <!-- Header with Breadcrumbs (FIX: Add display breadcrumbs) -->
+      <div class="flex items-center mb-6">      
         <h1 class="text-2xl font-bold text-gray-800">Chỉnh sửa Thư Mục</h1>
       </div>
+
+      <!-- Success Message -->
+      <div v-if="successMessage" class="mt-4 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded">
+        <div class="flex items-center">
+          <i class="fas fa-check-circle text-green-500 mr-3"></i>
+          <span>{{ successMessage }}</span>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div v-if="errorMessage" class="mt-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
+        <div class="flex items-center">
+          <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+          <span>{{ errorMessage }}</span>
+        </div>
+      </div>
+      
+      <br>
 
       <!-- Form -->
       <div class="bg-white rounded-lg shadow p-6">
         <form @submit.prevent="submitForm">
           <input type="hidden" name="_token" :value="csrfToken">
+          <!-- FIX: Remove _method if using AJAX; keep for fallback sync -->
           <input type="hidden" name="_method" value="PUT">
 
           <!-- Tên thư mục -->
@@ -63,8 +79,8 @@
               <option v-for="parent in parentFolders" 
                       :key="parent.folder_id" 
                       :value="parent.folder_id"
-                      :disabled="isCurrentFolderOrDescendant(parent)">
-                {{ parent.name }}
+                      :disabled="isCurrentOrDescendant(parent.folder_id)">
+                {{ parent.indented_name }}  <!-- FIX: Use indented_name for hierarchy -->
               </option>
             </select>
             <p v-if="errors.parent_folder_id" class="mt-1 text-sm text-red-600">{{ errors.parent_folder_id[0] }}</p>
@@ -99,22 +115,7 @@
           </div>
         </form>
       </div>
-
-      <!-- Success Message -->
-      <div v-if="successMessage" class="mt-4 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded">
-        <div class="flex items-center">
-          <i class="fas fa-check-circle text-green-500 mr-3"></i>
-          <span>{{ successMessage }}</span>
-        </div>
-      </div>
-
-      <!-- Error Message -->
-      <div v-if="errorMessage" class="mt-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
-        <div class="flex items-center">
-          <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
-          <span>{{ errorMessage }}</span>
-        </div>
-      </div>
+     
     </div>
   </div>
 </template>
@@ -127,7 +128,15 @@ export default {
       type: Object,
       required: true
     },
-    parentFolders: {
+    parentFolders: {  // FIX: Assume now includes indented_name and all possible
+      type: Array,
+      default: () => []
+    },
+    descendantIds: {  // FIX: New prop from service to check descendants
+      type: Array,
+      default: () => []
+    },
+    breadcrumbs: {
       type: Array,
       default: () => []
     },
@@ -179,24 +188,9 @@ export default {
       }
       return baseUrl + routes[name];
     },
-    isCurrentFolderOrDescendant(parent) {
-      // Ngăn chọn chính thư mục đang edit hoặc thư mục con của nó
-      return parent.folder_id === this.folder.folder_id || 
-             this.isDescendant(parent, this.folder);
-    },
-    isDescendant(parent, currentFolder) {
-      // Kiểm tra xem parent có phải là con cháu của currentFolder không
-      // Để tránh vòng lặp vô hạn
-      let folder = currentFolder;
-      while (folder && folder.parent_folder_id) {
-        if (folder.parent_folder_id === parent.folder_id) {
-          return true;
-        }
-        // Trong thực tế, bạn cần lấy thông tin parent từ parentFolders
-        // Ở đây giả sử parentFolders có đầy đủ thông tin
-        folder = this.parentFolders.find(f => f.folder_id === folder.parent_folder_id);
-      }
-      return false;
+    isCurrentOrDescendant(folderId) {
+      // FIX: Check if folderId is current or in descendantIds to prevent cycle
+      return folderId === this.folder.folder_id || this.descendantIds.includes(folderId);
     },
     async submitForm() {
       this.loading = true;
@@ -212,16 +206,13 @@ export default {
           }
         });
 
-        if (response.data.success) {
-          this.successMessage = response.data.message || 'Thư mục đã được cập nhật thành công!';
-          // Redirect sau 1 giây
-          setTimeout(() => {
-            window.location.href = this.route('folders.index');
-          }, 1000);
-        }
+        this.successMessage = response.data.message || 'Thư mục đã được cập nhật thành công!';
+        // Redirect sau 1 giây
+        setTimeout(() => {
+          window.location.href = this.route('folders.index') + (response.data.folder.parent_folder_id ? '?parent_id=' + response.data.folder.parent_folder_id : '');
+        }, 1000);
       } catch (error) {
         if (error.response && error.response.status === 422) {
-          // Validation errors
           this.errors = error.response.data.errors || {};
           this.errorMessage = 'Vui lòng kiểm tra lại thông tin đã nhập.';
         } else if (error.response && error.response.data.message) {
@@ -240,6 +231,8 @@ export default {
       // Tìm form và submit theo cách truyền thống
       const form = this.$el.querySelector('form');
       if (form) {
+        form.action = this.route('folders.update', this.folder.folder_id);
+        form.method = 'POST';  // Laravel fake PUT with _method
         form.submit();
       } else {
         this.loading = false;
@@ -250,6 +243,7 @@ export default {
     console.log('FolderEdit component mounted');
     console.log('Folder data:', this.folder);
     console.log('Parent folders:', this.parentFolders);
+    console.log('Descendant IDs:', this.descendantIds);
   }
 }
 </script>
