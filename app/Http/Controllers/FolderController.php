@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 
 class FolderController extends Controller
 {
@@ -91,14 +92,23 @@ class FolderController extends Controller
                 'searchParams' => $validatedData
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // FIX: Redirect về root thay vì current folder
-            return redirect('/folders')
-                ->withErrors($e->errors())
-                ->withInput();
+            // FIX: Xử lý lỗi validation bằng cách hiển thị trang với lỗi
+            return view('folders.index', [
+                'folders' => collect(),
+                'currentFolder' => null,
+                'breadcrumbs' => [],
+                'searchParams' => [],
+                'errors' => $e->errors()
+            ]);
         } catch (\Exception $e) {
-            // FIX: Redirect về root thay vì current folder
-            return redirect('/folders')
-                ->with('error', 'Lỗi khi tải thư mục: ' . $e->getMessage());
+            // FIX: Xử lý lỗi bằng cách hiển thị trang với thông báo lỗi
+            return view('folders.index', [
+                'folders' => collect(),
+                'currentFolder' => null,
+                'breadcrumbs' => [],
+                'searchParams' => [],
+                'error' => 'Lỗi khi tải thư mục: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -124,7 +134,6 @@ class FolderController extends Controller
             ]);
         } catch (\Exception $e) {
             // FIX: Xử lý lỗi bằng cách hiển thị form với thông báo lỗi
-            // KHÔNG redirect trong method create() vì nó phải trả về View
             return view('folders.create', [
                 'parentFolderId' => $request->get('parent_id'),
                 'parentFolderName' => 'Thư mục gốc',
@@ -140,17 +149,37 @@ class FolderController extends Controller
     public function store(StoreFolderRequest $request): RedirectResponse
     {
         try {
-            $folder = $this->folderService->createFolder($request->validated());
+            Log::info('Store method called with data:', $request->all());
+
+            // Kiểm tra dữ liệu trước khi tạo
+            $validatedData = $request->validated();
+            Log::info('Validated data:', $validatedData);
+
+            $folder = $this->folderService->createFolder($validatedData);
+
+            Log::info('Folder created successfully:', [
+                'id' => $folder->folder_id,
+                'name' => $folder->name,
+                'parent_id' => $folder->parent_folder_id
+            ]);
 
             // Build redirect URL
-            $redirectUrl = '/folders';
+            $redirectParams = [];
             if ($folder->parent_folder_id) {
-                $redirectUrl .= '?parent_id=' . $folder->parent_folder_id;
+                $redirectParams = ['parent_id' => $folder->parent_folder_id];
             }
 
-            return redirect($redirectUrl)
+            return redirect()->route('folders.index', $redirectParams)
                 ->with('success', 'Thư mục "' . $folder->name . '" đã được tạo thành công!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error in store:', $e->errors());
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput();
         } catch (\Exception $e) {
+            Log::error('Error in store method: ' . $e->getMessage());
+            Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Lỗi khi tạo thư mục: ' . $e->getMessage());
@@ -171,9 +200,13 @@ class FolderController extends Controller
                 'breadcrumbs' => $folderData['breadcrumbs']
             ]);
         } catch (\Exception $e) {
-            // FIX: Redirect về root với thông báo lỗi
-            return redirect('/folders')
-                ->with('error', 'Lỗi khi tải form chỉnh sửa: ' . $e->getMessage());
+            // FIX: Xử lý lỗi bằng cách hiển thị form với thông báo lỗi
+            return view('folders.edit', [
+                'folder' => null,
+                'parentFolders' => [],
+                'breadcrumbs' => [],
+                'error' => 'Lỗi khi tải form chỉnh sửa: ' . $e->getMessage()
+            ]);
         }
     }
 
@@ -255,10 +288,14 @@ class FolderController extends Controller
                 ], 422);
             }
 
-            // FIX: Redirect về root với lỗi validation
-            return redirect('/folders')
-                ->withErrors($e->errors())
-                ->withInput();
+            // FIX: Xử lý lỗi bằng cách hiển thị trang với lỗi
+            return view('folders.index', [
+                'folders' => collect(),
+                'currentFolder' => null,
+                'breadcrumbs' => [],
+                'searchParams' => [],
+                'errors' => $e->errors()
+            ]);
         } catch (\Exception $e) {
             // Xử lý lỗi chung
             if ($request->expectsJson()) {
@@ -268,9 +305,14 @@ class FolderController extends Controller
                 ], 500);
             }
 
-            // FIX: Redirect về root với lỗi chung
-            return redirect('/folders')
-                ->with('error', 'Lỗi khi tìm kiếm: ' . $e->getMessage());
+            // FIX: Xử lý lỗi bằng cách hiển thị trang với thông báo lỗi
+            return view('folders.index', [
+                'folders' => collect(),
+                'currentFolder' => null,
+                'breadcrumbs' => [],
+                'searchParams' => [],
+                'error' => 'Lỗi khi tìm kiếm: ' . $e->getMessage()
+            ]);
         }
     }
 }
