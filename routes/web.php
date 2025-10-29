@@ -20,6 +20,9 @@ Route::prefix('dashboard')->group(function () {
 
 // Folder - yen đẹp trai
 Route::prefix('folders')->name('folders.')->group(function () {
+    Route::get('/test-create', function () {
+        return view('folders.test-create');
+    })->name('test-create');
     Route::get('/', [FolderController::class, 'index'])->name('index');
     Route::get('/search', [FolderController::class, 'search'])->name('search');
     Route::get('/create', [FolderController::class, 'create'])->name('create');

@@ -11,7 +11,7 @@
 
       <!-- Form -->
       <div class="bg-white rounded-lg shadow p-6">
-        <form @submit.prevent="submitForm">
+        <form method="post" :action="route('folders.store')" @submit.prevent="submitForm">
           <input type="hidden" name="_token" :value="csrfToken">
           <input type="hidden" name="parent_folder_id" :value="parentFolderId">
 
@@ -106,6 +106,10 @@ export default {
       type: String,
       default: 'Danh sách hiện tại'
     },
+    breadcrumbs: {
+      type: Array,
+      default: () => []
+    },
     initialErrors: {
       type: Object,
       default: () => ({})
@@ -164,44 +168,13 @@ export default {
       this.errorMessage = '';
 
       try {
-        const response = await axios.post(this.route('folders.store'), this.form, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': this.csrfToken
-          }
-        });
-
-        if (response.data.success) {
-          this.successMessage = response.data.message || 'Thư mục đã được tạo thành công!';
-          // Redirect sau 1 giây
-          setTimeout(() => {
-            window.location.href = this.route('folders.index');
-          }, 1000);
+        // Submit form truyền thống
+        const form = this.$el.querySelector('form');
+        if (form) {
+          form.submit();
         }
       } catch (error) {
-        if (error.response && error.response.status === 422) {
-          // Validation errors
-          this.errors = error.response.data.errors || {};
-          this.errorMessage = 'Vui lòng kiểm tra lại thông tin đã nhập.';
-        } else if (error.response && error.response.data.message) {
-          this.errorMessage = error.response.data.message;
-        } else {
-          this.errorMessage = 'Đã có lỗi xảy ra khi tạo thư mục. Vui lòng thử lại.';
-        }
-      } finally {
-        this.loading = false;
-      }
-    },
-    // Fallback method nếu không dùng axios
-    submitFormFallback() {
-      this.loading = true;
-      this.errors = {};
-      
-      // Tìm form và submit theo cách truyền thống
-      const form = this.$el.querySelector('form');
-      if (form) {
-        form.submit();
-      } else {
+        this.errorMessage = 'Đã có lỗi xảy ra khi tạo thư mục. Vui lòng thử lại.';
         this.loading = false;
       }
     }

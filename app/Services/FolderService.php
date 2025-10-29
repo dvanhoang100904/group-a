@@ -6,6 +6,7 @@ use App\Models\Folder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 
 class FolderService
 {
@@ -150,15 +151,56 @@ class FolderService
      */
     public function createFolder(array $data): Folder
     {
+        Log::info('FolderService - createFolder called with data:', $data);
+
         return DB::transaction(function () use ($data) {
             try {
-                return Folder::create([
+                // FIX: Xử lý parent_folder_id
+                $parentFolderId = $data['parent_folder_id'] ?? null;
+
+                Log::info('Processing parent_folder_id:', ['raw' => $parentFolderId]);
+
+                if ($parentFolderId === '' || $parentFolderId === 'null' || $parentFolderId === null) {
+                    $parentFolderId = null;
+                }
+
+                // FIX: Kiểm tra user_id
+                $userId = Auth::id();
+                if (!$userId) {
+                    $userId = 1; // Fallback user ID
+                    Log::warning('No authenticated user, using fallback user_id: ' . $userId);
+                }
+
+                $folderData = [
                     'name' => $data['name'],
                     'status' => $data['status'],
-                    'parent_folder_id' => $data['parent_folder_id'] ?? null,
-                    'user_id' => Auth::id() ?? 1,
+                    'parent_folder_id' => $parentFolderId,
+                    'user_id' => $userId,
+                ];
+
+                Log::info('Final folder data for creation:', $folderData);
+
+                // FIX: Thử tạo folder trực tiếp
+                $folder = new Folder();
+                $folder->name = $folderData['name'];
+                $folder->status = $folderData['status'];
+                $folder->parent_folder_id = $folderData['parent_folder_id'];
+                $folder->user_id = $folderData['user_id'];
+
+                $folder->save();
+
+                Log::info('Folder saved successfully:', [
+                    'folder_id' => $folder->folder_id,
+                    'name' => $folder->name,
+                    'status' => $folder->status,
+                    'parent_folder_id' => $folder->parent_folder_id,
+                    'user_id' => $folder->user_id
                 ]);
+
+                return $folder;
             } catch (\Exception $e) {
+                Log::error('Error in createFolder transaction: ' . $e->getMessage());
+                Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
                 throw new \Exception('Không thể tạo thư mục: ' . $e->getMessage());
             }
         });
