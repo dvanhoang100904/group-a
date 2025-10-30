@@ -57,7 +57,7 @@
                 <span class="sidebar-section-title">Danh mục</span>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ Request::routeIs('types.*') ? 'active' : '' }}" href="{{ route('types.index') }}">
                     <i class="bi bi-collection"></i>
                     <span class="link-text">Loại tài liệu</span>
                 </a>

@@ -8,6 +8,12 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\TypeController;
+
+
+// Route::get('/dashboard', function () {
+//     return view('dashboard');
+// });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -51,3 +57,16 @@ Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
 Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
+
+//type documents
+Route::prefix('types')->name('types.')->group(function () {
+    Route::get('/', [TypeController::class, 'index'])->name('index');
+    Route::get('/create', [TypeController::class, 'create'])->name('create');
+    Route::post('/', [TypeController::class, 'store'])->name('store');
+    Route::get('/{type}', [TypeController::class, 'show'])->name('show');
+    Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
+    Route::put('/{type}', [TypeController::class, 'update'])->name('update');
+    Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
+    Route::resource('types', TypeController::class);
+
+});
