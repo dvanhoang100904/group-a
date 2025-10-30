@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 
-class UserApiController extends Controller
+class UserController extends Controller
 {
     /**
      * Danh sach nguoi dung
