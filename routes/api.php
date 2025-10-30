@@ -5,6 +5,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Api\DocumentVersionController;
 use App\Http\Controllers\Api\DocumentVersionActionController;
 use App\Http\Controllers\Api\DocumentVersionCompareController;
@@ -27,7 +28,11 @@ Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionAc
 Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index']);
 
 // Users
-Route::get('/users', [UserApiController::class, 'index']);
+//Route::get('/users', [UserApiController::class, 'index']);
+// =========================
+// 👤 Users
+// =========================
+//Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
 // 📤 Document Uploads (auth required)
@@ -38,3 +43,7 @@ Route::middleware(['api'])->group(function () {
     Route::get('/download/{version}', [UploadController::class, 'download']);
     Route::delete('/documents/{document}', [UploadController::class, 'destroy']);
 });
+
+
+Route::get('/my-documents', [DocumentController::class, 'index']);
+Route::get('/documents', [DocumentController::class, 'getDocuments']);
