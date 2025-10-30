@@ -9,7 +9,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\KhoaController;
-
+use App\Http\Controllers\DocumentAccessController;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -49,6 +49,8 @@ Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('
 
 // Document Versions
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
+// Document Accesses
+Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
 
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');

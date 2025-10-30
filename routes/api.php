@@ -1,28 +1,20 @@
 <?php
 
-use Illuminate\Http\Request;
+
+
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\DocumentVersionApiController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\Api\DocumentVersionController;
-use App\Http\Controllers\Api\DocumentVersionCompareController;
 use App\Http\Controllers\Api\DocumentVersionActionController;
+use App\Http\Controllers\Api\DocumentVersionCompareController;
+use App\Http\Controllers\Api\DocumentAccessController;
+// Route::get('/user', function (Request $request) {
+//     return $request->user();
+// })->middleware('auth:sanctum');
 
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Đây là nơi định nghĩa các route API cho ứng dụng.
-| Các route này sẽ được gắn prefix "/api" tự động.
-|
-*/
-
-// =========================
-// 📄 Document Versions
-// =========================
+// Document Versions
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index']);
 Route::get('/documents/{documentId}/versions/compare', [DocumentVersionCompareController::class, 'compare']);
 Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'show']);
@@ -31,10 +23,10 @@ Route::post('/documents/{id}/versions', [DocumentVersionActionController::class,
 Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionActionController::class, 'download']);
 Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionActionController::class, 'restore']);
 Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionActionController::class, 'destroy']);
+// Document Accesses
+Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index']);
 
-// =========================
-// 👤 Users
-// =========================
+// Users
 Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
