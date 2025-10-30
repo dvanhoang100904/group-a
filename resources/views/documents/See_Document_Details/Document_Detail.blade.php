@@ -102,9 +102,11 @@
                     <i class="bi bi-clock-history me-1"></i> Phiên bản
                 </a>
 
-                <button class="btn btn-outline-success">
+                {{-- accesses --}}
+                <a href="{{ route('documents.accesses.index', ['id' => $document->document_id]) }}"
+                    class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-share"></i> Cài đặt chia sẻ
-                </button>
+                </a>
             </div>
 
             <!-- Xem trước tài liệu -->

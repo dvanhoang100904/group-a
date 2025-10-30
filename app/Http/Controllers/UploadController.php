@@ -3,49 +3,102 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Folder;
-use App\Models\Subject;
-use App\Models\Document;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 
 class UploadController extends Controller
 {
+    // 📄 Trang upload (Blade)
     public function index()
     {
-        $folders = Folder::select('folder_id', 'name')->get();
-        $subjects = Subject::select('subject_id', 'name')->get();
-        $types = ['PDF', 'DOCX', 'PPTX', 'TXT'];
-
-        // Lấy danh sách tài liệu
-        $documents = Document::latest()->limit(10)->get();
-
-      return view('documents.uploads.upload', compact('folders', 'subjects', 'types', 'documents'));
+        return view('documents.Upload_Documents.Index_Upload');
     }
+
+    // 📤 Upload file (Vue + Blade đều hoạt động)
     public function store(Request $request)
     {
-        $request->validate([
-            'files.*' => 'required|file|max:20480|mimes:pdf,docx,pptx,txt',
-            'subject_id' => 'required|integer',
-            'folder_id' => 'nullable|integer',
-        ]);
-
-        $user_id = 1; // Tạm thời giả định user ID = 1 (nếu bạn chưa có auth)
-
-        foreach ($request->file('files') as $file) {
-            $originalName = $file->getClientOriginalName();
-            $path = $file->store("public/uploads/{$user_id}");
-
-            Document::create([
-                'title' => pathinfo($originalName, PATHINFO_FILENAME),
-                'description' => null,
-                'status' => 'private',
-                'user_id' => $user_id,
-                'folder_id' => $request->folder_id,
-                'type_id' => 1, // Nếu bạn có bảng types thì thay bằng dynamic
-                'subject_id' => $request->subject_id,
+        try {
+            $request->validate([
+                'file' => 'required|file|max:51200', // 50MB
             ]);
+
+            $uploadPath = base_path('app/Public_UploadFile');
+
+            if (!File::exists($uploadPath)) {
+                File::makeDirectory($uploadPath, 0755, true);
+            }
+
+            $file = $request->file('file');
+            $fileName = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $file->move($uploadPath, $fileName);
+
+            // Nếu là AJAX (Vue)
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Upload thành công!',
+                    'file' => $fileName,
+                    'path' => 'app/Public_UploadFile/' . $fileName
+                ]);
+            }
+
+            // Nếu là form submit (Blade)
+            return back()->with('success', 'Upload thành công! File đã lưu tại: ' . $fileName);
+        } catch (\Exception $e) {
+            Log::error('Upload failed: ' . $e->getMessage());
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Upload thất bại: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', 'Upload thất bại: ' . $e->getMessage());
+        }
+    }
+
+    // 📦 Download file
+    public function download($version)
+    {
+        $path = base_path('app/Public_UploadFile/' . $version);
+
+        if (!File::exists($path)) {
+            abort(404, 'Không tìm thấy file.');
         }
 
-        return redirect()->route('upload.index')->with('success', 'Tải lên thành công!');
+        return response()->download($path);
+    }
+
+    // 🗑️ Xóa file
+    public function destroy($document)
+    {
+        $path = base_path('app/Public_UploadFile/' . $document);
+
+        if (File::exists($path)) {
+            File::delete($path);
+            return response()->json(['success' => true, 'message' => 'Đã xóa file ' . $document]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Không tìm thấy file.'], 404);
+    }
+
+    // 📜 Metadata (liệt kê file)
+    public function getMetadata()
+    {
+        $dir = base_path('app/Public_UploadFile');
+        if (!File::exists($dir)) {
+            return response()->json([]);
+        }
+
+        $files = collect(File::files($dir))->map(function ($file) {
+            return [
+                'name' => $file->getFilename(),
+                'size' => round($file->getSize() / 1024, 2) . ' KB',
+                'updated' => date('Y-m-d H:i:s', $file->getMTime()),
+            ];
+        });
+
+        return response()->json(['success' => true, 'files' => $files]);
     }
 }

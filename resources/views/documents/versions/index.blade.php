@@ -36,7 +36,7 @@
         <div class="card shadow-sm mb-4 border-0">
             <div class="card-body">
                 @if ($document)
-                    <h5 class="fw-bold mb-1">{{ $document->title }}</h5>
+                    <h5 class="fw-bold mb-2">{{ $document->title }}</h5>
                     <p class="text-muted small mb-0">
                         Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
                         Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong> |

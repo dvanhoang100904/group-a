@@ -6,6 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
 
 use Illuminate\Support\Facades\Schema;
+use App\Services\FolderService;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -13,7 +15,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        //yên
+        $this->app->singleton(FolderService::class, function ($app) {
+            return new FolderService();
+        });
     }
 
     /**
@@ -22,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
-         Paginator::useBootstrapFive();
+        Paginator::useBootstrapFive();
         Schema::defaultStringLength(191);
     }
 }
