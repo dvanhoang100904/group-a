@@ -18,7 +18,7 @@
                 </span>
                 <!-- add -->
                 <button class="btn btn-sm btn-primary">
-                    <i class="bi bi-plus-circle me-1"></i> Thêm quyền
+                    <i class="bi bi-plus-circle me-1"></i> Thêm mới
                 </button>
             </div>
 
@@ -35,15 +35,15 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-primary">
                             <tr>
-                                <th>#</th>
-                                <th>Người dùng</th>
-                                <th>Vai trò</th>
+                                <th class="text-center">#</th>
+                                <th class="text-center">Người dùng</th>
+                                <th class="text-center">Vai trò</th>
                                 <th class="text-center">Xem</th>
                                 <th class="text-center">Tải xuống</th>
                                 <th class="text-center">Chỉnh sửa</th>
                                 <th class="text-center">Xóa</th>
-                                <th>Ngày hết hạn</th>
-                                <th>Người cấp quyền</th>
+                                <th class="text-center">Ngày hết hạn</th>
+                                <th class="text-center">Người cấp quyền</th>
                                 <th class="text-center">Hành động</th>
                             </tr>
                         </thead>
@@ -52,13 +52,13 @@
                                 v-for="(access, index) in accesses.data"
                                 :key="access.access_id"
                             >
-                                <td>
+                                <td class="text-center">
                                     {{ index + 1 }}
-                                </td>
-                                <td>
+                                </td class="text-center">
+                                <td class="text-center">
                                     {{ access.granted_to_user?.name || "-" }}
-                                </td>
-                                <td>
+                                </td class="text-center">
+                                <td class="text-center">
                                     {{ access.granted_to_role?.name || "-" }}
                                 </td>
                                 <td class="text-center">
@@ -97,24 +97,28 @@
                                         "
                                     ></i>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     {{
                                         formatDate(access.expiration_date) ||
                                         "-"
                                     }}
                                 </td>
-                                <td>{{ access.granted_by?.name || "-" }}</td>
+                                <td class="text-center"> {{ access.granted_by?.name || "-" }}</td>
                                 <!-- action -->
-                                <td class="text-center">
+                                <td
+                                    class="d-flex align-items-center justify-content-center gap-1"
+                                >
                                     <!-- edit -->
                                     <button
-                                        class="btn btn-sm btn-outline-primary me-1"
+                                        class="btn border-0 text-primary"
+                                        title="Chỉnh sửa"
                                     >
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <!-- delete -->
                                     <button
-                                        class="btn btn-sm btn-outline-danger"
+                                        class="btn border-0 text-primary"
+                                        title="Xóa"
                                     >
                                         <i class="bi bi-trash"></i>
                                     </button>
