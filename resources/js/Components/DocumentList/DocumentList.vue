@@ -1,103 +1,78 @@
 <template>
-  <div>
-    <div class="flex justify-between mb-3">
-      <input v-model="search" @input="fetchDocuments" placeholder="🔍 Tìm tài liệu..." class="border rounded p-2 w-1/3" />
+  <div class="p-6 bg-gray-50 min-h-screen">
+    <h2 class="text-3xl font-extrabold mb-6 text-indigo-700 flex items-center gap-2">
+      📂 Danh sách tài liệu
+      <span class="animate-pulse text-indigo-500 text-xl">✨</span>
+    </h2>
+
+    <div class="overflow-x-auto shadow-lg rounded-lg bg-white">
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-indigo-100 text-left text-indigo-900 uppercase tracking-wider">
+          <tr>
+            <th class="px-4 py-3">Tên</th>
+            <th class="px-4 py-3">Dung lượng</th>
+            <th class="px-4 py-3">Loại</th>
+            <th class="px-4 py-3">Người upload</th>
+            <th class="px-4 py-3">Ngày tạo</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr
+            v-for="doc in documents"
+            :key="doc.document_id"
+            class="hover:bg-indigo-50 transition-colors duration-200 cursor-pointer"
+          >
+            <td class="px-4 py-3 font-medium text-indigo-700">{{ doc.title }}</td>
+            <td class="px-4 py-3">
+              {{ doc.size ? (doc.size / 1024).toFixed(2) + ' KB' : 'N/A' }}
+            </td>
+            <td class="px-4 py-3">
+              <span
+                class="px-2 py-1 rounded-full text-xs font-semibold"
+                :class="{
+                  'bg-green-100 text-green-800': doc.type?.name === 'public',
+                  'bg-yellow-100 text-yellow-800': doc.type?.name === 'restricted',
+                  'bg-gray-100 text-gray-600': !doc.type?.name
+                }"
+              >
+                {{ doc.type?.name || '—' }}
+              </span>
+            </td>
+            <td class="px-4 py-3">{{ doc.user?.name || 'Ẩn danh' }}</td>
+            <td class="px-4 py-3">{{ new Date(doc.created_at).toLocaleString() }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <table class="min-w-full border text-sm">
-      <thead class="bg-gray-100 text-left">
-        <tr>
-          <th class="p-2">🗂️ Tên</th>
-          <th class="p-2">📦 Dung lượng</th>
-          <th class="p-2">🧩 Loại</th>
-          <th class="p-2">👤 Người upload</th>
-          <th class="p-2">📅 Ngày</th>
-          <th class="p-2">⚙️ Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="doc in documents" :key="doc.document_id" class="border-b hover:bg-gray-50">
-          <td class="p-2">{{ doc.title }}</td>
-          <td class="p-2">{{ doc.size }}</td>
-          <td class="p-2">{{ doc.type?.name || '—' }}</td>
-          <td class="p-2">{{ doc.user?.name || 'Ẩn danh' }}</td>
-          <td class="p-2">{{ new Date(doc.created_at).toLocaleDateString() }}</td>
-          <td class="p-2">
-            <button class="text-blue-600" @click="viewDetail(doc)">👁️</button>
-            <button class="text-yellow-600 ml-2" @click="editDoc(doc)">✏️</button>
-            <button class="text-red-600 ml-2" @click="deleteDoc(doc.document_id)">🗑️</button>
-            <a v-if="doc.file_path" :href="doc.file_path" class="text-green-600 ml-2" download>⬇️</a>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- Modal -->
-    <div v-if="selectedDoc" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div class="bg-white p-4 rounded shadow w-1/2">
-        <h3 class="font-bold text-lg mb-2">{{ selectedDoc.title }}</h3>
-        <p><b>Người upload:</b> {{ selectedDoc.user?.name }}</p>
-        <p><b>Dung lượng:</b> {{ selectedDoc.size }}</p>
-        <p><b>Mô tả:</b> {{ selectedDoc.description || 'Không có mô tả' }}</p>
-        <div class="mt-3 text-right">
-          <button @click="selectedDoc=null" class="px-3 py-1 bg-gray-300 rounded">Đóng</button>
-        </div>
-      </div>
+    <div v-if="documents.length === 0" class="mt-6 text-center text-gray-400">
+      Không có tài liệu nào. 😢
     </div>
   </div>
 </template>
 
 <script setup>
-import axios from "axios";
 import { ref, onMounted } from "vue";
+import axios from "axios";
 
 const documents = ref([]);
-const search = ref("");
-const selectedDoc = ref(null);
 
-async function fetchDocuments() {
+const fetchDocuments = async () => {
   try {
-    const res = await axios.get(`/documents?search=${search.value}`);
+    const res = await axios.get("/api/documents");
     if (res.data.success) documents.value = res.data.data;
-  } catch (err) {
-    console.error("Lỗi khi tải tài liệu:", err);
-  }
-}
-
-async function viewDetail(doc) {
-  try {
-    const res = await axios.get(`/api/documents/${doc.document_id}`);
-    if (res.data.success) selectedDoc.value = res.data.data;
   } catch (e) {
-    alert("Không thể xem chi tiết");
+    console.error("Lỗi tải danh sách:", e);
   }
-}
-
-async function deleteDoc(id) {
-  if (!confirm("Bạn có chắc muốn xóa tài liệu này?")) return;
-  try {
-    const res = await axios.delete(`/api/documents/${id}`);
-    if (res.data.success) fetchDocuments();
-  } catch (e) {
-    alert("Xóa thất bại");
-  }
-}
-
-function editDoc(doc) {
-  const newTitle = prompt("Nhập tên mới:", doc.title);
-  if (!newTitle) return;
-  axios.put(`/api/documents/${doc.document_id}`, { title: newTitle }).then(fetchDocuments);
-}
+};
 
 onMounted(fetchDocuments);
 </script>
 
-<style scoped>
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-th, td {
-  border-bottom: 1px solid #ddd;
+<style>
+/* Optional: glow animation cho hover row */
+tr:hover td {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease-in-out;
 }
 </style>

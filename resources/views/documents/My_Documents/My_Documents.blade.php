@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container py-4">
-  <h2 class="text-2xl font-bold mb-4">📂 Quản lý tài liệu cá nhân</h2>
+  <h2 class="text-2xl font-bold mb-4">📂 Quản lý danh sách tài liệu</h2>
 
   <div id="document-list"></div>
 </div>

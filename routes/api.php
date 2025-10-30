@@ -36,7 +36,7 @@ Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionAc
 // =========================
 // 👤 Users
 // =========================
-Route::get('/users', [UserApiController::class, 'index']);
+//Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
 // 📤 Document Uploads (auth required)
@@ -49,7 +49,5 @@ Route::middleware(['api'])->group(function () {
 });
 
 
+Route::get('/my-documents', [DocumentController::class, 'index']);
 Route::get('/documents', [DocumentController::class, 'getDocuments']);
-Route::get('/documents/{id}', [DocumentController::class, 'show']);
-Route::put('/documents/{id}', [DocumentController::class, 'update']);
-Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
