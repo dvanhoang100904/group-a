@@ -10,6 +10,7 @@ export default defineConfig({
                 "resources/js/app.js",
                 "resources/js/pages/document-versions.js",
                 "resources/js/pages/document-upload.js",
+                "resources/js/pages/document-list.js",
             ],
             refresh: true,
         }),
