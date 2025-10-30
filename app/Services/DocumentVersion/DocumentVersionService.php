@@ -16,18 +16,8 @@ class DocumentVersionService
     {
         return Document::select(['document_id', 'title', 'subject_id', 'folder_id'])
             ->with([
-                'folder:folder_id,name',
                 'subject:subject_id,name,department_id',
                 'subject.department:department_id,name',
-                'versions' => fn($q) => $q
-                    ->current()
-                    ->select('version_id', 'document_id', 'version_number'),
-                'accesses' => fn($q) => $q
-                    ->select('access_id', 'document_id', 'granted_to_type', 'granted_to_user_id', 'granted_to_role_id', 'granted_by')
-                    ->with([
-                        'grantedToUser:user_id,name',
-                        'grantedBy:user_id,name'
-                    ])
             ])
             ->withCount('versions')
             ->whereKey($documentId)

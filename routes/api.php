@@ -1,6 +1,6 @@
 <?php
 
-
+use App\Http\Controllers\Api\DocumentAccessController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DocumentVersionController;
@@ -27,6 +27,8 @@ Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVer
 Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionActionController::class, 'restore']);
 // Delete
 Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionActionController::class, 'destroy']);
+// Document Accesses
+Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index']);
 
 
 // Users

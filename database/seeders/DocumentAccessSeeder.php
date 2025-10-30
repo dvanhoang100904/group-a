@@ -17,6 +17,7 @@ class DocumentAccessSeeder extends Seeder
     {
         $documents = DB::table('documents')->pluck('document_id')->toArray();
         $users = DB::table('users')->pluck('user_id')->toArray();
+        $roles = DB::table('roles')->pluck('role_id')->toArray();
 
         for ($i = 1; $i <= self::MAX_RECORD; $i++) {
             $documentId = $documents[array_rand($documents)];
@@ -25,6 +26,8 @@ class DocumentAccessSeeder extends Seeder
             do {
                 $grantedToUser = $users[array_rand($users)];
             } while ($grantedToUser == $grantedBy);
+
+            $roleId = $roles[array_rand($roles)];
 
             DB::table('document_accesses')->insert([
                 'share_link' => null,
@@ -39,7 +42,7 @@ class DocumentAccessSeeder extends Seeder
                 'document_id' => $documentId,
                 'granted_by' => $grantedBy,
                 'granted_to_user_id' => $grantedToUser,
-                'granted_to_role_id' => null,
+                'granted_to_role_id' => $roleId,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
