@@ -2,47 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Document;
-use App\Models\User;
-use App\Models\Subject;
+use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
-    public function index(Request $request)
+    // Hiển thị blade
+    public function index()
     {
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-
-        $documents = Document::with(['user', 'subject'])
-            ->orderBy($sortBy == 'user_name' ? 'user_id' : $sortBy, $sortOrder)
-            ->paginate(10);
-
-        $subjects = Subject::all();
-
-        return view('documents.uploads.my_documents', compact('documents', 'subjects', 'sortBy', 'sortOrder'));
-    }
-    public function show($id)
-    {
-        // Lấy thông tin tài liệu cùng các quan hệ liên quan
-        $document = Document::with([
-            'user',
-            'folder',
-            'subject',
-            'versions',
-            'previews',
-            'accesses',
-            'tags'
-        ])->findOrFail($id);
-
-        // Trả về view hiển thị chi tiết tài liệu
-        return view('documents.documents_detail.document_detail', compact('document'));
+        return view('documents.My_Documents.My_Documents');
     }
 
+    // API trả JSON toàn bộ danh sách documents
+    public function getDocuments()
+    {
+        $documents = Document::with(['user', 'type', 'subject'])
+            ->orderByDesc('created_at')
+            ->get();
 
-    public function edit($id) {}
+        // Thêm size file nếu có
+        foreach ($documents as $doc) {
+            $path = base_path('app/Public_UploadFile/' . ($doc->file_name ?? ''));
+            $doc->size = file_exists($path) ? filesize($path) : null;
+            $doc->file_path = file_exists($path) ? asset('app/Public_UploadFile/' . $doc->file_name) : null;
+        }
 
-    public function update(Request $request, $id) {}
-
-    public function destroy($id) {}
+        return response()->json([
+            'success' => true,
+            'data' => $documents,
+        ]);
+    }
 }
