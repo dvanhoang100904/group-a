@@ -11,6 +11,7 @@ export default defineConfig({
                 "resources/js/pages/folder-import.js",
                 "resources/js/pages/document-versions.js",
                 "resources/js/pages/document-upload.js",
+                "resources/js/pages/document-list.js",
             ],
             refresh: true,
         }),
