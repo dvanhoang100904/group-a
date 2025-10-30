@@ -11,6 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\KhoaController;
 use App\Http\Controllers\DocumentAccessController;
 
+// Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 // Nhóm route quản lý báo cáo
@@ -43,6 +44,7 @@ Route::get('/my-documents', [DocumentController::class, 'index'])->name('documen
 
 // Document Versions
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
+
 // Document Accesses
 Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
 

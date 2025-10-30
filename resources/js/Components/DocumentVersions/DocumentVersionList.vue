@@ -48,8 +48,8 @@
                             <option value="">Tất cả</option>
                             <option
                                 v-for="u in users"
-                                :key="u.id"
-                                :value="Number(u.id)"
+                                :key="u.user_id"
+                                :value="u.user_id"
                             >
                                 {{ u.name }}
                             </option>
@@ -115,10 +115,10 @@
                         <thead class="table-primary">
                             <tr>
                                 <th class="text-center">#</th>
-                                <th>Phiên bản</th>
-                                <th>Người cập nhật</th>
-                                <th>Ngày cập nhật</th>
-                                <th>Trạng thái</th>
+                                <th class="text-center">Phiên bản</th>
+                                <th class="text-center">Người cập nhật</th>
+                                <th class="text-center">Ngày cập nhật</th>
+                                <th class="text-center">Trạng thái</th>
                                 <th class="text-center">Hành động</th>
                             </tr>
                         </thead>
@@ -129,14 +129,18 @@
                                 :key="version.version_id"
                             >
                                 <td class="text-center">{{ index + 1 }}</td>
-                                <td>
+                                <td class="text-center">
                                     <strong
                                         >v{{ version.version_number }}</strong
                                     >
                                 </td>
-                                <td>{{ version.user?.name || "Không rõ" }}</td>
-                                <td>{{ formatDate(version.created_at) }}</td>
-                                <td>
+                                <td class="text-center">
+                                    {{ version.user?.name || "Không rõ" }}
+                                </td>
+                                <td class="text-center">
+                                    {{ formatDate(version.created_at) }}
+                                </td>
+                                <td class="text-center">
                                     <span
                                         v-if="version.is_current_version"
                                         class="badge bg-success-subtle text-success"
@@ -154,10 +158,12 @@
                                 </td>
 
                                 <!-- action -->
-                                <td class="text-center">
+                                <td
+                                    class="d-flex align-items-center justify-content-center gap-1"
+                                >
                                     <!-- view -->
                                     <button
-                                        class="btn btn-sm btn-outline-primary me-1"
+                                        class="btn border-0 text-primary"
                                         title="Xem chi tiết"
                                         @click="
                                             versionIdToShow = version.version_id
@@ -168,7 +174,7 @@
 
                                     <!-- download -->
                                     <button
-                                        class="btn btn-sm btn-outline-primary me-1"
+                                        class="btn border-0 text-primary"
                                         :disabled="loading"
                                         title="Tải xuống"
                                         @click="downloadVersion(version)"
@@ -178,7 +184,7 @@
 
                                     <!-- restore -->
                                     <button
-                                        class="btn btn-sm btn-outline-primary me-1"
+                                        class="btn border-0 text-primary"
                                         title="Khôi phục phiên bản này"
                                         :disabled="loading"
                                         @click="restoreVersion(version)"
@@ -190,7 +196,7 @@
 
                                     <!-- delete -->
                                     <button
-                                        class="btn btn-sm btn-outline-danger"
+                                        class="btn border-0 text-primary"
                                         title="Xóa phiên bản"
                                         :disabled="loading"
                                         @click="deleteVersion(version)"
@@ -203,56 +209,12 @@
                     </table>
 
                     <!-- pagination -->
-                    <nav
-                        v-if="versions.last_page && versions.last_page > 1"
-                        class="mt-3"
-                    >
-                        <ul class="pagination justify-content-end mb-0">
-                            <li
-                                class="page-item"
-                                :class="{ disabled: !versions.prev_page_url }"
-                            >
-                                <button
-                                    class="page-link"
-                                    @click="
-                                        changePage(versions.current_page - 1)
-                                    "
-                                >
-                                    Trước
-                                </button>
-                            </li>
-
-                            <li
-                                v-for="page in versions.last_page"
-                                :key="page"
-                                class="page-item"
-                                :class="{
-                                    active: page === versions.current_page,
-                                }"
-                            >
-                                <button
-                                    class="page-link"
-                                    @click="changePage(page)"
-                                >
-                                    {{ page }}
-                                </button>
-                            </li>
-
-                            <li
-                                class="page-item"
-                                :class="{ disabled: !versions.next_page_url }"
-                            >
-                                <button
-                                    class="page-link"
-                                    @click="
-                                        changePage(versions.current_page + 1)
-                                    "
-                                >
-                                    Sau
-                                </button>
-                            </li>
-                        </ul>
-                    </nav>
+                    <VersionPagination
+                        :current-page="versions.current_page"
+                        :last-page="versions.last_page"
+                        :max-pages-to-show="7"
+                        @page-changed="changePage"
+                    />
                 </div>
 
                 <!-- Modal detail version-->
@@ -290,6 +252,7 @@ import axios from "axios";
 import VersionDetailModal from "./VersionDetailModal.vue";
 import VersionUploadModal from "./VersionUploadModal.vue";
 import DocumentVersionCompare from "./DocumentVersionCompare.vue";
+import VersionPagination from "./VersionPagination.vue";
 
 // Nhan props
 const props = defineProps({
@@ -304,13 +267,19 @@ const versions = ref({
     next_page_url: null,
     prev_page_url: null,
 });
+
+// List users
 const users = ref([]);
+
 // Trang thai loading
 const loading = ref(true);
+
 // Detail
 const versionIdToShow = ref(null);
+
 // Upload
 const uploadModal = ref(null);
+
 // filter search
 const filters = ref({
     keyword: "",
@@ -346,13 +315,17 @@ const formatMimeType = (mime) => {
     return mime;
 };
 
-// list users
-const fetchUsers = async () => {
+// list uploaders
+const fetchUploaders = async () => {
     try {
-        const res = await axios.get("/api/users");
-        if (res.data.success) users.value = res.data.data;
-    } catch (e) {
-        console.error("Không thể tải danh sách người dùng");
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/versions/uploaders`
+        );
+        if (res.data.success) {
+            users.value = res.data.data;
+        }
+    } catch (err) {
+        console.error(err);
     }
 };
 
@@ -525,7 +498,7 @@ const resetFilters = () => {
 
 onMounted(() => {
     fetchVersions();
-    fetchUsers();
+    fetchUploaders();
 });
 
 watch(

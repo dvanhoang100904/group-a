@@ -53,7 +53,7 @@
                         class="btn btn-outline-primary w-100 mt-4"
                         :disabled="loading"
                     >
-                        <i class="bi bi-arrow-left-right me-1"></i>
+                        <i class="bi bi-arrow-left-right me-2"></i>
                         <span v-if="loading">Đang so sánh...</span>
                         <span v-else>So sánh</span>
                     </button>
