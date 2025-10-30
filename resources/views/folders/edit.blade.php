@@ -14,5 +14,5 @@
 @endsection
 
 @push('scripts')
-    @vite(['resources/js/app.js'])
+    @vite(['resources/js/pages/folder-import.js'])
 @endpush

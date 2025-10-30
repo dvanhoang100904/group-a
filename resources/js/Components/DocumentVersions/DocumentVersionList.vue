@@ -202,7 +202,7 @@
                         </tbody>
                     </table>
 
-                    <!-- PAGINATION -->
+                    <!-- pagination -->
                     <nav
                         v-if="versions.last_page && versions.last_page > 1"
                         class="mt-3"

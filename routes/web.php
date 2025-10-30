@@ -8,6 +8,8 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\KhoaController;
+use App\Http\Controllers\DocumentAccessController;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -47,7 +49,21 @@ Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('
 
 // Document Versions
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
+// Document Accesses
+Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
 
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
 Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
+
+
+//Khoa/bộ môn
+Route::prefix('khoa')->group(function () {
+    Route::get('/', [KhoaController::class, 'index'])->name('khoa.index');
+    Route::get('/create', [KhoaController::class, 'create'])->name('khoa.create');
+    Route::post('/', [KhoaController::class, 'store'])->name('khoa.store');
+    Route::get('/{id}', [KhoaController::class, 'show'])->name('khoa.show');
+    Route::get('/{id}/edit', [KhoaController::class, 'edit'])->name('khoa.edit');
+    Route::put('/{id}', [KhoaController::class, 'update'])->name('khoa.update');
+    Route::delete('/{id}', [KhoaController::class, 'destroy'])->name('khoa.destroy');
+});
