@@ -346,6 +346,6 @@ defineExpose({ showModal, hideModal, closeModal });
 }
 
 .bg-light {
-    background-color: #f8f9fa !important;
+    background-color: #f8fafd !important;
 }
 </style>
