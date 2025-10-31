@@ -6,19 +6,33 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
+                "resources/css/app.css",
                 "resources/js/app.js",
+                "resources/js/pages/folder-import.js",
                 "resources/js/pages/document-versions.js",
+                "resources/js/pages/document-accesses.js",
+                "resources/js/pages/document-upload.js",
+                "resources/js/pages/document-list.js",
             ],
             refresh: true,
         }),
-        vue(),
+        vue({
+            template: {
+                transformAssetUrls: {
+                    base: null,
+                    includeAbsolute: false,
+                },
+            },
+        }),
     ],
+    resolve: {
+        alias: {
+            vue: "vue/dist/vue.esm-bundler.js",
+        },
+    },
     server: {
         host: true,
         port: 5173,
         hmr: { host: "localhost" },
-        proxy: {
-            "/api": "http://localhost:8080",
-        },
     },
 });

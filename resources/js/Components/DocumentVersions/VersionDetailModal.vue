@@ -222,7 +222,7 @@
                         <div class="file-actions">
                             <button
                                 v-if="selectedVersion?.version_id"
-                                class="btn btn-sm btn-primary"
+                                class="btn btn-sm btn-primary px-3"
                                 @click="previewFile"
                                 title="Xem trước tài liệu"
                             >
@@ -232,10 +232,10 @@
 
                         <button
                             type="button"
-                            class="btn btn-sm btn-outline-secondary"
+                            class="btn btn-sm btn-outline-secondary px-3"
                             @click="closeModal"
                         >
-                            Đóng
+                            <i class="bi bi-x-circle me-2"></i>Đóng
                         </button>
                     </div>
                 </div>
@@ -369,6 +369,11 @@ defineExpose({ showModal, hideModal, closeModal });
     padding-bottom: 8px;
 }
 
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
 .icon-wrapper {
     width: 40px;
     height: 40px;
@@ -391,6 +396,6 @@ defineExpose({ showModal, hideModal, closeModal });
 }
 
 .card.bg-light {
-    background-color: #f8f9fa !important;
+    background-color: #f8fafd !important;
 }
 </style>

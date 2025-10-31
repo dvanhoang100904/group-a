@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\UploadDocumentVersionRequest;
+use App\Http\Requests\DocumentVersion\UploadDocumentVersionRequest;
 use App\Models\Document;
 use App\Services\DocumentVersion\DocumentVersionDeleteService;
 use App\Services\DocumentVersion\DocumentVersionDownloadService;
