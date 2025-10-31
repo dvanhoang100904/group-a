@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@yield('title', 'Tài liệu')</title>
-    
+
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -25,7 +25,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Custom CSS -->
+    <!-- My CSS -->
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
 
     <!-- Vite CSS -->
@@ -43,7 +43,7 @@
     @include('layouts.sidebar')
 
     {{-- Main Content --}}
-    <main class="content bg-light" id="mainContent">
+    <main class="content bg-white p-4" id="mainContent">
         <div class="container-fluid">
             {{-- Flash Messages --}}
             @if (session('success'))
@@ -63,7 +63,7 @@
             @endif
 
             @yield('content')
-            
+
             {{-- Footer --}}
             @include('layouts.footer')
         </div>
@@ -74,7 +74,7 @@
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous">
     </script>
 
-    {{-- Custom JS --}}
+    {{-- My JS --}}
     <script src="{{ asset('assets/js/script.js') }}"></script>
 
     <!-- Vite JS -->
