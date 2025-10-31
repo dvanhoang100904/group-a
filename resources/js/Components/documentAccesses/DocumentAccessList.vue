@@ -1,6 +1,6 @@
 <template>
     <div>
-        <!-- LOADING -->
+        <!-- Loading -->
         <div v-if="loading" class="text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
             <div class="mt-2 text-muted">
@@ -8,7 +8,7 @@
             </div>
         </div>
         <div v-else class="card shadow-sm border-0">
-            <!-- header -->
+            <!-- Header -->
             <div
                 class="card-header bg-light d-flex justify-content-between align-items-center"
             >
@@ -16,14 +16,14 @@
                     <i class="bi bi-person-check me-2"></i> Danh sách quyền chia
                     sẻ
                 </span>
-                <!-- add -->
-                <button class="btn btn-sm btn-primary">
-                    <i class="bi bi-plus-circle me-1"></i> Thêm quyền
+                <!-- Add -->
+                <button class="btn btn-sm btn-primary px-3">
+                    <i class="bi bi-plus-circle me-1"></i> Thêm mới
                 </button>
             </div>
 
             <div class="card-body">
-                <!-- table -->
+                <!-- Tables -->
                 <div
                     v-if="!accesses.data || accesses.data.length === 0"
                     class="text-center text-muted py-4"
@@ -35,15 +35,15 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-primary">
                             <tr>
-                                <th>#</th>
-                                <th>Người dùng</th>
-                                <th>Vai trò</th>
+                                <th class="text-center">#</th>
+                                <th class="text-center">Người dùng</th>
+                                <th class="text-center">Vai trò</th>
                                 <th class="text-center">Xem</th>
                                 <th class="text-center">Tải xuống</th>
                                 <th class="text-center">Chỉnh sửa</th>
                                 <th class="text-center">Xóa</th>
-                                <th>Ngày hết hạn</th>
-                                <th>Người cấp quyền</th>
+                                <th class="text-center">Ngày hết hạn</th>
+                                <th class="text-center">Người cấp quyền</th>
                                 <th class="text-center">Hành động</th>
                             </tr>
                         </thead>
@@ -52,13 +52,13 @@
                                 v-for="(access, index) in accesses.data"
                                 :key="access.access_id"
                             >
-                                <td>
+                                <td class="text-center">
                                     {{ index + 1 }}
-                                </td>
-                                <td>
+                                </td class="text-center">
+                                <td class="text-center">
                                     {{ access.granted_to_user?.name || "-" }}
-                                </td>
-                                <td>
+                                </td class="text-center">
+                                <td class="text-center">
                                     {{ access.granted_to_role?.name || "-" }}
                                 </td>
                                 <td class="text-center">
@@ -97,24 +97,28 @@
                                         "
                                     ></i>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     {{
                                         formatDate(access.expiration_date) ||
                                         "-"
                                     }}
                                 </td>
-                                <td>{{ access.granted_by?.name || "-" }}</td>
-                                <!-- action -->
-                                <td class="text-center">
-                                    <!-- edit -->
+                                <td class="text-center"> {{ access.granted_by?.name || "-" }}</td>
+                                <!-- Actions -->
+                                <td
+                                    class="text-center"
+                                >
+                                    <!-- Edit -->
                                     <button
-                                        class="btn btn-sm btn-outline-primary me-1"
+                                        class="btn border-0 text-primary"
+                                        title="Chỉnh sửa"
                                     >
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <!-- delete -->
+                                    <!-- Delete -->
                                     <button
-                                        class="btn btn-sm btn-outline-danger"
+                                        class="btn border-0 text-primary "
+                                        title="Xóa"
                                     >
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -123,57 +127,13 @@
                         </tbody>
                     </table>
 
-                    <!-- pagination -->
-                    <nav
-                        v-if="accesses.last_page && accesses.last_page > 1"
-                        class="mt-3"
-                    >
-                        <ul class="pagination justify-content-end mb-0">
-                            <li
-                                class="page-item"
-                                :class="{ disabled: !accesses.prev_page_url }"
-                            >
-                                <button
-                                    class="page-link"
-                                    @click="
-                                        changePage(accesses.current_page - 1)
-                                    "
-                                >
-                                    Trước
-                                </button>
-                            </li>
-
-                            <li
-                                v-for="page in accesses.last_page"
-                                :key="page"
-                                class="page-item"
-                                :class="{
-                                    active: page === accesses.current_page,
-                                }"
-                            >
-                                <button
-                                    class="page-link"
-                                    @click="changePage(page)"
-                                >
-                                    {{ page }}
-                                </button>
-                            </li>
-
-                            <li
-                                class="page-item"
-                                :class="{ disabled: !accesses.next_page_url }"
-                            >
-                                <button
-                                    class="page-link"
-                                    @click="
-                                        changePage(accesses.current_page + 1)
-                                    "
-                                >
-                                    Sau
-                                </button>
-                            </li>
-                        </ul>
-                    </nav>
+                    <!-- Pagination -->
+                    <AccessPagination
+                        :current-page="accesses.current_page"
+                        :last-page="accesses.last_page"
+                        :max-pages-to-show="7"
+                        @page-changed="changePage"
+                    />
                 </div>
             </div>
         </div>
@@ -183,6 +143,7 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import axios from "axios";
+import AccessPagination from "./AccessPagination.vue";
 
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
@@ -192,17 +153,16 @@ const accesses = ref({
     data: [],
     current_page: 1,
     last_page: 1,
-    next_page_url: null,
-    prev_page_url: null,
+    per_page: 5,
 });
 
-const loading = ref(true);
+const loading = ref(false);
 
-// format date
+// Format date
 const formatDate = (dateStr) =>
     dateStr ? new Date(dateStr).toLocaleDateString("vi-VN") : "-";
 
-// fetch accesses
+// Fetch accesses
 const fetchAccesses = async (page = 1) => {
     loading.value = true;
     try {
@@ -211,7 +171,12 @@ const fetchAccesses = async (page = 1) => {
             { params: { page } }
         );
         if (res.data.success) {
-            accesses.value = res.data.data;
+            accesses.value = {
+                data: res.data.data.data || [],
+                current_page: res.data.data.current_page || 1,
+                last_page: res.data.data.last_page || 1,
+                per_page: res.data.data.per_page || 5,
+            };
         } else {
             accesses.value = { data: [] };
             alert(res.data.message || "Không thể tải danh sách quyền chia sẻ");
@@ -224,7 +189,7 @@ const fetchAccesses = async (page = 1) => {
     }
 };
 
-// pagination
+// Pagination
 const changePage = (page) => {
     if (page < 1 || page > accesses.value.last_page) return;
     fetchAccesses(page).then(() =>
@@ -232,13 +197,33 @@ const changePage = (page) => {
     );
 };
 
-onMounted(() => fetchAccesses());
+onMounted(async () =>{
+    loading.value = true;
+    await Promise.all([fetchAccesses()]);
+    loading.value = false;
+});
 
 watch(
     () => props.documentId,
-    () => {
+    async () => {
         loading.value = true;
-        fetchAccesses();
+        await Promise.all([fetchAccesses()]);
+        loading.value = false;
     }
 );
 </script>
+
+<style scoped>
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.card {
+    transition: all 0.2s ease;
+}
+
+.bg-light {
+    background-color: #f8fafd !important;
+}
+</style>

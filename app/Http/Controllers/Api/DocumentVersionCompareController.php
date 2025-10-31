@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\CompareDocumentVersionRequest;
+use App\Http\Requests\DocumentVersion\CompareDocumentVersionRequest;
 use App\Services\DocumentVersion\DocumentVersionCompareService;
 use Illuminate\Http\Request;
 
