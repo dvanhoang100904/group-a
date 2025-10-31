@@ -3,7 +3,6 @@
 @section('title', 'Quyền chia sẻ tài liệu')
 
 @section('content')
-
     <!-- breadcrumb -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-4">

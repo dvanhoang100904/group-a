@@ -61,14 +61,14 @@
         </div>
 
         <div class="col-md-1 d-grid">
-            <button type="submit" class="btn btn-primary btn-sm">
+            <button type="submit" class="btn btn-sm btn-primary">
                 <i class="bi bi-search me-1"></i> Lọc
             </button>
         </div>
         <div class="col-md-1 d-grid">
             <button
                 type="button"
-                class="btn btn-secondary btn-sm"
+                class="btn btn-sm btn-secondary"
                 @click="handleReset"
             >
                 <i class="bi bi-x-circle me-1"></i> Reset
