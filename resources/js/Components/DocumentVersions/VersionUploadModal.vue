@@ -149,7 +149,7 @@
                             >
                                 <button
                                     type="submit"
-                                    class="btn btn-primary px-4"
+                                    class="btn btn-sm btn-primary px-3"
                                     :disabled="
                                         loading || progress > 0 || !selectedFile
                                     "
@@ -168,7 +168,7 @@
 
                                 <button
                                     type="button"
-                                    class="btn btn-outline-secondary px-4"
+                                    class="btn btn-sm btn-outline-secondary px-3"
                                     @click="closeModal"
                                     :disabled="loading"
                                 >
@@ -346,6 +346,6 @@ defineExpose({ showModal, hideModal, closeModal });
 }
 
 .bg-light {
-    background-color: #f8f9fa !important;
+    background-color: #f8fafd !important;
 }
 </style>

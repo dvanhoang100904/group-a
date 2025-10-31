@@ -4,6 +4,7 @@ namespace App\Services\DocumentVersion;
 
 use App\Models\Document;
 use App\Models\DocumentVersion;
+use App\Models\User;
 
 class DocumentVersionService
 {
@@ -16,18 +17,8 @@ class DocumentVersionService
     {
         return Document::select(['document_id', 'title', 'subject_id', 'folder_id'])
             ->with([
-                'folder:folder_id,name',
                 'subject:subject_id,name,department_id',
                 'subject.department:department_id,name',
-                'versions' => fn($q) => $q
-                    ->current()
-                    ->select('version_id', 'document_id', 'version_number'),
-                'accesses' => fn($q) => $q
-                    ->select('access_id', 'document_id', 'granted_to_type', 'granted_to_user_id', 'granted_to_role_id', 'granted_by')
-                    ->with([
-                        'grantedToUser:user_id,name',
-                        'grantedBy:user_id,name'
-                    ])
             ])
             ->withCount('versions')
             ->whereKey($documentId)
@@ -40,7 +31,7 @@ class DocumentVersionService
     public function getDocumentVersionsHasPaginated(int $documentId, array $filters = [])
     {
         return DocumentVersion::query()
-            ->where('document_id', $documentId)
+            ->byDocument($documentId)
             ->select([
                 'version_id',
                 'version_number',
@@ -79,8 +70,21 @@ class DocumentVersionService
             ->byVersion($versionId)
             ->with([
                 'user:user_id,name',
-                'latestPreview:preview_id,version_id,preview_path,expires_at,created_at'
             ])
             ->first();
+    }
+
+    /**
+     * Lay danh sach người upload
+     */
+    public function getUploaders(int $documentId)
+    {
+        return User::query()
+            ->select('users.user_id', 'users.name')
+            ->join('document_versions', 'users.user_id', '=', 'document_versions.user_id')
+            ->where('document_versions.document_id', $documentId)
+            ->distinct()
+            ->orderBy('users.name')
+            ->get();
     }
 }
