@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DocumentVersion;
+use App\Models\User;
 use App\Services\DocumentVersion\DocumentVersionPreviewService;
 use App\Services\DocumentVersion\DocumentVersionService;
 use Illuminate\Http\Request;
@@ -78,6 +80,17 @@ class DocumentVersionController extends Controller
         return response()->json([
             'success' => true,
             'data' => $data,
+        ]);
+    }
+
+    public function uploaders($documentId)
+    {
+        $users = $this->documentVersionService->getUploaders($documentId);
+
+        return response()->json([
+            'success' => true,
+            'data' => $users,
+            'message' => 'Danh sách người upload của tài liệu'
         ]);
     }
 }

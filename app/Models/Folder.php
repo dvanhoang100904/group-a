@@ -8,7 +8,14 @@ class Folder extends Model
 {
     protected $table = 'folders';
     protected $primaryKey = 'folder_id';
-    protected $fillable = ['name', 'status', 'parent_folder_id', 'user_id'];
+
+    protected $fillable = [
+        'name',
+        'status',
+        'parent_folder_id',
+        'user_id'
+    ];
+    public $timestamps = true;
 
     public function parentFolder()
     {
