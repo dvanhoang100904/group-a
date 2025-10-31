@@ -10,6 +10,7 @@ export default defineConfig({
                 "resources/js/app.js",
                 "resources/js/pages/folder-import.js",
                 "resources/js/pages/document-versions.js",
+                "resources/js/pages/document-accesses.js",
                 "resources/js/pages/document-upload.js",
                 "resources/js/pages/document-list.js",
             ],
@@ -26,7 +27,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            vue: 'vue/dist/vue.esm-bundler.js',
+            vue: "vue/dist/vue.esm-bundler.js",
         },
     },
     server: {

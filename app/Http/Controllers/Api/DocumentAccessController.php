@@ -32,7 +32,7 @@ class DocumentAccessController extends Controller
         return response()->json([
             'success' => true,
             'data' => $accesses,
-            'message' => 'Danh sách phiên bản tải thành công'
+            'message' => 'Danh sách quyền chia sẻ thành công'
         ]);
     }
 }

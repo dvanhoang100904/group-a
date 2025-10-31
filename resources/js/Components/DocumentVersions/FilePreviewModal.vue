@@ -36,10 +36,10 @@
                 <div class="modal-footer">
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-secondary"
+                        class="btn btn-sm btn-outline-secondary px-4"
                         @click="closeModal"
                     >
-                        Đóng
+                        <i class="bi bi-x-circle me-2"></i>Đóng
                     </button>
                 </div>
             </div>
@@ -119,3 +119,14 @@ watch(
 
 defineExpose({ showModal, hideModal, closeModal });
 </script>
+
+<style scoped>
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.bg-light {
+    background-color: #f8fafd !important;
+}
+</style>
