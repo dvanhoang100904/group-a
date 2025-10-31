@@ -16,7 +16,7 @@
                     Danh sách phiên bản
                 </span>
                 <button
-                    class="btn btn-sm btn-primary px-4"
+                    class="btn btn-sm btn-primary px-3"
                     @click="uploadModal.showModal()"
                 >
                     <i class="bi bi-upload me-1"></i> Tải lên
@@ -463,5 +463,9 @@ watch(
 
 .card {
     transition: all 0.2s ease;
+}
+
+.bg-light {
+    background-color: #f8fafd !important;
 }
 </style>

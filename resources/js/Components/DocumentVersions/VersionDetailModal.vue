@@ -222,7 +222,7 @@
                         <div class="file-actions">
                             <button
                                 v-if="selectedVersion?.version_id"
-                                class="btn btn-sm btn-primary px-4"
+                                class="btn btn-sm btn-primary px-3"
                                 @click="previewFile"
                                 title="Xem trước tài liệu"
                             >
@@ -232,7 +232,7 @@
 
                         <button
                             type="button"
-                            class="btn btn-sm btn-outline-secondary px-4"
+                            class="btn btn-sm btn-outline-secondary px-3"
                             @click="closeModal"
                         >
                             <i class="bi bi-x-circle me-2"></i>Đóng
