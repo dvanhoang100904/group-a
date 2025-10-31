@@ -396,6 +396,6 @@ defineExpose({ showModal, hideModal, closeModal });
 }
 
 .card.bg-light {
-    background-color: #f8f9fa !important;
+    background-color: #f8fafd !important;
 }
 </style>

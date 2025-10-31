@@ -165,3 +165,17 @@ watch([versionA, versionB], () => {
     differences.value = [];
 });
 </script>
+<style scoped>
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.bg-light {
+    background-color: #f8fafd !important;
+}
+
+.card {
+    transition: all 0.2s ease;
+}
+</style>

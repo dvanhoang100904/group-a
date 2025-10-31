@@ -125,4 +125,8 @@ defineExpose({ showModal, hideModal, closeModal });
     border-radius: 0.5rem;
     font-weight: 500;
 }
+
+.bg-light {
+    background-color: #f8fafd !important;
+}
 </style>
