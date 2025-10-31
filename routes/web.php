@@ -42,7 +42,7 @@ Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
 
 // Documents List - Ngoc Dan
-Route::get('/my-documents', [DocumentController::class, 'index'])->name('documents.index');
+Route::get('/list-documents', [DocumentController::class, 'index'])->name('documents.index');
 
 // Document Versions
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');

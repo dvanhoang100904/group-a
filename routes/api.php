@@ -38,7 +38,7 @@ Route::middleware(['api'])->group(function () {
 });
 
 // danh sách tài liệu của người dùng hiện tại 
-Route::get('/my-documents', [DocumentController::class, 'index']);
+Route::get('/list-documents', [DocumentController::class, 'index']);
 Route::get('/documents', [DocumentController::class, 'getDocuments']);
 
 // chi tiết tài liệu
