@@ -8,4 +8,9 @@ class Role extends Model
 {
     protected $table = 'roles';
     protected $primaryKey = 'role_id';
+
+    public function documentAccesses()
+    {
+        return $this->hasMany(DocumentAccess::class, 'granted_to_role_id');
+    }
 }
