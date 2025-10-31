@@ -149,7 +149,7 @@
                             >
                                 <button
                                     type="submit"
-                                    class="btn btn-sm btn-primary px-4"
+                                    class="btn btn-sm btn-primary px-3"
                                     :disabled="
                                         loading || progress > 0 || !selectedFile
                                     "
@@ -168,7 +168,7 @@
 
                                 <button
                                     type="button"
-                                    class="btn btn-sm btn-outline-secondary px-4"
+                                    class="btn btn-sm btn-outline-secondary px-3"
                                     @click="closeModal"
                                     :disabled="loading"
                                 >

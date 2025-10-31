@@ -36,7 +36,7 @@
                 <div class="modal-footer">
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-secondary px-4"
+                        class="btn btn-sm btn-outline-secondary px-3"
                         @click="closeModal"
                     >
                         <i class="bi bi-x-circle me-2"></i>Đóng

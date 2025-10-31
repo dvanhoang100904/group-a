@@ -50,7 +50,7 @@
                 </div>
                 <div class="col-md-2 text-end">
                     <button
-                        class="btn btn-outline-primary w-100 mt-4"
+                        class="btn btn-outline-primary w-100 mt-3 px-3"
                         :disabled="loading"
                     >
                         <i class="bi bi-arrow-left-right me-2"></i>
