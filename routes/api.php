@@ -8,6 +8,14 @@ use App\Http\Controllers\Api\DocumentVersionActionController;
 use App\Http\Controllers\Api\DocumentVersionCompareController;
 use App\Http\Controllers\Api\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentDetailController;
+use App\Http\Controllers\Api\TypeController;
+use App\Http\Controllers\Api\SubjectController;
+
+
+
+
+
+
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -46,3 +54,7 @@ Route::get('/documents', [DocumentController::class, 'getDocuments']);
 // chi tiết tài liệu
 Route::get('/documents/{id}', [DocumentDetailController::class, 'show']);   
 Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
+
+// danh sách loại tài liệu và môn học
+Route::get('/types', [TypeController::class, 'index']);
+Route::get('/subjects', [SubjectController::class, 'index']);
