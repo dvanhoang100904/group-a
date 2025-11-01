@@ -19,6 +19,13 @@ class Activity extends Model
         'folder_id'
     ];
 
+    protected $casts = [
+        'document_id' => 'integer',
+        'user_id' => 'integer',
+        'version_id' => 'integer',
+        'folder_id' => 'integer',
+    ];
+
     public function document()
     {
         return $this->belongsTo(Document::class, 'document_id');

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->increments('user_id');
             $table->string('name', 150);
+            $table->boolean('status')->default(true)->comment('1=active, 0=inactive');
             $table->timestamps();
 
             $table->index('name');
