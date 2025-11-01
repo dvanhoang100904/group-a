@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\DocumentVersionController;
 use App\Http\Controllers\Api\DocumentVersionActionController;
 use App\Http\Controllers\Api\DocumentVersionCompareController;
 use App\Http\Controllers\Api\DocumentAccessController;
-
+use App\Http\Controllers\Api\DocumentDetailController;
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -26,6 +26,10 @@ Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionAc
 // Document Accesses
 Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index']);
 
+// =========================
+// 👤 Users
+// =========================
+//Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
 // 📤 Document Uploads (auth required)
@@ -37,6 +41,10 @@ Route::middleware(['api'])->group(function () {
     Route::delete('/documents/{document}', [UploadController::class, 'destroy']);
 });
 
-
+// danh sách tài liệu của người dùng hiện tại 
 Route::get('/my-documents', [DocumentController::class, 'index']);
 Route::get('/documents', [DocumentController::class, 'getDocuments']);
+
+// chi tiết tài liệu
+Route::get('/documents/{id}', [DocumentDetailController::class, 'show']);
+Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
