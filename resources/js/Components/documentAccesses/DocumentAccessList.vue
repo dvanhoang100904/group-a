@@ -17,7 +17,10 @@
                     sẻ
                 </span>
                 <!-- Add -->
-                <button class="btn btn-sm btn-primary px-3">
+                <button
+                    class="btn btn-sm btn-primary px-3"
+                    @click="addModal.showModal()"
+                >
                     <i class="bi bi-plus-circle me-1"></i> Thêm mới
                 </button>
             </div>
@@ -36,12 +39,15 @@
                         <thead class="table-primary">
                             <tr>
                                 <th class="text-center">#</th>
-                                <th class="text-center">Người dùng</th>
-                                <th class="text-center">Vai trò</th>
+                                <th class="text-center">
+                                    Đối tượng được chia sẻ
+                                </th>
                                 <th class="text-center">Xem</th>
+                                <th class="text-center">Tải lên</th>
                                 <th class="text-center">Tải xuống</th>
                                 <th class="text-center">Chỉnh sửa</th>
                                 <th class="text-center">Xóa</th>
+                                <th class="text-center">Chia sẻ tiếp</th>
                                 <th class="text-center">Ngày hết hạn</th>
                                 <th class="text-center">Người cấp quyền</th>
                                 <th class="text-center">Hành động</th>
@@ -54,13 +60,23 @@
                             >
                                 <td class="text-center">
                                     {{ index + 1 }}
-                                </td class="text-center">
-                                <td class="text-center">
-                                    {{ access.granted_to_user?.name || "-" }}
-                                </td class="text-center">
-                                <td class="text-center">
-                                    {{ access.granted_to_role?.name || "-" }}
                                 </td>
+                                <td class="text-center">
+                                    <span v-if="access.granted_to_user">
+                                        <i
+                                            class="bi bi-person text-primary me-1"
+                                        ></i>
+                                        {{ access.granted_to_user?.name }}
+                                    </span>
+                                    <span v-else-if="access.granted_to_role">
+                                        <i
+                                            class="bi bi-people text-primary me-1"
+                                        ></i>
+                                        {{ access.granted_to_role?.name }}
+                                    </span>
+                                    <span v-else>-</span>
+                                </td>
+                                <!-- View -->
                                 <td class="text-center">
                                     <i
                                         :class="
@@ -70,6 +86,19 @@
                                         "
                                     ></i>
                                 </td>
+
+                                <!-- Upload -->
+                                <td class="text-center">
+                                    <i
+                                        :class="
+                                            access.can_upload
+                                                ? 'bi bi-check-circle-fill text-success'
+                                                : 'bi bi-x-circle text-muted'
+                                        "
+                                    ></i>
+                                </td>
+
+                                <!-- Download -->
                                 <td class="text-center">
                                     <i
                                         :class="
@@ -79,6 +108,8 @@
                                         "
                                     ></i>
                                 </td>
+
+                                <!-- Edit -->
                                 <td class="text-center">
                                     <i
                                         :class="
@@ -88,10 +119,23 @@
                                         "
                                     ></i>
                                 </td>
+
+                                <!-- Delete -->
                                 <td class="text-center">
                                     <i
                                         :class="
                                             access.can_delete
+                                                ? 'bi bi-check-circle-fill text-success'
+                                                : 'bi bi-x-circle text-muted'
+                                        "
+                                    ></i>
+                                </td>
+
+                                <!-- Share -->
+                                <td class="text-center">
+                                    <i
+                                        :class="
+                                            access.can_share
                                                 ? 'bi bi-check-circle-fill text-success'
                                                 : 'bi bi-x-circle text-muted'
                                         "
@@ -103,11 +147,11 @@
                                         "-"
                                     }}
                                 </td>
-                                <td class="text-center"> {{ access.granted_by?.name || "-" }}</td>
+                                <td class="text-center">
+                                    {{ access.granted_by?.name || "-" }}
+                                </td>
                                 <!-- Actions -->
-                                <td
-                                    class="text-center"
-                                >
+                                <td class="text-center">
                                     <!-- Edit -->
                                     <button
                                         class="btn border-0 text-primary"
@@ -117,7 +161,7 @@
                                     </button>
                                     <!-- Delete -->
                                     <button
-                                        class="btn border-0 text-primary "
+                                        class="btn border-0 text-primary"
                                         title="Xóa"
                                     >
                                         <i class="bi bi-trash"></i>
@@ -135,6 +179,14 @@
                         @page-changed="changePage"
                     />
                 </div>
+
+                <AccessAddModal
+                    ref="addModal"
+                    :document-id="documentId"
+                    :users="users"
+                    :roles="roles"
+                    @added="fetchAccesses"
+                />
             </div>
         </div>
     </div>
@@ -144,6 +196,7 @@
 import { ref, onMounted, watch } from "vue";
 import axios from "axios";
 import AccessPagination from "./AccessPagination.vue";
+import AccessAddModal from "./AccessAddModal.vue";
 
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
@@ -156,7 +209,41 @@ const accesses = ref({
     per_page: 5,
 });
 
+// Loading
 const loading = ref(false);
+
+// Add
+const addModal = ref(null);
+
+const users = ref([]);
+
+const roles = ref([]);
+
+const fetchUsers = async () => {
+    try {
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/accesses/users`,
+        );
+        if (res.data.success) {
+            users.value = res.data.data;
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+const fetchRoles = async () => {
+    try {
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/accesses/roles`,
+        );
+        if (res.data.success) {
+            roles.value = res.data.data;
+        }
+    } catch (err) {
+        console.error(err);
+    }
+};
 
 // Format date
 const formatDate = (dateStr) =>
@@ -168,7 +255,7 @@ const fetchAccesses = async (page = 1) => {
     try {
         const res = await axios.get(
             `/api/documents/${props.documentId}/accesses`,
-            { params: { page } }
+            { params: { page } },
         );
         if (res.data.success) {
             accesses.value = {
@@ -193,13 +280,13 @@ const fetchAccesses = async (page = 1) => {
 const changePage = (page) => {
     if (page < 1 || page > accesses.value.last_page) return;
     fetchAccesses(page).then(() =>
-        window.scrollTo({ top: 0, behavior: "smooth" })
+        window.scrollTo({ top: 0, behavior: "smooth" }),
     );
 };
 
-onMounted(async () =>{
+onMounted(async () => {
     loading.value = true;
-    await Promise.all([fetchAccesses()]);
+    await Promise.all([fetchAccesses(), fetchUsers(), fetchRoles()]);
     loading.value = false;
 });
 
@@ -207,9 +294,9 @@ watch(
     () => props.documentId,
     async () => {
         loading.value = true;
-        await Promise.all([fetchAccesses()]);
+        await Promise.all([fetchAccesses(), fetchUsers(), fetchRoles()]);
         loading.value = false;
-    }
+    },
 );
 </script>
 

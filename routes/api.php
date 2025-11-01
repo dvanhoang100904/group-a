@@ -1,5 +1,6 @@
 <?php
 
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\Api\DocumentVersionController;
 use App\Http\Controllers\Api\DocumentVersionActionController;
 use App\Http\Controllers\Api\DocumentVersionCompareController;
 use App\Http\Controllers\Api\DocumentAccessController;
+use App\Http\Controllers\Api\DocumentAccessActionController;
 use App\Http\Controllers\Api\DocumentDetailController;
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -25,6 +27,9 @@ Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionAc
 
 // Document Accesses
 Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index']);
+Route::get('/documents/{id}/accesses/users', [DocumentAccessController::class, 'users']);
+Route::get('/documents/{id}/accesses/roles', [DocumentAccessController::class, 'roles']);
+Route::post('/documents/{id}/accesses', [DocumentAccessActionController::class, 'store']);
 
 // =========================
 // 👤 Users
