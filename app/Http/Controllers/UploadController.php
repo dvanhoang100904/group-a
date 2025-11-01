@@ -3,8 +3,17 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use App\Models\Document;
+use App\Models\DocumentVersion;
+use App\Models\DocumentPreview;
+use Illuminate\Support\Facades\Auth;
+use PhpOffice\PhpWord\IOFactory;
+use setasign\Fpdi\Fpdi;
+use Exception;
 
 class UploadController extends Controller
 {
@@ -13,50 +22,85 @@ class UploadController extends Controller
     {
         return view('documents.Upload_Documents.Index_Upload');
     }
-
-    // 📤 Upload file (Vue + Blade đều hoạt động)
-    public function store(Request $request)
+    protected function convertToPdf($file, $documentId)
     {
-        try {
-            $request->validate([
-                'file' => 'required|file|max:51200', // 50MB
-            ]);
+        $pdfPath = "documents/previews/{$documentId}_" . Str::uuid() . ".pdf";
+        // ⚠️ Ở đây bạn có thể dùng thư viện `unoconv`, `libreoffice`, hoặc queue job xử lý.
+        // Để demo: tạm copy file gốc như file PDF giả
+        Storage::disk('public')->put($pdfPath, file_get_contents($file->getRealPath()));
+        return $pdfPath;
+    }
+     public function store(Request $request)
+    {
+        if (!$request->hasFile('file')) {
+            return response()->json(['error' => 'Không có file tải lên.'], 400);
+        }
 
-            $uploadPath = base_path('app/Public_UploadFile');
+        $file = $request->file('file');
+        $originalName = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mime = $file->getMimeType();
+        $uuid = Str::uuid()->toString();
 
-            if (!File::exists($uploadPath)) {
-                File::makeDirectory($uploadPath, 0755, true);
-            }
+        // 📂 Lưu file gốc
+        $fileName = pathinfo($originalName, PATHINFO_FILENAME) . '-' . $uuid . '.' . $extension;
+        $filePath = $file->storeAs('documents/versions', $fileName, 'public');
+        $fileSize = $file->getSize();
 
-            $file = $request->file('file');
-            $fileName = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
-            $file->move($uploadPath, $fileName);
+        // ⚙️ Tạo Document (nếu cần)
+        $document = Document::create([
+            'title' => $originalName,
+            'description' => $request->input('description', null),
+            'status' => 'private',
+            'user_id' => auth()->id() ?? 1, // tạm cho user_id = 1 nếu chưa auth
+            'folder_id' => $request->input('folder_id', null),
+            'type_id' => $request->input('type_id', 1),
+            'subject_id' => $request->input('subject_id', 1),
+        ]);
 
-            // Nếu là AJAX (Vue)
-            if ($request->expectsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Upload thành công!',
-                    'file' => $fileName,
-                    'path' => 'app/Public_UploadFile/' . $fileName
+        // 🧾 Tạo Version
+        $version = DocumentVersion::create([
+            'version_number' => 1,
+            'file_path' => $filePath,
+            'file_size' => $fileSize,
+            'mime_type' => $mime,
+            'is_current_version' => true,
+            'change_note' => 'Initial upload',
+            'document_id' => $document->document_id,
+            'user_id' => auth()->id() ?? 1,
+        ]);
+
+        // 🧩 Convert sang PDF nếu là DOCX
+        if (in_array($extension, ['doc', 'docx'])) {
+            try {
+                $phpWord = IOFactory::load($file->getPathname());
+                $pdfFileName = pathinfo($fileName, PATHINFO_FILENAME) . '.pdf';
+                $pdfPath = 'documents/previews/' . $pdfFileName;
+
+                $pdfWriter = IOFactory::createWriter($phpWord, 'PDF');
+                $pdfWriter->save(storage_path('app/public/' . $pdfPath));
+
+                DocumentPreview::create([
+                    'preview_path' => $pdfPath,
+                    'expires_at' => now()->addDays(7),
+                    'generated_by' => auth()->id() ?? 1,
+                    'document_id' => $document->document_id,
+                    'version_id' => $version->version_id,
                 ]);
-            }
-
-            // Nếu là form submit (Blade)
-            return back()->with('success', 'Upload thành công! File đã lưu tại: ' . $fileName);
-        } catch (\Exception $e) {
-            Log::error('Upload failed: ' . $e->getMessage());
-
-            if ($request->expectsJson() || $request->ajax()) {
+            } catch (\Exception $e) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Upload thất bại: ' . $e->getMessage()
+                    'error' => 'Lỗi khi convert sang PDF: ' . $e->getMessage(),
                 ], 500);
             }
-
-            return back()->with('error', 'Upload thất bại: ' . $e->getMessage());
         }
+
+        return response()->json([
+            'message' => 'Tải lên thành công!',
+            'document' => $document,
+            'version' => $version,
+        ], 201);
     }
+
 
     // 📦 Download file
     public function download($version)

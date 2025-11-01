@@ -4,22 +4,31 @@
 
     <!-- Drag & Drop Zone -->
     <div
-      class="border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300"
+      class="border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300"
       :class="isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'"
       @dragover.prevent="isDragging = true"
       @dragleave.prevent="isDragging = false"
       @drop.prevent="handleDrop"
     >
-      <div class="text-6xl mb-4">{{ isDragging ? '📥' : '📂' }}</div>
-      <p class="text-gray-600 mb-4">
+      <div class="text-6xl mb-3">{{ isDragging ? '📥' : '📂' }}</div>
+      <p class="text-gray-600 mb-3">
         {{ isDragging ? 'Thả file tại đây' : 'Kéo thả file vào đây hoặc' }}
       </p>
-      <button
-        @click="triggerFileInput"
-        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-      >
-        Chọn file từ máy tính
-      </button>
+      <div class="flex items-center justify-center gap-3">
+        <button
+          @click="triggerFileInput"
+          class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+        >
+          Chọn file từ máy tính
+        </button>
+        <button
+          @click="fetchCurrentFolderIndex"
+          class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+        >
+          Làm mới thư mục lưu
+        </button>
+      </div>
+
       <input
         ref="fileInput"
         type="file"
@@ -28,9 +37,11 @@
         class="hidden"
         @change="handleFileSelect"
       />
-      <p class="text-xs text-gray-500 mt-2">
+
+      <p class="text-xs text-gray-500 mt-3">
         Hỗ trợ: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, ZIP (tối đa 50MB/file)
       </p>
+      <p v-if="currentFolderIndex" class="text-xs text-gray-600 mt-2">Thư mục lưu hiện tại: <b>{{ currentFolderIndex }}</b></p>
     </div>
 
     <!-- File List -->
@@ -39,36 +50,72 @@
         <h3 class="text-lg font-semibold text-gray-700">
           📋 Danh sách file ({{ files.length }})
         </h3>
-        <button
-          v-if="pendingFiles > 0"
-          @click="uploadAll"
-          :disabled="uploading"
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
-        >
-          {{ uploading ? '⏳ Đang tải...' : `⬆️ Tải lên tất cả (${pendingFiles})` }}
-        </button>
+        <div class="flex items-center gap-3">
+          <button
+            v-if="pendingFiles > 0"
+            @click="uploadAll"
+            :disabled="uploading"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition"
+          >
+            {{ uploading ? '⏳ Đang tải...' : `⬆️ Tải lên tất cả (${pendingFiles})` }}
+          </button>
+          <button
+            @click="clearAll"
+            class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+          >
+            🗑️ Xóa tất cả
+          </button>
+        </div>
       </div>
 
       <!-- List of Files -->
       <div class="space-y-3">
         <div
           v-for="(file, index) in files"
-          :key="index"
+          :key="file.uid"
           class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
         >
-          <div class="flex items-start justify-between">
-            <div class="flex-1 mr-4">
-              <div class="flex items-center mb-2">
-                <span class="text-2xl mr-2">{{ getFileIcon(file.name) }}</span>
-                <div>
-                  <p class="font-medium text-gray-800">{{ file.name }}</p>
-                  <p class="text-sm text-gray-500">{{ file.size }}</p>
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="text-2xl">{{ getFileIcon(file.name) }}</div>
+                <div class="flex-1">
+                  <!-- Editable document name (without extension) -->
+                  <div class="flex gap-2 items-center">
+                    <input
+                      v-model="file.title"
+                      class="border px-2 py-1 rounded w-64"
+                      :placeholder="file.originalNameNoExt"
+                    />
+                    <span class="text-sm text-gray-500">.{{ file.ext }}</span>
+                    <span class="ml-3 text-xs text-gray-500">({{ file.size }})</span>
+                  </div>
+
+                  <!-- type & folder info -->
+                  <div class="flex items-center gap-3 mt-2">
+                    <select v-model="file.type_id" class="border rounded px-2 py-1 text-sm">
+                      <option value="">-- Chọn loại (type) --</option>
+                      <option v-for="t in types" :key="t.type_id" :value="t.type_id">
+                        {{ t.name }}
+                      </option>
+                    </select>
+
+                    <select v-model="file.permission" class="border rounded px-2 py-1 text-sm">
+                      <option v-for="(label, key) in permissionOptions" :key="key" :value="key">
+                        {{ label }}
+                      </option>
+                    </select>
+
+                    <div class="text-xs text-gray-500 ml-2">
+                      Thư mục: <b>{{ file.folderIndex || currentFolderIndex || '... (chưa xác định)' }}</b>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <!-- Progress Bar -->
               <div v-if="file.progress !== null" class="mb-2">
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                   <div
                     class="h-2.5 rounded-full transition-all duration-300"
                     :class="file.status === 'error' ? 'bg-red-500' : 'bg-blue-600'"
@@ -78,8 +125,8 @@
                 <p class="text-xs text-gray-600 mt-1">{{ file.progress }}%</p>
               </div>
 
-              <!-- Status Badge -->
-              <div class="flex items-center mt-2">
+              <!-- Status Badge & preview state -->
+              <div class="flex items-center gap-3 mt-2">
                 <span
                   class="px-3 py-1 rounded-full text-xs font-medium"
                   :class="{
@@ -96,6 +143,10 @@
                     '❌ Lỗi'
                   }}
                 </span>
+
+                <span v-if="file.is_converting" class="text-xs text-indigo-600">🔄 Đang tạo preview PDF...</span>
+                <span v-else-if="file.preview_ready" class="text-xs text-green-600">📄 Preview sẵn sàng</span>
+
                 <span v-if="file.errorMessage" class="text-xs text-red-600 ml-2">
                   {{ file.errorMessage }}
                 </span>
@@ -103,7 +154,7 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2 items-end">
               <button
                 v-if="file.status === 'pending'"
                 @click="uploadSingle(file, index)"
@@ -111,6 +162,15 @@
               >
                 ⬆️ Tải
               </button>
+
+              <button
+                v-else-if="file.status === 'done'"
+                @click="downloadPreview(file)"
+                class="px-3 py-1 bg-indigo-500 text-white text-sm rounded hover:bg-indigo-600 transition"
+              >
+                📄 Xem preview
+              </button>
+
               <button
                 @click="removeFile(index)"
                 class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
@@ -131,34 +191,49 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { v4 as uuidv4 } from 'uuid'
 
 // === Reactive States ===
 const files = ref([])
 const isDragging = ref(false)
 const uploading = ref(false)
 const fileInput = ref(null)
+const types = ref([])
+const currentFolderIndex = ref(null)
+
+// permission options (key => label)
+const permissionOptions = {
+  view: '👁️ Chỉ xem',
+  edit: '✏️ Sửa',
+  download: '⬇️ Tải xuống',
+  full: '🛠️ Toàn quyền'
+}
 
 // === Computed ===
 const pendingFiles = computed(() =>
   files.value.filter(f => f.status === 'pending').length
 )
 
-// === File Selection ===
-const triggerFileInput = () => fileInput.value.click()
+// === Lifecycle ===
+onMounted(async () => {
+  await fetchTypes()
+  await fetchCurrentFolderIndex()
+})
 
+// === Helpers ===
+const triggerFileInput = () => fileInput.value.click()
 const handleFileSelect = (event) => {
   prepareFiles(event.target.files)
   event.target.value = null
 }
-
 const handleDrop = (event) => {
   isDragging.value = false
   prepareFiles(event.dataTransfer.files)
 }
 
-// === Prepare Files ===
+// prepare files into local structure
 const prepareFiles = (fileList) => {
   for (const f of fileList) {
     const sizeMB = (f.size / 1024 / 1024).toFixed(2)
@@ -166,46 +241,124 @@ const prepareFiles = (fileList) => {
       alert(`❌ File "${f.name}" vượt quá 50MB!`)
       continue
     }
+
+    const parts = f.name.split('.')
+    const ext = parts.length > 1 ? parts.pop().toLowerCase() : ''
+    const baseName = parts.join('.')
     files.value.push({
+      uid: uuidv4(),
       file: f,
+      originalName: f.name,
+      originalNameNoExt: baseName,
+      title: baseName,          // editable title (without ext)
+      ext,
       name: f.name,
       size: `${sizeMB} MB`,
       progress: 0,
-      status: 'pending',
-      errorMessage: null
+      status: 'pending',        // pending | uploading | done | error
+      errorMessage: null,
+      type_id: '',              // selected type id
+      permission: 'view',       // default permission
+      folderIndex: null,        // assigned by backend
+      is_converting: false,
+      preview_ready: false,
+      preview_url: null
     })
   }
 }
 
-// === Remove File ===
-const removeFile = (index) => files.value.splice(index, 1)
+// === API helpers ===
+const fetchTypes = async () => {
+  try {
+    const res = await axios.get('/api/types')
+    types.value = res.data?.data || []
+  } catch (err) {
+    console.error('Không lấy được types:', err)
+    types.value = []
+  }
+}
 
-// === Upload Single File ===
+const fetchCurrentFolderIndex = async () => {
+  try {
+    const res = await axios.get('/api/folders/current') // backend phải trả về { folderIndex: 'originals1' }
+    currentFolderIndex.value = res.data?.folderIndex || null
+  } catch (err) {
+    console.warn('Không thể lấy folder hiện tại:', err)
+    currentFolderIndex.value = null
+  }
+}
+
+// === Remove / clear ===
+const removeFile = (index) => files.value.splice(index, 1)
+const clearAll = () => files.value.splice(0, files.value.length)
+
+// === Download preview (open new tab) ===
+const downloadPreview = (fileObj) => {
+  if (!fileObj.preview_url) {
+    alert('Preview chưa sẵn sàng.')
+    return
+  }
+  window.open(fileObj.preview_url, '_blank')
+}
+
+// === Upload single file ===
 const uploadSingle = async (fileObj, index) => {
   if (fileObj.status === 'uploading' || fileObj.status === 'done') return
 
   fileObj.status = 'uploading'
   fileObj.errorMessage = null
+  fileObj.progress = 0
+
+  // if folderIndex not set, ask backend for current folder
+  if (!fileObj.folderIndex) {
+    try {
+      const resp = await axios.get('/api/folders/current')
+      fileObj.folderIndex = resp.data.folderIndex || currentFolderIndex.value
+    } catch (err) {
+      console.warn('Không lấy được folderIndex, dùng mặc định', err)
+      fileObj.folderIndex = currentFolderIndex.value
+    }
+  }
 
   const formData = new FormData()
   formData.append('file', fileObj.file)
+  formData.append('title', fileObj.title)
+  formData.append('type_id', fileObj.type_id || '')
+  formData.append('permission', fileObj.permission)
+  formData.append('folder_index', fileObj.folderIndex || '')
+  // extra: if you want original name with ext
+  formData.append('original_name', fileObj.originalName)
 
   try {
-    const response = await axios.post('/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      timeout: 20000, // 20s timeout
+    const response = await axios.post('/api/documents/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000, // 2 minutes for large uploads + convert
       onUploadProgress: (event) => {
-        fileObj.progress = Math.round((event.loaded * 100) / event.total)
+        if (event.total) {
+          fileObj.progress = Math.round((event.loaded * 100) / event.total)
+        }
       },
     })
 
-    if (response.data.success) {
+    // Expect backend to return useful info: preview_ready (bool), preview_url (if ready), conversion_started (bool)
+    const data = response.data || {}
+
+    if (data.success) {
       fileObj.status = 'done'
       fileObj.progress = 100
+
+      // if backend indicates conversion is in progress => show converting
+      fileObj.is_converting = !!data.conversion_started
+      fileObj.preview_ready = !!data.preview_ready
+      fileObj.preview_url = data.preview_url || null
+
+      // if conversion started but not ready: poll for preview
+      if (fileObj.is_converting && !fileObj.preview_ready) {
+        pollPreviewStatus(data.document_id, fileObj)
+      }
+
     } else {
-      throw new Error(response.data.message || 'Upload thất bại (Server phản hồi không hợp lệ)')
+      throw new Error(data.message || 'Upload thất bại (Server phản hồi không hợp lệ)')
     }
   } catch (error) {
     fileObj.status = 'error'
@@ -219,20 +372,47 @@ const uploadSingle = async (fileObj, index) => {
   }
 }
 
-// === Upload All Files ===
+// === Upload all sequentially ===
 const uploadAll = async () => {
   if (uploading.value) return
   uploading.value = true
 
   for (let i = 0; i < files.value.length; i++) {
     const f = files.value[i]
-    if (f.status === 'pending') await uploadSingle(f, i)
+    if (f.status === 'pending') {
+      // ensure minimal metadata: title and type
+      if (!f.title) f.title = f.originalNameNoExt
+      await uploadSingle(f, i)
+    }
   }
 
   uploading.value = false
 }
 
-// === File Icon ===
+// === Poll preview status if conversion is async on backend ===
+const pollPreviewStatus = async (documentId, fileObj, attempt = 0) => {
+  if (attempt > 20) {
+    fileObj.is_converting = false
+    fileObj.errorMessage = 'Không tạo được preview sau nhiều lần thử.'
+    return
+  }
+
+  try {
+    const res = await axios.get(`/api/documents/${documentId}/preview-status`)
+    if (res.data.preview_ready) {
+      fileObj.preview_ready = true
+      fileObj.preview_url = res.data.preview_url
+      fileObj.is_converting = false
+    } else {
+      // wait then recheck
+      setTimeout(() => pollPreviewStatus(documentId, fileObj, attempt + 1), 2000)
+    }
+  } catch (err) {
+    setTimeout(() => pollPreviewStatus(documentId, fileObj, attempt + 1), 2000)
+  }
+}
+
+// === Utility: get icon ===
 const getFileIcon = (filename) => {
   const ext = filename.split('.').pop().toLowerCase()
   const icons = {
@@ -247,7 +427,7 @@ const getFileIcon = (filename) => {
 
 <style scoped>
 .upload-container {
-  max-width: 900px;
+  max-width: 980px;
   margin: 0 auto;
 }
 </style>
