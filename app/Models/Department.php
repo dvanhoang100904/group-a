@@ -8,7 +8,9 @@ class Department extends Model
 {
     protected $table = 'departments';
     protected $primaryKey = 'department_id';
-    protected $fillable = ['name', 'description', 'status'];
+
+    
+    protected $fillable = ['code', 'name', 'description', 'status'];
 
     protected $casts = [
         'status' => 'boolean',
