@@ -15,7 +15,12 @@ class Folder extends Model
         'parent_folder_id',
         'user_id'
     ];
-    public $timestamps = true;
+
+    protected $casts = [
+        'status' => 'boolean',
+        'parent_folder_id' => 'integer',
+        'user_id' => 'integer',
+    ];
 
     public function parentFolder()
     {
