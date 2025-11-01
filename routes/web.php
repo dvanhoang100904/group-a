@@ -20,7 +20,7 @@ Route::prefix('dashboard')->group(function () {
     Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 });
 
-// Folder - yen đẹp trai
+// Folder
 Route::prefix('folders')->name('folders.')->group(function () {
     Route::get('/test-create', function () {
         return view('folders.test-create');

@@ -35,7 +35,7 @@ Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionAc
 // =========================
 // 👤 Users
 // =========================
-Route::get('/users', [UserApiController::class, 'index']);
+//Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
 // 📤 Document Uploads (auth required)
