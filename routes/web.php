@@ -22,7 +22,7 @@ Route::prefix('dashboard')->group(function () {
     Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 });
 
-// Folder - yen đẹp trai
+// Folder
 Route::prefix('folders')->name('folders.')->group(function () {
     Route::get('/test-create', function () {
         return view('folders.test-create');
@@ -65,7 +65,6 @@ Route::prefix('khoa')->group(function () {
     Route::put('/{id}', [KhoaController::class, 'update'])->name('khoa.update');
     Route::delete('/{id}', [KhoaController::class, 'destroy'])->name('khoa.destroy');
 });
-
 //Chi tiết tài liệu
 Route::get('/documents/{id}', function ($id) {
     return view('documents.See_Document_Details.Document_Detail', ['documentId' => $id]);

@@ -26,6 +26,10 @@ Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionAc
 // Document Accesses
 Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index']);
 
+// =========================
+// 👤 Users
+// =========================
+//Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
 // 📤 Document Uploads (auth required)
@@ -42,5 +46,5 @@ Route::get('/my-documents', [DocumentController::class, 'index']);
 Route::get('/documents', [DocumentController::class, 'getDocuments']);
 
 // chi tiết tài liệu
-Route::get('/documents/{id}', [DocumentDetailController::class, 'show']);   
+Route::get('/documents/{id}', [DocumentDetailController::class, 'show']);
 Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
