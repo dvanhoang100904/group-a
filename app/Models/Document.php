@@ -18,6 +18,14 @@ class Document extends Model
         'subject_id'
     ];
 
+    protected $casts = [
+        'status' => 'boolean',
+        'user_id' => 'integer',
+        'folder_id' => 'integer',
+        'type_id' => 'integer',
+        'subject_id' => 'integer',
+    ];
+
     /** Lay so version tiep theo */
     public function getNextVersionNumber(): int
     {

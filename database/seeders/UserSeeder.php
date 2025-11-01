@@ -16,6 +16,7 @@ class UserSeeder extends Seeder
     {
         DB::table('users')->insert([
             'name' => 'Admin Hệ thống',
+            'status' => rand(0, 1),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -23,6 +24,7 @@ class UserSeeder extends Seeder
         for ($i = 1; $i <= 5; $i++) {
             DB::table('users')->insert([
                 'name' => 'Giảng viên ' . $i,
+                'status' => rand(0, 1),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -31,6 +33,7 @@ class UserSeeder extends Seeder
         for ($i = 1; $i <= self::MAX_RECORD; $i++) {
             DB::table('users')->insert([
                 'name' => 'Sinh viên ' . $i,
+                'status' => rand(0, 1),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

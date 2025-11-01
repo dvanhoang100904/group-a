@@ -21,7 +21,9 @@ class DocumentVersion extends Model
 
     protected $casts = [
         'is_current_version' => 'boolean',
-        'file_size' => 'integer'
+        'file_size' => 'integer',
+        'document_id' => 'integer',
+        'user_id' => 'integer',
     ];
 
     /** Loc theo document id */

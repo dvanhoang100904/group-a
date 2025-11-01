@@ -16,6 +16,12 @@ class DocumentPreview extends Model
         'version_id'
     ];
 
+    protected $casts = [
+        'generated_by' => 'integer',
+        'document_id' => 'integer',
+        'version_id' => 'integer'
+    ];
+
     /** Chi lay preview con hieu luc */
     public function scopeActive($query)
     {

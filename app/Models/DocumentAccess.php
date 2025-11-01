@@ -31,6 +31,10 @@ class DocumentAccess extends Model
         'can_upload' => 'boolean',
         'can_download' => 'boolean',
         'can_share' => 'boolean',
+        'document_id' => 'integer',
+        'granted_by' => 'integer',
+        'granted_to_user_id' => 'integer',
+        'granted_to_role_id' => 'integer',
     ];
 
     public function document()
