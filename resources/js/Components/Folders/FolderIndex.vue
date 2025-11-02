@@ -146,7 +146,7 @@
     </div>
 
     <!-- Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+       <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
       <table class="min-w-full">
         <thead class="bg-gray-100">
           <tr>
@@ -168,9 +168,13 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="folder in folders.data" :key="folder.folder_id" class="hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
-                @click="goToFolder(folder.folder_id)">
+          <tr v-for="folder in folders.data" 
+              :key="folder.folder_id" 
+              class="hover:bg-gray-50 relative context-menu-row"
+              :class="{ 'bg-blue-50 border-l-4 border-blue-500': contextMenu.folder?.folder_id === folder.folder_id }"
+              @contextmenu.prevent="showContextMenu($event, folder)"
+              @click="goToFolder(folder.folder_id)">
+            <td class="px-6 py-4 whitespace-nowrap cursor-pointer">
               <div class="flex items-center">
                 <i class="fas fa-folder text-yellow-500 mr-3 text-lg"></i>
                 <div>
@@ -182,24 +186,21 @@
                 </div>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
-                @click="goToFolder(folder.folder_id)">
+            <td class="px-6 py-4 whitespace-nowrap cursor-pointer">
               <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', 
                            folder.status == 'public' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800']">
                 <i :class="['fas mr-1', folder.status == 'public' ? 'fa-globe' : 'fa-lock']"></i>
                 {{ folder.status == 'public' ? 'Công khai' : 'Riêng tư' }}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer" 
-                @click="goToFolder(folder.folder_id)">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer">
               {{ formatDateTime(folder.created_at) }}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer" 
-                @click="goToFolder(folder.folder_id)">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer">
               {{ folder.documents_count }} files
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium align-middle">
-              <!-- Dropdown Menu -->
+              <!-- Dropdown Menu (cũ) -->
               <div class="relative inline-block text-left">
                 <button type="button" 
                         class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -209,12 +210,12 @@
                 
                 <!-- Dropdown panel -->
                 <div v-if="activeMenu === folder.folder_id"
-                    class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
-                    style="z-index: 11111;">
+                    class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-20"
+                    style="z-index: 20;">
                   <div class="py-1" role="none">
                     <!-- Edit -->
                     <a :href="route('folders.edit', folder.folder_id)" 
-                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 no-underline">
+                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
                       <i class="fas fa-edit mr-3 text-blue-500"></i>
                       Chỉnh sửa
                     </a>
@@ -262,6 +263,63 @@
         </tbody>
       </table>
     </div>
+<!-- Context Menu (mới) - THAY THẾ HOÀN TOÀN PHẦN CONTEXT MENU CŨ -->
+<div v-if="contextMenu.visible && contextMenu.folder" 
+     class="context-menu"
+     :style="contextMenuStyle">
+    <!-- Header với tên folder -->
+    <div class="context-menu-header">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-folder text-warning me-2"></i>
+            <span class="fw-medium text-dark small text-truncate" :title="contextMenu.folder.name">
+                {{ contextMenu.folder.name }}
+            </span>
+        </div>
+        <div class="text-muted mt-1 small">
+            {{ contextMenu.folder.status === 'public' ? 'Công khai' : 'Riêng tư' }} • 
+            {{ formatDateTime(contextMenu.folder.created_at) }}
+        </div>
+    </div>
+
+    <!-- Menu items -->
+    <div class="py-2">
+        <!-- Open -->
+        <button type="button"
+                class="context-menu-item"
+                @click="openContextFolder">
+            <i class="fas fa-folder-open text-primary me-3" style="width: 16px;"></i>
+            Mở thư mục
+        </button>
+        
+        <!-- Edit -->
+        <a :href="route('folders.edit', contextMenu.folder.folder_id)" 
+           class="context-menu-item"
+           @click="hideContextMenu">
+            <i class="fas fa-edit text-success me-3" style="width: 16px;"></i>
+            Chỉnh sửa
+        </a>
+        
+        <!-- Divider -->
+        <div class="context-menu-divider"></div>
+        
+        <!-- Delete -->
+        <form :action="route('folders.destroy', contextMenu.folder.folder_id)" method="POST" class="w-100">
+            <input type="hidden" name="_token" :value="csrfToken">
+            <input type="hidden" name="_method" value="DELETE">
+            <button type="submit" 
+                    class="context-menu-item context-menu-item-danger w-100 text-start"
+                    @click="confirmDeleteContext">
+                <i class="fas fa-trash text-danger me-3" style="width: 16px;"></i>
+                Xóa thư mục
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Overlay để đóng context menu khi click ra ngoài -->
+<div v-if="contextMenu.visible" 
+     class="context-menu-overlay"
+     @click="hideContextMenu"></div>
 
     <!-- Phân trang và điều khiển hiển thị -->
     <div class="flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow border-t border-gray-200">
@@ -375,6 +433,14 @@ export default {
         name: this.searchParams.name || '',
         date: this.searchParams.date || '',
         status: this.searchParams.status || ''
+      },
+      // Context Menu Data
+      contextMenu: {
+        visible: false,
+        x: 0,
+        y: 0,
+        folder: null,
+        rowElement: null
       }
     }
   },
@@ -412,17 +478,161 @@ export default {
     },
     csrfToken() {
       return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    }
+    },
+    contextMenuStyle() {
+      if (!this.contextMenu.visible) {
+        return {};
+      }
+
+      const menuWidth = 256;
+      const menuHeight = 180;
+      const padding = 10;
+      
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      let x = this.contextMenu.x;
+      let y = this.contextMenu.y;
+      
+      // Nếu không đủ chỗ bên phải, hiển thị bên trái con trỏ
+      if (x + menuWidth > viewportWidth) {
+        x = x - menuWidth;
+      }
+      
+      // Nếu không đủ chỗ bên dưới, hiển thị phía trên con trỏ
+      if (y + menuHeight > viewportHeight) {
+        y = y - menuHeight;
+      }
+      
+      // Đảm bảo không vượt ra ngoài viewport
+      x = Math.max(padding, Math.min(x, viewportWidth - menuWidth - padding));
+      y = Math.max(padding, Math.min(y, viewportHeight - menuHeight - padding));
+      
+      return {
+        left: x + 'px',
+        top: y + 'px'
+      };
+    },
   },
   mounted() {
+    // Đóng menu khi click ra ngoài
     document.addEventListener('click', this.closeMenu);
+    // Đóng menu khi nhấn Escape
     document.addEventListener('keydown', this.handleKeydown);
+    // Đóng context menu khi click ra ngoài
+    document.addEventListener('click', this.handleDocumentClick);
+    // Đóng context menu khi scroll
+    document.addEventListener('scroll', this.hideContextMenu);
+    // Đóng context menu khi resize
+    window.addEventListener('resize', this.hideContextMenu);
   },
   beforeUnmount() {
     document.removeEventListener('click', this.closeMenu);
     document.removeEventListener('keydown', this.handleKeydown);
+    document.removeEventListener('click', this.handleDocumentClick);
+    document.removeEventListener('scroll', this.hideContextMenu);
+    window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
+    /**
+     * Hiển thị context menu khi click chuột phải
+     */
+    showContextMenu(event, folder) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Lấy element của dòng được click
+      const rowElement = event.currentTarget;
+      
+      // Thêm highlight cho dòng
+      this.removeContextRowHighlight();
+      rowElement.classList.add('context-menu-row-highlight');
+      
+      this.contextMenu = {
+        visible: true,
+        x: event.clientX,
+        y: event.clientY,
+        folder: folder,
+        rowElement: rowElement
+      };
+      
+      // Đóng dropdown menu nếu đang mở
+      this.activeMenu = null;
+    },
+    
+    /**
+     * Ẩn context menu và bỏ highlight
+     */
+    hideContextMenu() {
+      this.removeContextRowHighlight();
+      this.contextMenu = {
+        visible: false,
+        x: 0,
+        y: 0,
+        folder: null,
+        rowElement: null
+      };
+    },
+
+    /**
+     * Bỏ highlight tất cả các dòng
+     */
+    removeContextRowHighlight() {
+      const highlightedRows = document.querySelectorAll('.context-menu-row-highlight');
+      highlightedRows.forEach(row => {
+        row.classList.remove('context-menu-row-highlight');
+      });
+    },
+    
+    /**
+     * Mở thư mục từ context menu
+     */
+    openContextFolder() {
+      if (this.contextMenu.folder) {
+        this.goToFolder(this.contextMenu.folder.folder_id);
+      }
+      this.hideContextMenu();
+    },
+    
+    /**
+     * Xác nhận xóa từ context menu
+     */
+    confirmDeleteContext(event) {
+      if (this.contextMenu.folder && !confirm(`Bạn có chắc chắn muốn xóa thư mục "${this.contextMenu.folder.name}"?`)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      this.hideContextMenu();
+    },
+
+    toggleMenu(folderId) {
+      this.activeMenu = this.activeMenu === folderId ? null : folderId;
+      this.hideContextMenu();
+    },
+    
+    closeMenu(event) {
+      if (!event.target.closest('.relative')) {
+        this.activeMenu = null;
+      }
+    },
+    
+    handleKeydown(event) {
+      if (event.key === 'Escape') {
+        this.activeMenu = null;
+        this.hideContextMenu();
+      }
+    },
+    
+    confirmDelete(folder) {
+      if (!confirm(`Bạn có chắc chắn muốn xóa thư mục ${folder.name}?`)) {
+        event.preventDefault();
+      }
+    },
+    
+    goToFolder(folderId) {
+      window.location.href = this.route('folders.show', folderId);
+    },
+    
     route(name, params = null) {
       const baseUrl = window.location.origin;
       const routes = {
@@ -438,52 +648,38 @@ export default {
       }
       return baseUrl + routes[name];
     },
-    toggleMenu(folderId) {
-      this.activeMenu = this.activeMenu === folderId ? null : folderId;
-    },
-    closeMenu(event) {
-      if (!event.target.closest('.relative')) {
-        this.activeMenu = null;
-      }
-    },
-    handleKeydown(event) {
-      if (event.key === 'Escape') {
-        this.activeMenu = null;
-      }
-    },
-    confirmDelete(folder) {
-      if (!confirm(`Bạn có chắc chắn muốn xóa thư mục ${folder.name}?`)) {
-        event.preventDefault();
-      }
-    },
-    goToFolder(folderId) {
-      window.location.href = this.route('folders.show', folderId);
-    },
+    
     goToParent() {
       if (this.currentFolder && this.currentFolder.parent_folder_id) {
         window.location.href = this.route('folders.show', this.currentFolder.parent_folder_id);
       }
     },
+    
     goToRoot() {
       window.location.href = this.route('folders.index');
     },
+    
     handleSearch() {
       this.updateUrl();
     },
+    
     resetFilters() {
       this.localSearchParams = { name: '', date: '', status: '' };
       this.perPage = 10;
       this.updateUrl();
     },
+    
     changePerPage() {
       this.updateUrl();
     },
+    
     changePage(page) {
       if (page === '...') return;
       const url = new URL(window.location.href);
       url.searchParams.set('page', page);
       window.location.href = url.toString();
     },
+    
     updateUrl() {
       const url = new URL(window.location.href);
       
@@ -510,11 +706,13 @@ export default {
 
       window.location.href = url.toString();
     },
+    
     formatDate(dateString) {
       if (!dateString) return '';
       const date = new Date(dateString);
       return date.toLocaleDateString('vi-VN');
     },
+    
     formatDateTime(dateTimeString) {
       if (!dateTimeString) return '';
       const date = new Date(dateTimeString);
@@ -523,18 +721,38 @@ export default {
         minute: '2-digit' 
       });
     },
+    
     highlightText(text) {
       if (!this.localSearchParams.name) return text;
       const regex = new RegExp(`(${this.escapeRegExp(this.localSearchParams.name)})`, 'gi');
       return text.replace(regex, '<span class="highlight">$1</span>');
     },
+    
     escapeRegExp(string) {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    },
+
+    /**
+     * Xử lý click document để đóng context menu
+     */
+    handleDocumentClick(event) {
+      // Thêm timeout để tránh đóng menu ngay khi vừa mở
+      setTimeout(() => {
+        // Chỉ xử lý click chuột trái
+        if (event.button === 0) {
+          const contextMenuElement = document.querySelector('.context-menu');
+          const isClickInsideMenu = contextMenuElement && contextMenuElement.contains(event.target);
+          const isClickInsideTable = event.target.closest('tbody');
+          
+          if (!isClickInsideMenu && !isClickInsideTable) {
+            this.hideContextMenu();
+          }
+        }
+      }, 50);
     }
   }
 }
 </script>
-
 <style scoped>
 .highlight {
   background-color: #ffeb3b;
@@ -545,5 +763,96 @@ export default {
 
 .overlay {
   z-index: 11111 !important;
+}
+
+tbody tr {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Context Menu Styles - THÊM VÀO ĐÂY */
+.context-menu {
+    position: fixed;
+    z-index: 9999;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e5e7eb;
+    animation: fadeInScale 0.15s ease-out;
+    min-width: 256px;
+}
+
+.context-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9998;
+    background: transparent;
+}
+
+.context-menu-header {
+    padding: 0.75rem 1rem;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: #374151;
+    background: none;
+    border: none;
+    text-align: left;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.context-menu-item:hover {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    text-decoration: none;
+}
+
+.context-menu-item-danger {
+    color: #dc2626;
+}
+
+.context-menu-item-danger:hover {
+    background-color: #fef2f2;
+    color: #b91c1c;
+}
+
+.context-menu-divider {
+    border-top: 1px solid #f3f4f6;
+    margin: 0.25rem 0;
+}
+
+.context-menu-row-highlight {
+    background-color: #dbeafe !important;
+    border-left: 4px solid #3b82f6;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.context-menu-row {
+    user-select: none;
+    -webkit-user-select: none;
 }
 </style>
