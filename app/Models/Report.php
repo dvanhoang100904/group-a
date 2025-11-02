@@ -21,6 +21,13 @@ class Report extends Model
         'resolved_at'
     ];
 
+    protected $casts = [
+        'status' => 'boolean',
+        'document_id' => 'integer',
+        'user_id' => 'integer',
+    ];
+
+
     public function document()
     {
         return $this->belongsTo(Document::class, 'document_id');
