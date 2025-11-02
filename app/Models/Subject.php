@@ -8,7 +8,12 @@ class Subject extends Model
 {
     protected $table = 'subjects';
     protected $primaryKey = 'subject_id';
-    protected $fillable = ['name', 'description', 'department_id'];
+    protected $fillable = ['name', 'description', 'status', 'department_id'];
+
+    protected $casts = [
+        'status' => 'boolean',
+        'department_id' => 'integer',
+    ];
 
     public function department()
     {

@@ -10,6 +10,13 @@ class FolderLog extends Model
     protected $primaryKey = 'log_id';
     protected $fillable = ['document_id', 'from_folder_id', 'to_folder_id', 'moved_by', 'moved_at'];
 
+    protected $casts = [
+        'document_id' => 'integer',
+        'from_folder_id' => 'integer',
+        'to_folder_id' => 'integer',
+        'moved_by' => 'integer',
+    ];
+
     public function document()
     {
         return $this->belongsTo(Document::class, 'document_id');

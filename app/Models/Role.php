@@ -9,6 +9,15 @@ class Role extends Model
     protected $table = 'roles';
     protected $primaryKey = 'role_id';
 
+    protected $fillable = [
+        'name',
+        'status'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean',
+    ];
+
     public function documentAccesses()
     {
         return $this->hasMany(DocumentAccess::class, 'granted_to_role_id');

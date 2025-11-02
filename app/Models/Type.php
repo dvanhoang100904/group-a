@@ -8,7 +8,11 @@ class Type extends Model
 {
     protected $table = 'types';
     protected $primaryKey = 'type_id';
-    protected $fillable = ['name', 'description'];
+    protected $fillable = ['name', 'description', 'status'];
+
+    protected $casts = [
+        'status' => 'boolean',
+    ];
 
     public function documents()
     {
