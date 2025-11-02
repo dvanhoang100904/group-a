@@ -10,6 +10,7 @@ use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\KhoaController;
 use App\Http\Controllers\DocumentAccessController;
+use App\Http\Controllers\Api\DocumentDetailController;
 
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -21,7 +22,7 @@ Route::prefix('dashboard')->group(function () {
     Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 });
 
-// Folder - yen đẹp trai
+// Folder
 Route::prefix('folders')->name('folders.')->group(function () {
     Route::get('/test-create', function () {
         return view('folders.test-create');
@@ -36,10 +37,11 @@ Route::prefix('folders')->name('folders.')->group(function () {
     Route::delete('/{folder}', [FolderController::class, 'destroy'])->name('destroy');
 });
 
-// Uploads
+// Uploads - Ngoc Dan
 Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
-// Documents List
+
+// Documents List - Ngoc Dan
 Route::get('/my-documents', [DocumentController::class, 'index'])->name('documents.index');
 
 // Document Versions
@@ -63,3 +65,7 @@ Route::prefix('khoa')->group(function () {
     Route::put('/{id}', [KhoaController::class, 'update'])->name('khoa.update');
     Route::delete('/{id}', [KhoaController::class, 'destroy'])->name('khoa.destroy');
 });
+//Chi tiết tài liệu
+Route::get('/documents/{id}', function ($id) {
+    return view('documents.See_Document_Details.Document_Detail', ['documentId' => $id]);
+})->name('documents.show');
