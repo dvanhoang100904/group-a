@@ -43,7 +43,8 @@ class DocumentAccessService
                 'can_upload',
                 'can_download',
                 'can_share',
-                'expiration_date'
+                'expiration_date',
+                'no_expiry'
             ])
             ->with([
                 'grantedBy:user_id,name',

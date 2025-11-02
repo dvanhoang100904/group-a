@@ -142,10 +142,22 @@
                                     ></i>
                                 </td>
                                 <td class="text-center">
-                                    {{
-                                        formatDate(access.expiration_date) ||
-                                        "-"
-                                    }}
+                                    <span
+                                        v-if="access.no_expiry"
+                                        class="badge bg-success-subtle text-success"
+                                    >
+                                        <i
+                                            class="bi bi-infinity text-success me-1"
+                                        ></i>
+                                        Không giới hạn
+                                    </span>
+                                    <span v-else>
+                                        {{
+                                            formatDate(
+                                                access.expiration_date,
+                                            ) || "-"
+                                        }}
+                                    </span>
                                 </td>
                                 <td class="text-center">
                                     {{ access.granted_by?.name || "-" }}
@@ -156,6 +168,7 @@
                                     <button
                                         class="btn border-0 text-primary"
                                         title="Chỉnh sửa"
+                                        @click="openUpdateModal(access)"
                                     >
                                         <i class="bi bi-pencil"></i>
                                     </button>
@@ -180,6 +193,7 @@
                     />
                 </div>
 
+                <!-- Add modal -->
                 <AccessAddModal
                     ref="addModal"
                     :document-id="documentId"
@@ -187,16 +201,27 @@
                     :roles="roles"
                     @added="fetchAccesses"
                 />
+
+                <!-- Update modal -->
+                <AccessUpdateModal
+                    ref="updateModal"
+                    :document-id="documentId"
+                    :access="selectedAccess"
+                    :users="users"
+                    :roles="roles"
+                    @updated="fetchAccesses"
+                />
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, nextTick } from "vue";
 import axios from "axios";
 import AccessPagination from "./AccessPagination.vue";
 import AccessAddModal from "./AccessAddModal.vue";
+import AccessUpdateModal from "./AccessUpdateModal.vue";
 
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
@@ -215,8 +240,14 @@ const loading = ref(false);
 // Add
 const addModal = ref(null);
 
+// Edit
+const selectedAccess = ref(null);
+const updateModal = ref(null);
+
+// Users
 const users = ref([]);
 
+// Roles
 const roles = ref([]);
 
 const fetchUsers = async () => {
@@ -245,10 +276,6 @@ const fetchRoles = async () => {
     }
 };
 
-// Format date
-const formatDate = (dateStr) =>
-    dateStr ? new Date(dateStr).toLocaleDateString("vi-VN") : "-";
-
 // Fetch accesses
 const fetchAccesses = async (page = 1) => {
     loading.value = true;
@@ -275,6 +302,16 @@ const fetchAccesses = async (page = 1) => {
         loading.value = false;
     }
 };
+
+// Open update modal
+const openUpdateModal = (access) => {
+    selectedAccess.value = { ...access };
+    nextTick(() => updateModal.value.showModal());
+};
+
+// Format date
+const formatDate = (dateStr) =>
+    dateStr ? new Date(dateStr).toLocaleDateString("vi-VN") : "-";
 
 // Pagination
 const changePage = (page) => {

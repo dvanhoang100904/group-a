@@ -30,6 +30,7 @@ Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index'
 Route::get('/documents/{id}/accesses/users', [DocumentAccessController::class, 'users']);
 Route::get('/documents/{id}/accesses/roles', [DocumentAccessController::class, 'roles']);
 Route::post('/documents/{id}/accesses', [DocumentAccessActionController::class, 'store']);
+Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'update']);
 
 // =========================
 // 👤 Users
