@@ -11,6 +11,11 @@ class User extends Model
 
     protected $fillable = [
         'name',
+        'status'
+    ];
+
+    protected $casts = [
+        'status' => 'boolean',
     ];
 
     public function folders()
