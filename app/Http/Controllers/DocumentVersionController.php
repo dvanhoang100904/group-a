@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class DocumentVersionController extends Controller
 {
-    protected $documentVersionService;
+    protected DocumentVersionService $documentVersionService;
 
     public function __construct(DocumentVersionService $documentVersionService)
     {
@@ -17,9 +17,9 @@ class DocumentVersionController extends Controller
     /**
      * Hien thi trang phien ban tai lieu
      */
-    public function index($id)
+    public function index(int $documentId)
     {
-        $document = $this->documentVersionService->getDocumentWithRelations($id);
+        $document = $this->documentVersionService->getDocumentWithRelations($documentId);
 
         if (!$document) {
             return redirect()->route('documents.index')->with('error', 'Tài liệu không tồn tại hoặc đã bị xóa.');

@@ -45,10 +45,10 @@ Route::post('/upload', [UploadController::class, 'store'])->name('upload.store')
 Route::get('/my-documents', [DocumentController::class, 'index'])->name('documents.index');
 
 // Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
+Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
 
 // Document Accesses
-Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
 
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
