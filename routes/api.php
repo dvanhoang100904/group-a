@@ -1,5 +1,6 @@
 <?php
 
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentController;
@@ -7,7 +8,9 @@ use App\Http\Controllers\Api\DocumentVersionController;
 use App\Http\Controllers\Api\DocumentVersionActionController;
 use App\Http\Controllers\Api\DocumentVersionCompareController;
 use App\Http\Controllers\Api\DocumentAccessController;
+use App\Http\Controllers\Api\DocumentAccessActionController;
 use App\Http\Controllers\Api\DocumentDetailController;
+
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -24,7 +27,13 @@ Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVer
 Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionActionController::class, 'destroy']);
 
 // Document Accesses
-Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index']);
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index']);
+Route::get('/documents/{documentId}/accesses/users', [DocumentAccessController::class, 'users']);
+Route::get('/documents/{documentId}/accesses/roles', [DocumentAccessController::class, 'roles']);
+Route::post('/documents/{documentId}/accesses', [DocumentAccessActionController::class, 'store']);
+Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'update']);
+Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'destroy']);
+
 
 // =========================
 // 👤 Users

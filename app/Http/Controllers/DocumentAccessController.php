@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class DocumentAccessController extends Controller
 {
-    protected $documentAccessService;
+    protected DocumentAccessService $documentAccessService;
 
     public function __construct(DocumentAccessService $documentAccessService)
     {
@@ -17,9 +17,9 @@ class DocumentAccessController extends Controller
     /**
      * Hien thi trang phan quyen va chia se tai lieu
      */
-    public function index($id)
+    public function index($documentId)
     {
-        $document = $this->documentAccessService->getDocumentWithRelations($id);
+        $document = $this->documentAccessService->getDocumentWithRelations($documentId);
 
         if (!$document) {
             return redirect()->route('documents.index')->with('error', 'Tài liệu không tồn tại hoặc đã bị xóa.');

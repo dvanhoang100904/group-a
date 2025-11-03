@@ -48,7 +48,7 @@ Route::get('/my-documents', [DocumentController::class, 'index'])->name('documen
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
 
 // Document Accesses
-Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
 
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
