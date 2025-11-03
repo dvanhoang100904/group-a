@@ -5,6 +5,7 @@ namespace App\Services\DocumentVersion;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\User;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class DocumentVersionService
 {
@@ -15,20 +16,27 @@ class DocumentVersionService
      */
     public function getDocumentWithRelations(int $documentId): ?Document
     {
-        return Document::select(['document_id', 'title', 'subject_id', 'folder_id'])
+        return Document::select(['document_id', 'title', 'subject_id'])
             ->with([
                 'subject:subject_id,name,department_id',
                 'subject.department:department_id,name',
             ])
             ->withCount('versions')
-            ->whereKey($documentId)
-            ->first();
+            ->find($documentId);
+    }
+
+    /**
+     * Lay tai lieu
+     */
+    public function getDocument(int $documentId): ?Document
+    {
+        return Document::find($documentId);
     }
 
     /**
      * Lay danh sach phien ban cua tai lieu co phan trang
      */
-    public function getDocumentVersionsHasPaginated(int $documentId, array $filters = [])
+    public function getDocumentVersionsHasPaginated(int $documentId, array $filters = []): LengthAwarePaginator
     {
         return DocumentVersion::query()
             ->byDocument($documentId)
