@@ -32,7 +32,7 @@ class DocumentAccessUpdateService
             $access->can_download = $data['can_download'] ?? $access->can_download;
             $access->can_share = $data['can_share'] ?? $access->can_share;
 
-            $access->no_expiry = $data['no_expiry'] ?? $access->    ;
+            $access->no_expiry = $data['no_expiry'] ?? $access->no_expiry;
 
             if (!empty($data['no_expiry']) && $data['no_expiry']) {
                 $access->expiration_date = null;

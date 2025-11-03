@@ -7,18 +7,22 @@ use App\Http\Requests\DocumentAccess\AddDocumentAccessRequest;
 use App\Http\Requests\DocumentAccess\UpdateDocumentAccessRequest;
 use App\Models\Document;
 use App\Services\DocumentAccess\DocumentAccessAddService;
+use App\Services\DocumentAccess\DocumentAccessDeleteService;
 use App\Services\DocumentAccess\DocumentAccessUpdateService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DocumentAccessActionController extends Controller
 {
-    protected $addService;
-    protected $updateService;
+    protected DocumentAccessAddService $addService;
+    protected DocumentAccessUpdateService $updateService;
+    protected DocumentAccessDeleteService $deleteService;
 
-    public function __construct(DocumentAccessAddService $addService, DocumentAccessUpdateService $updateService)
+    public function __construct(DocumentAccessAddService $addService, DocumentAccessUpdateService $updateService, DocumentAccessDeleteService $deleteService)
     {
         $this->addService = $addService;
         $this->updateService = $updateService;
+        $this->deleteService = $deleteService;
     }
 
     /**
@@ -85,5 +89,31 @@ class DocumentAccessActionController extends Controller
                 'message' => 'Không thể cập nhật quyền: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function destroy($documentId, $accessId): JsonResponse
+    {
+        $document = Document::find($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại'
+            ], 404);
+        }
+
+        $result = $this->deleteService->deleteAccess($documentId, $accessId);
+
+        if ($result) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa quyền chia sẻ thành công.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Không thể xóa quyền chia sẻ.',
+        ], 500);
     }
 }

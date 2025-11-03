@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DocumentVersionCompareController;
 use App\Http\Controllers\Api\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentAccessActionController;
 use App\Http\Controllers\Api\DocumentDetailController;
+
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -31,6 +32,8 @@ Route::get('/documents/{id}/accesses/users', [DocumentAccessController::class, '
 Route::get('/documents/{id}/accesses/roles', [DocumentAccessController::class, 'roles']);
 Route::post('/documents/{id}/accesses', [DocumentAccessActionController::class, 'store']);
 Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'update']);
+Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'destroy']);
+
 
 // =========================
 // 👤 Users

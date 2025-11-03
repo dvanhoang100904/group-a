@@ -176,6 +176,7 @@
                                     <button
                                         class="btn border-0 text-primary"
                                         title="Xóa"
+                                        @click="deleteAccess(access)"
                                     >
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -222,6 +223,7 @@ import axios from "axios";
 import AccessPagination from "./AccessPagination.vue";
 import AccessAddModal from "./AccessAddModal.vue";
 import AccessUpdateModal from "./AccessUpdateModal.vue";
+import Swal from "sweetalert2";
 
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
@@ -236,6 +238,7 @@ const accesses = ref({
 
 // Loading
 const loading = ref(false);
+const loadingActions = ref({});
 
 // Add
 const addModal = ref(null);
@@ -307,6 +310,46 @@ const fetchAccesses = async (page = 1) => {
 const openUpdateModal = (access) => {
     selectedAccess.value = { ...access };
     nextTick(() => updateModal.value.showModal());
+};
+
+// Delete access
+const deleteAccess = async (access) => {
+    const confirmResult = await Swal.fire({
+        title: "Xác nhận xóa quyền truy cập",
+        text: `Bạn có chắc chắn muốn xóa quyền của "${
+            access.granted_to_user?.name ||
+            access.granted_to_role?.name ||
+            "Không xác định"
+        }"? Thao tác này không thể khôi phục.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Xóa",
+        cancelButtonText: "Hủy",
+        confirmButtonColor: "#dc3545",
+        cancelButtonColor: "#6c757d",
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    loadingActions.value[access.access_id] = true;
+
+    try {
+        const res = await axios.delete(
+            `/api/documents/${props.documentId}/accesses/${access.access_id}`,
+        );
+
+        if (res.data.success) {
+            Swal.fire("Thành công", res.data.message, "success");
+            await fetchAccesses(accesses.value.current_page);
+        } else {
+            Swal.fire("Lỗi", res.data.message, "error");
+        }
+    } catch (err) {
+        console.error(err);
+        Swal.fire("Lỗi hệ thống", "Vui lòng thử lại!", "error");
+    } finally {
+        loadingActions.value[access.access_id] = false;
+    }
 };
 
 // Format date
