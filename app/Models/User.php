@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Model
 {
@@ -32,19 +33,23 @@ class User extends Model
     {
         return $this->hasMany(Document::class, 'user_id');
     }
-    public function documentVersions()
+
+    /** Document Versions */
+    public function documentVersions(): HasMany
     {
-        return $this->hasMany(DocumentVersion::class, 'user_id');
+        return $this->hasMany(DocumentVersion::class, 'user_id', 'user_id');
     }
 
-    public function grantedAccesses()
+    /** Document Accesses */
+    public function grantedAccesses(): HasMany
     {
-        return $this->hasMany(DocumentAccess::class, 'granted_by');
+        return $this->hasMany(DocumentAccess::class, 'granted_by', 'user_id');
     }
 
-    public function receivedAccesses()
+    /** Document Accesses */
+    public function receivedAccesses(): HasMany
     {
-        return $this->hasMany(DocumentAccess::class, 'granted_to_user_id');
+        return $this->hasMany(DocumentAccess::class, 'granted_to_user_id', 'user_id');
     }
 
     public function generatedPreviews()

@@ -4,6 +4,8 @@ namespace App\Services\DocumentAccess;
 
 use App\Models\Document;
 use App\Models\DocumentAccess;
+use App\Models\Role;
+use App\Models\User;
 
 class DocumentAccessService
 {
@@ -12,16 +14,14 @@ class DocumentAccessService
     /**
      * Lay tai lieu hien thi trang quyen chia se tai lieu
      */
-    public function getDocumentWithRelations(int $documentId): ?Document
+    public function getDocumentWithRelations(int $documentId)
     {
         return Document::select(['document_id', 'title', 'subject_id'])
             ->with([
-                'folder:folder_id,name',
                 'subject:subject_id,name,department_id',
                 'subject.department:department_id,name',
             ])
-            ->whereKey($documentId)
-            ->first();
+            ->find($documentId);
     }
 
     /**
@@ -34,13 +34,17 @@ class DocumentAccessService
             ->select([
                 'access_id',
                 'granted_by',
+                'granted_to_type',
                 'granted_to_user_id',
                 'granted_to_role_id',
                 'can_view',
                 'can_edit',
                 'can_delete',
+                'can_upload',
                 'can_download',
-                'expiration_date'
+                'can_share',
+                'expiration_date',
+                'no_expiry'
             ])
             ->with([
                 'grantedBy:user_id,name',
@@ -50,5 +54,41 @@ class DocumentAccessService
             ->latest()
             ->paginate(self::PER_PAGE)
             ->withQueryString();
+    }
+
+    /**
+     * Lay tat ca nguoi dung chua duoc cap quyen
+     */
+    public function getUsersForAccess(int $documentId)
+    {
+        return User::query()
+            ->select('user_id', 'name',)
+            ->where('status', true)
+            ->whereNotIn('user_id', function ($q) use ($documentId) {
+                $q->select('granted_to_user_id')
+                    ->from('document_accesses')
+                    ->where('document_id', $documentId)
+                    ->whereNotNull('granted_to_user_id');
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    /** 
+     * Lay tat ca vai tro
+     */
+    public function getRolesForAccess(int $documentId)
+    {
+        return Role::query()
+            ->select('role_id', 'name')
+            ->where('status', true)
+            ->whereNotIn('role_id', function ($q) use ($documentId) {
+                $q->select('granted_to_role_id')
+                    ->from('document_accesses')
+                    ->where('document_id', $documentId)
+                    ->whereNotNull('granted_to_role_id');
+            })
+            ->orderBy('name')
+            ->get();
     }
 }
