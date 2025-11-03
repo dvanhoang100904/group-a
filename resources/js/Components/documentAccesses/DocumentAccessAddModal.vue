@@ -9,10 +9,10 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <!-- Header -->
-                <div class="modal-header bg-light">
+                <div class="modal-header text-primary bg-light">
                     <h5 class="modal-title fw-bold">
-                        <i class="bi bi-person-plus me-2 text-primary"></i> Thêm
-                        quyền chia sẻ
+                        <i class="bi bi-person-plus me-2"></i> Thêm quyền chia
+                        sẻ
                     </h5>
                     <button
                         type="button"
@@ -119,12 +119,13 @@
                                     <input
                                         class="form-check-input"
                                         type="checkbox"
-                                        id="modalNoExpiry"
+                                        id="no_expiry"
                                         v-model="form.no_expiry"
+                                        @change="onNoExpiryChange"
                                     />
                                     <label
                                         class="form-check-label small"
-                                        for="modalNoExpiry"
+                                        for="no_expiry"
                                     >
                                         Không giới hạn
                                     </label>
@@ -180,7 +181,11 @@
                                 class="btn btn-sm btn-primary px-3"
                                 :disabled="loading"
                             >
-                                <i class="bi bi-save me-1"></i>
+                                <i
+                                    v-if="loading"
+                                    class="bi bi-arrow-repeat spin me-1"
+                                ></i>
+                                <i v-else class="bi bi-save me-1"></i>
                                 {{ loading ? "Đang lưu..." : "Lưu quyền" }}
                             </button>
                         </div>
@@ -194,6 +199,7 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
@@ -292,6 +298,11 @@ const validateForm = () => {
     }
 
     // Kiem tra ngay hen han
+    if (!form.value.no_expiry && !form.value.expiration_date) {
+        error.value =
+            "Vui lòng chọn ngày hết hạn hoặc đánh dấu không giới hạn!";
+        return false;
+    }
     if (!form.value.no_expiry && form.value.expiration_date) {
         const selectedDate = new Date(form.value.expiration_date);
         const today = new Date();
@@ -306,6 +317,12 @@ const validateForm = () => {
     return true;
 };
 
+const onNoExpiryChange = () => {
+    if (form.value.no_expiry) {
+        form.value.expiration_date = "";
+    }
+};
+
 // Submit form
 const submitAccess = async () => {
     if (!validateForm()) return;
@@ -313,19 +330,36 @@ const submitAccess = async () => {
     try {
         loading.value = true;
         const payload = { ...form.value };
+
         const res = await axios.post(
             `/api/documents/${props.documentId}/accesses`,
             payload,
         );
+
         if (res.data.success) {
+            Swal.fire({
+                icon: "success",
+                title: "Thành công",
+                text: "Đã thêm quyền chia sẻ!",
+                timer: 1500,
+                showConfirmButton: false,
+            });
             emit("added");
             closeModal();
         } else {
-            error.value = res.data.message || "Không thể thêm quyền!";
+            Swal.fire({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message || "Không thể thêm quyền chia sẻ!",
+            });
         }
     } catch (err) {
         console.error(err);
-        error.value = "Lỗi khi thêm quyền chia sẻ!";
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Đã xảy ra lỗi khi thêm quyền chia sẻ. Vui lòng thử lại!",
+        });
     } finally {
         loading.value = false;
     }

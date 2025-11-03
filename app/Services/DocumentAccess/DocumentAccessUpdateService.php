@@ -2,17 +2,16 @@
 
 namespace App\Services\DocumentAccess;
 
-use App\Models\Document;
 use App\Models\DocumentAccess;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class DocumentAccessUpdateService
 {
     /**
      * chinh sua quyen tai lieu
      */
-    public function updateAccess(int $documentId, int $accessId, array $data, int $grantedBy)
+    public function updateAccess(int $documentId, int $accessId, array $data, int $grantedBy): ?DocumentAccess
     {
         DB::beginTransaction();
 
@@ -22,7 +21,8 @@ class DocumentAccessUpdateService
                 ->first();
 
             if (!$access) {
-                throw new \Exception('Quyền chia sẻ không tồn tại.');
+                DB::rollBack();
+                return null;
             }
 
             $access->can_view = $data['can_view'] ?? $access->can_view;
@@ -49,9 +49,10 @@ class DocumentAccessUpdateService
             DB::commit();
 
             return $access;
-        } catch (\Throwable $e) {
+        } catch (Throwable $th) {
             DB::rollBack();
-            throw $e;
+            report($th);
+            return null;
         }
     }
 }

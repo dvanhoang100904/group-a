@@ -10,8 +10,8 @@
             <div class="modal-content">
                 <!-- Header -->
                 <div class="modal-header bg-light">
-                    <h5 class="modal-title fw-bold">
-                        <i class="bi bi-pencil-square me-2 text-primary"></i>
+                    <h5 class="modal-title fw-bold text-primary">
+                        <i class="bi bi-pencil-square me-2"></i>
                         Cập nhật quyền chia sẻ
                     </h5>
                     <button
@@ -55,6 +55,7 @@
                                         type="checkbox"
                                         id="updateNoExpiry"
                                         v-model="form.no_expiry"
+                                        @change="onNoExpiryChange"
                                     />
                                     <label
                                         class="form-check-label small"
@@ -109,12 +110,17 @@
                             >
                                 <i class="bi bi-x-circle me-1"></i> Hủy
                             </button>
+
                             <button
                                 type="submit"
                                 class="btn btn-sm btn-primary px-3"
                                 :disabled="loading"
                             >
-                                <i class="bi bi-save me-1"></i>
+                                <i
+                                    v-if="loading"
+                                    class="bi bi-arrow-repeat spin me-1"
+                                ></i>
+                                <i v-else class="bi bi-save me-1"></i>
                                 {{ loading ? "Đang lưu..." : "Cập nhật" }}
                             </button>
                         </div>
@@ -128,6 +134,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
@@ -181,15 +188,28 @@ const targetDisplay = computed(() => {
     }
 });
 
+const onNoExpiryChange = () => {
+    if (form.value.no_expiry) {
+        form.value.expiration_date = "";
+    }
+};
+
 // Cap nhat quyen
 watch(
     () => props.access,
     (newVal) => {
         if (!newVal) return;
+
+        let formattedDate = "";
+        if (newVal.expiration_date) {
+            const date = new Date(newVal.expiration_date);
+            if (!isNaN(date)) {
+                formattedDate = date.toISOString().split("T")[0];
+            }
+        }
+
         form.value = {
-            expiration_date: newVal.expiration_date
-                ? newVal.expiration_date.split("T")[0]
-                : "",
+            expiration_date: formattedDate,
             no_expiry: !!newVal.no_expiry,
             can_view: !!newVal.can_view,
             can_download: !!newVal.can_download,
@@ -205,6 +225,15 @@ watch(
 const showModal = () => {
     if (!bsModal) bsModal = new bootstrap.Modal(modalRef.value);
     bsModal.show();
+    if (props.access) {
+        const a = props.access;
+        const date = a.expiration_date ? new Date(a.expiration_date) : null;
+        form.value.expiration_date = date
+            ? date.toISOString().split("T")[0]
+            : "";
+        form.value.no_expiry = !!a.no_expiry;
+        form.value.can_view = !!a.can_view;
+    }
 };
 const hideModal = () => {
     if (bsModal) {
@@ -212,6 +241,7 @@ const hideModal = () => {
         bsModal = null;
     }
 };
+
 const closeModal = () => {
     hideModal();
     error.value = null;
@@ -220,19 +250,44 @@ const closeModal = () => {
 const submitUpdate = async () => {
     try {
         loading.value = true;
+        error.value = null;
+
         const res = await axios.put(
             `/api/documents/${props.documentId}/accesses/${props.access.access_id}`,
             form.value,
         );
 
         if (res.data.success) {
+            await Swal.fire({
+                icon: "success",
+                title: "Cập nhật thành công",
+                text: res.data.message || "Cập nhật quyền chia sẻ thành công!",
+                timer: 1500,
+                showConfirmButton: false,
+            });
+
             emit("updated");
             closeModal();
         } else {
+            await Swal.fire({
+                icon: "warning",
+                title: "Không thể cập nhật",
+                text: res.data.message || "Không thể cập nhật quyền chia sẻ!",
+                confirmButtonText: "Đóng",
+            });
+
             error.value = res.data.message || "Không thể cập nhật quyền!";
         }
     } catch (err) {
         console.error(err);
+
+        await Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Có lỗi xảy ra khi cập nhật quyền chia sẻ. Vui lòng thử lại!",
+            confirmButtonText: "Đóng",
+        });
+
         error.value = "Lỗi khi cập nhật quyền chia sẻ!";
     } finally {
         loading.value = false;

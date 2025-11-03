@@ -21,7 +21,7 @@
                     class="btn btn-sm btn-primary px-3"
                     @click="addModal.showModal()"
                 >
-                    <i class="bi bi-plus-circle me-1"></i> Thêm mới
+                    <i class="bi bi-plus-circle me-1"></i> Thêm quyền
                 </button>
             </div>
 
@@ -186,7 +186,7 @@
                     </table>
 
                     <!-- Pagination -->
-                    <AccessPagination
+                    <DocumentAccessPagination
                         :current-page="accesses.current_page"
                         :last-page="accesses.last_page"
                         :max-pages-to-show="7"
@@ -195,7 +195,7 @@
                 </div>
 
                 <!-- Add modal -->
-                <AccessAddModal
+                <DocumentAccessAddModal
                     ref="addModal"
                     :document-id="documentId"
                     :users="users"
@@ -204,7 +204,7 @@
                 />
 
                 <!-- Update modal -->
-                <AccessUpdateModal
+                <DocumentAccessUpdateModal
                     ref="updateModal"
                     :document-id="documentId"
                     :access="selectedAccess"
@@ -220,9 +220,9 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from "vue";
 import axios from "axios";
-import AccessPagination from "./AccessPagination.vue";
-import AccessAddModal from "./AccessAddModal.vue";
-import AccessUpdateModal from "./AccessUpdateModal.vue";
+import DocumentAccessPagination from "./DocumentAccessPagination.vue";
+import DocumentAccessAddModal from "./DocumentAccessAddModal.vue";
+import DocumentAccessUpdateModal from "./DocumentAccessUpdateModal.vue";
 import Swal from "sweetalert2";
 
 const props = defineProps({

@@ -4,6 +4,7 @@ namespace App\Services\DocumentAccess;
 
 use App\Models\DocumentAccess;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class DocumentAccessDeleteService
 {
@@ -28,7 +29,7 @@ class DocumentAccessDeleteService
 
             DB::commit();
             return true;
-        } catch (\Throwable $th) {
+        } catch (Throwable $th) {
             DB::rollBack();
             report($th);
             return false;

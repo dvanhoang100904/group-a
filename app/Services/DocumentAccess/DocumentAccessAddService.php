@@ -2,22 +2,21 @@
 
 namespace App\Services\DocumentAccess;
 
-use App\Models\Document;
 use App\Models\DocumentAccess;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class DocumentAccessAddService
 {
     /**
      * Them moi quyen tai lieu
      */
-
-    public function addAccess(array $data, int $documentId, int $grantedBy)
+    public function addAccess(array $data, int $documentId, int $grantedBy): ?DocumentAccess
     {
         DB::beginTransaction();
 
         try {
+            // Kiem tra trung
             $exists = DocumentAccess::where('document_id', $documentId)
                 ->when($data['granted_to_type'] === 'user', function ($q) use ($data) {
                     $q->where('granted_to_user_id', $data['granted_to_user_id']);
@@ -28,7 +27,8 @@ class DocumentAccessAddService
                 ->exists();
 
             if ($exists) {
-                throw new \Exception('Người dùng hoặc vai trò này đã được cấp quyền cho tài liệu.');
+                DB::rollBack();
+                return null;
             }
 
             $access = new DocumentAccess();
@@ -51,9 +51,10 @@ class DocumentAccessAddService
             DB::commit();
 
             return $access;
-        } catch (\Throwable $e) {
+        } catch (Throwable $th) {
             DB::rollBack();
-            throw $e;
+            report($th);
+            return null;
         }
     }
 }
