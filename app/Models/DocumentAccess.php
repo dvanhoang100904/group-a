@@ -40,6 +40,18 @@ class DocumentAccess extends Model
         'granted_to_role_id' => 'integer',
     ];
 
+    /** loc theo id tai lieu */
+    public function scopeForDocument($query, int $documentId)
+    {
+        return $query->where('document_id', $documentId);
+    }
+
+    /** Loc theo id quyen */
+    public function scopeByAccessId($query, int $accessId)
+    {
+        return $query->where('access_id', $accessId);
+    }
+
     /** Document */
     public function document(): BelongsTo
     {
