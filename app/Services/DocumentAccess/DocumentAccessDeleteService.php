@@ -16,8 +16,8 @@ class DocumentAccessDeleteService
         DB::beginTransaction();
 
         try {
-            $access = DocumentAccess::where('document_id', $documentId)
-                ->where('access_id', $accessId)
+            $access = DocumentAccess::forDocument($documentId)
+                ->byAccessId($accessId)
                 ->first();
 
             if (!$access) {

@@ -6,6 +6,8 @@ use App\Models\Document;
 use App\Models\DocumentAccess;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class DocumentAccessService
 {
@@ -15,7 +17,7 @@ class DocumentAccessService
     /**
      * Lay tai lieu hien thi trang quyen chia se tai lieu
      */
-    public function getDocumentWithRelations(int $documentId)
+    public function getDocumentWithRelations(int $documentId): ?Document
     {
         return Document::select(['document_id', 'title', 'subject_id'])
             ->with([
@@ -36,10 +38,10 @@ class DocumentAccessService
     /**
      * Lay danh sach quyen truy cap cua tai lieu co phan trang
      */
-    public function getDocumentAccessesHasPaginated(int $documentId)
+    public function getDocumentAccessesHasPaginated(int $documentId): LengthAwarePaginator
     {
         return DocumentAccess::query()
-            ->where('document_id', $documentId)
+            ->forDocument($documentId)
             ->select([
                 'access_id',
                 'granted_by',
@@ -68,10 +70,10 @@ class DocumentAccessService
     /**
      * Lay tat ca nguoi dung chua duoc cap quyen
      */
-    public function getUsersForAccess(int $documentId)
+    public function getUsersForAccess(int $documentId): Collection
     {
         return User::query()
-            ->select('user_id', 'name',)
+            ->select('user_id', 'name')
             ->where('status', true)
             ->whereNotIn('user_id', function ($q) use ($documentId) {
                 $q->select('granted_to_user_id')
@@ -86,7 +88,7 @@ class DocumentAccessService
     /** 
      * Lay tat ca vai tro chua duoc cap quyen
      */
-    public function getRolesForAccess(int $documentId)
+    public function getRolesForAccess(int $documentId): Collection
     {
         return Role::query()
             ->select('role_id', 'name')

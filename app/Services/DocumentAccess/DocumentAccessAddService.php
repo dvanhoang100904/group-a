@@ -17,7 +17,7 @@ class DocumentAccessAddService
 
         try {
             // Kiem tra trung
-            $exists = DocumentAccess::where('document_id', $documentId)
+            $exists = DocumentAccess::forDocument($documentId)
                 ->when($data['granted_to_type'] === 'user', function ($q) use ($data) {
                     $q->where('granted_to_user_id', $data['granted_to_user_id']);
                 })

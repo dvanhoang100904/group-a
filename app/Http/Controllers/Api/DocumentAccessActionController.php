@@ -8,18 +8,21 @@ use App\Http\Requests\DocumentAccess\DocumentAccessUpdateRequest;
 use App\Models\Document;
 use App\Services\DocumentAccess\DocumentAccessAddService;
 use App\Services\DocumentAccess\DocumentAccessDeleteService;
+use App\Services\DocumentAccess\DocumentAccessService;
 use App\Services\DocumentAccess\DocumentAccessUpdateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DocumentAccessActionController extends Controller
 {
+    protected DocumentAccessService $documentAccessService;
     protected DocumentAccessAddService $addService;
     protected DocumentAccessUpdateService $updateService;
     protected DocumentAccessDeleteService $deleteService;
 
-    public function __construct(DocumentAccessAddService $addService, DocumentAccessUpdateService $updateService, DocumentAccessDeleteService $deleteService)
+    public function __construct(DocumentAccessService $documentAccessService, DocumentAccessAddService $addService, DocumentAccessUpdateService $updateService, DocumentAccessDeleteService $deleteService)
     {
+        $this->documentAccessService = $documentAccessService;
         $this->addService = $addService;
         $this->updateService = $updateService;
         $this->deleteService = $deleteService;
@@ -30,7 +33,7 @@ class DocumentAccessActionController extends Controller
      */
     public function store(DocumentAccessAddRequest $request, int $documentId): JsonResponse
     {
-        $document = Document::find($documentId);
+        $document = $this->documentAccessService->getDocument($documentId);
 
         if (!$document) {
             return response()->json([
@@ -64,7 +67,7 @@ class DocumentAccessActionController extends Controller
      */
     public function update(DocumentAccessUpdateRequest $request, int $documentId, int $accessId): JsonResponse
     {
-        $document = Document::find($documentId);
+        $document = $this->documentAccessService->getDocument($documentId);
 
         if (!$document) {
             return response()->json([
@@ -99,7 +102,7 @@ class DocumentAccessActionController extends Controller
      */
     public function destroy(int $documentId, int $accessId): JsonResponse
     {
-        $document = Document::find($documentId);
+        $document = $this->documentAccessService->getDocument($documentId);
 
         if (!$document) {
             return response()->json([
