@@ -16,7 +16,7 @@ use App\Http\Controllers\Api\DocumentDetailController;
 // })->middleware('auth:sanctum');
 
 // Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index']);
+Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index']);
 Route::get('/documents/{documentId}/versions/compare', [DocumentVersionCompareController::class, 'compare']);
 Route::get('/documents/{documentId}/versions/uploaders', [DocumentVersionController::class, 'uploaders']);
 Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'show']);

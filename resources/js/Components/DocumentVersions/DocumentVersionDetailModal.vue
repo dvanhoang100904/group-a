@@ -96,7 +96,7 @@
                                         <div class="info-value">
                                             {{
                                                 formatMimeType(
-                                                    selectedVersion?.mime_type
+                                                    selectedVersion?.mime_type,
                                                 )
                                             }}
                                         </div>
@@ -117,7 +117,7 @@
                                         <div class="info-value">
                                             {{
                                                 formatFileSize(
-                                                    selectedVersion?.file_size
+                                                    selectedVersion?.file_size,
                                                 )
                                             }}
                                         </div>
@@ -167,7 +167,7 @@
                                         <div class="info-value">
                                             {{
                                                 formatDate(
-                                                    selectedVersion?.created_at
+                                                    selectedVersion?.created_at,
                                                 )
                                             }}
                                         </div>
@@ -253,7 +253,7 @@
 <script setup>
 import { ref, watch, nextTick } from "vue";
 import axios from "axios";
-import FilePreviewModal from "./FilePreviewModal.vue";
+import FilePreviewModal from "./DocumentVersionPreviewModal.vue";
 
 // Nhan props tu cha
 const props = defineProps({
@@ -316,7 +316,7 @@ watch(
 
         try {
             const res = await axios.get(
-                `/api/documents/${props.documentId}/versions/${versionId}`
+                `/api/documents/${props.documentId}/versions/${versionId}`,
             );
             if (res.data.success) selectedVersion.value = res.data.data;
         } catch (err) {
@@ -326,7 +326,7 @@ watch(
         } finally {
             loading.value = false;
         }
-    }
+    },
 );
 
 defineExpose({ showModal, hideModal, closeModal });

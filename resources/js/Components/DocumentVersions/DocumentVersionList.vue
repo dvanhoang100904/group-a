@@ -25,7 +25,7 @@
 
             <div class="card-body">
                 <!-- Filter search -->
-                <VersionFilter
+                <DocumentVersionFilter
                     v-model="filters"
                     :users="users"
                     @filter="fetchVersions(1)"
@@ -65,6 +65,9 @@
                                     >
                                 </td>
                                 <td class="text-center">
+                                    <i
+                                        class="bi bi-people text-primary me-1"
+                                    ></i>
                                     {{ version.user?.name || "Không rõ" }}
                                 </td>
                                 <td class="text-center">
@@ -137,7 +140,7 @@
                     </table>
 
                     <!-- Pagination -->
-                    <VersionPagination
+                    <DocumentVersionPagination
                         :current-page="versions.current_page"
                         :last-page="versions.last_page"
                         :max-pages-to-show="7"
@@ -146,7 +149,7 @@
                 </div>
 
                 <!-- Modal detail version-->
-                <VersionDetailModal
+                <DocumentVersionDetailModal
                     :document-id="documentId"
                     :version-id="versionIdToShow"
                     :format-file-size="formatFileSize"
@@ -156,7 +159,7 @@
                 />
 
                 <!-- Modal upload version -->
-                <VersionUploadModal
+                <DocumentVersionUploadModal
                     ref="uploadModal"
                     :document-id="documentId"
                     :format-file-size="formatFileSize"
@@ -177,11 +180,12 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import axios from "axios";
-import VersionDetailModal from "./VersionDetailModal.vue";
-import VersionUploadModal from "./VersionUploadModal.vue";
+import Swal from "sweetalert2";
+import DocumentVersionDetailModal from "./DocumentVersionDetailModal.vue";
+import DocumentVersionUploadModal from "./DocumentVersionUploadModal.vue";
 import DocumentVersionCompare from "./DocumentVersionCompare.vue";
-import VersionPagination from "./VersionPagination.vue";
-import VersionFilter from "./VersionFilter.vue";
+import DocumentVersionPagination from "./DocumentVersionPagination.vue";
+import DocumentVersionFilter from "./DocumentVersionFilter.vue";
 
 // Nhan props
 const props = defineProps({
@@ -284,6 +288,7 @@ const fetchVersions = async (page = 1) => {
             `/api/documents/${props.documentId}/versions`,
             { params },
         );
+
         // Luu du lieu tra ve vao state versions
         if (res.data.success) {
             versions.value = {
@@ -299,11 +304,19 @@ const fetchVersions = async (page = 1) => {
                 last_page: 1,
                 per_page: 5,
             };
-            alert(res.data?.message ?? "Không thể tải danh sách phiên bản");
+            Swal.fire({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data?.message ?? "Không thể tải danh sách phiên bản",
+            });
         }
     } catch (err) {
         console.error(err);
-        alert("Lỗi hệ thống, vui lòng thử lại!");
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Vui lòng thử lại!",
+        });
     } finally {
         // Tat loading
         loading.value = false;
