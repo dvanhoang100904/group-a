@@ -9,7 +9,8 @@ use App\Models\User;
 
 class DocumentAccessService
 {
-    const PER_PAGE = 5;
+    // Dinh nghia so luong quyen chia se tai lieu moi trang
+    const PER_PAGE = 8;
 
     /**
      * Lay tai lieu hien thi trang quyen chia se tai lieu
@@ -22,6 +23,14 @@ class DocumentAccessService
                 'subject.department:department_id,name',
             ])
             ->find($documentId);
+    }
+
+    /**
+     * Lay tai lieu
+     */
+    public function getDocument(int $documentId): ?Document
+    {
+        return Document::find($documentId);
     }
 
     /**
@@ -75,7 +84,7 @@ class DocumentAccessService
     }
 
     /** 
-     * Lay tat ca vai tro
+     * Lay tat ca vai tro chua duoc cap quyen
      */
     public function getRolesForAccess(int $documentId)
     {
