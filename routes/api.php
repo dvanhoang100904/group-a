@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentDetailController;
 use App\Http\Controllers\Api\TypeController;
 use App\Http\Controllers\Api\SubjectController;
+use App\Http\Controllers\Api\FolderController;
 
 
 
@@ -58,3 +59,4 @@ Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
 // danh sách loại tài liệu và môn học
 Route::get('/types', [TypeController::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
+Route::get('/folders', [FolderController::class, 'index']);
