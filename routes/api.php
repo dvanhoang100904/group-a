@@ -27,10 +27,10 @@ Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVer
 Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionActionController::class, 'destroy']);
 
 // Document Accesses
-Route::get('/documents/{id}/accesses', [DocumentAccessController::class, 'index']);
-Route::get('/documents/{id}/accesses/users', [DocumentAccessController::class, 'users']);
-Route::get('/documents/{id}/accesses/roles', [DocumentAccessController::class, 'roles']);
-Route::post('/documents/{id}/accesses', [DocumentAccessActionController::class, 'store']);
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index']);
+Route::get('/documents/{documentId}/accesses/users', [DocumentAccessController::class, 'users']);
+Route::get('/documents/{documentId}/accesses/roles', [DocumentAccessController::class, 'roles']);
+Route::post('/documents/{documentId}/accesses', [DocumentAccessActionController::class, 'store']);
 Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'update']);
 Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'destroy']);
 

@@ -66,12 +66,14 @@
                                         <i
                                             class="bi bi-person text-primary me-1"
                                         ></i>
+                                        Người dùng:
                                         {{ access.granted_to_user?.name }}
                                     </span>
                                     <span v-else-if="access.granted_to_role">
                                         <i
                                             class="bi bi-people text-primary me-1"
                                         ></i>
+                                        Vai trò:
                                         {{ access.granted_to_role?.name }}
                                     </span>
                                     <span v-else>-</span>
@@ -263,6 +265,11 @@ const fetchUsers = async () => {
         }
     } catch (err) {
         console.error(err);
+        await Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Không thể tải danh sách người dùng!",
+        });
     }
 };
 
@@ -276,6 +283,11 @@ const fetchRoles = async () => {
         }
     } catch (err) {
         console.error(err);
+        await Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Không thể tải danh sách vai trò!",
+        });
     }
 };
 
@@ -296,11 +308,20 @@ const fetchAccesses = async (page = 1) => {
             };
         } else {
             accesses.value = { data: [] };
-            alert(res.data.message || "Không thể tải danh sách quyền chia sẻ");
+            await Swal.fire({
+                icon: "warning",
+                title: "Không thể tải dữ liệu",
+                text:
+                    res.data.message || "Không thể tải danh sách quyền chia sẻ",
+            });
         }
     } catch (err) {
         console.error(err);
-        alert("Lỗi hệ thống, vui lòng thử lại!");
+        await Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Lỗi hệ thống, vui lòng thử lại!",
+        });
     } finally {
         loading.value = false;
     }
