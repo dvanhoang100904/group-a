@@ -25,7 +25,7 @@
 
     <!-- header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0 text-primary">
+        <h3 class="mb-0 fw-bold text-primary fs-5">
             <i class="bi bi-shield-lock me-2"></i>
             Quyền chia sẻ tài liệu
         </h3>
@@ -35,7 +35,7 @@
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body">
             @if ($document)
-                <h5 class="fw-bold mb-2">{{ $document->title }}</h5>
+                <h3 class="fw-bold mb-2">{{ $document->title }}</h3>
                 <p class="text-muted small mb-0">
                     Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
                     Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong>
