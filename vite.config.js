@@ -30,9 +30,4 @@ export default defineConfig({
             vue: "vue/dist/vue.esm-bundler.js",
         },
     },
-    server: {
-        host: true,
-        port: 5173,
-        hmr: { host: "localhost" },
-    },
 });

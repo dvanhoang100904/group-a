@@ -25,7 +25,7 @@
 
             <div class="card-body">
                 <!-- Filter search -->
-                <VersionFilter
+                <DocumentVersionFilter
                     v-model="filters"
                     :users="users"
                     @filter="fetchVersions(1)"
@@ -65,6 +65,9 @@
                                     >
                                 </td>
                                 <td class="text-center">
+                                    <i
+                                        class="bi bi-people text-primary me-1"
+                                    ></i>
                                     {{ version.user?.name || "Không rõ" }}
                                 </td>
                                 <td class="text-center">
@@ -137,7 +140,7 @@
                     </table>
 
                     <!-- Pagination -->
-                    <VersionPagination
+                    <DocumentVersionPagination
                         :current-page="versions.current_page"
                         :last-page="versions.last_page"
                         :max-pages-to-show="7"
@@ -146,7 +149,7 @@
                 </div>
 
                 <!-- Modal detail version-->
-                <VersionDetailModal
+                <DocumentVersionDetailModal
                     :document-id="documentId"
                     :version-id="versionIdToShow"
                     :format-file-size="formatFileSize"
@@ -156,7 +159,7 @@
                 />
 
                 <!-- Modal upload version -->
-                <VersionUploadModal
+                <DocumentVersionUploadModal
                     ref="uploadModal"
                     :document-id="documentId"
                     :format-file-size="formatFileSize"
@@ -177,11 +180,12 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import axios from "axios";
-import VersionDetailModal from "./VersionDetailModal.vue";
-import VersionUploadModal from "./VersionUploadModal.vue";
+import Swal from "sweetalert2";
+import DocumentVersionDetailModal from "./DocumentVersionDetailModal.vue";
+import DocumentVersionUploadModal from "./DocumentVersionUploadModal.vue";
 import DocumentVersionCompare from "./DocumentVersionCompare.vue";
-import VersionPagination from "./VersionPagination.vue";
-import VersionFilter from "./VersionFilter.vue";
+import DocumentVersionPagination from "./DocumentVersionPagination.vue";
+import DocumentVersionFilter from "./DocumentVersionFilter.vue";
 
 // Nhan props
 const props = defineProps({
@@ -249,7 +253,7 @@ const formatMimeType = (mime) => {
 const fetchUploaders = async () => {
     try {
         const res = await axios.get(
-            `/api/documents/${props.documentId}/versions/uploaders`
+            `/api/documents/${props.documentId}/versions/uploaders`,
         );
         if (res.data.success) {
             users.value = res.data.data;
@@ -276,14 +280,15 @@ const fetchVersions = async (page = 1) => {
                           filters.value.status === "true",
                 from_date: filters.value.date_from,
                 to_date: filters.value.date_to,
-            }).filter(([_, v]) => v !== undefined && v !== "")
+            }).filter(([_, v]) => v !== undefined && v !== ""),
         );
 
         // Goi api lay danh sach phien ban cua tai lieu theo id
         const res = await axios.get(
             `/api/documents/${props.documentId}/versions`,
-            { params }
+            { params },
         );
+
         // Luu du lieu tra ve vao state versions
         if (res.data.success) {
             versions.value = {
@@ -299,11 +304,19 @@ const fetchVersions = async (page = 1) => {
                 last_page: 1,
                 per_page: 5,
             };
-            alert(res.data?.message ?? "Không thể tải danh sách phiên bản");
+            Swal.fire({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data?.message ?? "Không thể tải danh sách phiên bản",
+            });
         }
     } catch (err) {
         console.error(err);
-        alert("Lỗi hệ thống, vui lòng thử lại!");
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Vui lòng thử lại!",
+        });
     } finally {
         // Tat loading
         loading.value = false;
@@ -319,7 +332,7 @@ const downloadVersion = async (version) => {
 
     if (
         !confirm(
-            `Bạn có chắc muốn tải xuống phiên bản #${version.version_number}?`
+            `Bạn có chắc muốn tải xuống phiên bản #${version.version_number}?`,
         )
     ) {
         return;
@@ -330,7 +343,7 @@ const downloadVersion = async (version) => {
     try {
         const res = await axios.get(
             `/api/documents/${props.documentId}/versions/${version.version_id}/download`,
-            { responseType: "blob" }
+            { responseType: "blob" },
         );
 
         // Ten file
@@ -360,7 +373,7 @@ const downloadVersion = async (version) => {
 const restoreVersion = async (version) => {
     if (
         !confirm(
-            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number}?`
+            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number}?`,
         )
     ) {
         return;
@@ -370,7 +383,7 @@ const restoreVersion = async (version) => {
 
     try {
         const res = await axios.post(
-            `/api/documents/${props.documentId}/versions/${version.version_id}/restore`
+            `/api/documents/${props.documentId}/versions/${version.version_id}/restore`,
         );
         alert(res.data.message || "Đã khôi phục thành công!");
         // Sau khi khoi phuc reload lai danh sach
@@ -379,7 +392,7 @@ const restoreVersion = async (version) => {
         console.log(err);
         alert(
             err.response?.data?.message ||
-                "Không thể khôi phục phiên bản này. Vui lòng thử lại."
+                "Không thể khôi phục phiên bản này. Vui lòng thử lại.",
         );
     } finally {
         loadingActions.value[version.version_id] = false;
@@ -390,7 +403,7 @@ const restoreVersion = async (version) => {
 const deleteVersion = async (version) => {
     if (
         !confirm(
-            `Bạn có chắc chắn muốn xóa phiên bản #${version.version_number}?`
+            `Bạn có chắc chắn muốn xóa phiên bản #${version.version_number}?`,
         )
     ) {
         return;
@@ -400,7 +413,7 @@ const deleteVersion = async (version) => {
 
     try {
         const res = await axios.delete(
-            `/api/documents/${props.documentId}/versions/${version.version_id}`
+            `/api/documents/${props.documentId}/versions/${version.version_id}`,
         );
 
         alert(res.data.message || "Đã xóa phiên bản thành công!");
@@ -411,7 +424,7 @@ const deleteVersion = async (version) => {
         console.error(err);
         alert(
             err.response?.data?.message ||
-                "Không thể xóa phiên bản này. Vui lòng thử lại."
+                "Không thể xóa phiên bản này. Vui lòng thử lại.",
         );
     } finally {
         loadingActions.value[version.version_id] = false;
@@ -422,7 +435,7 @@ const deleteVersion = async (version) => {
 const changePage = (page) => {
     if (page < 1 || page > versions.value.last_page) return;
     fetchVersions(page).then(() =>
-        window.scrollTo({ top: 0, behavior: "smooth" })
+        window.scrollTo({ top: 0, behavior: "smooth" }),
     );
 };
 
@@ -436,7 +449,7 @@ const resetFilters = () => {
         date_to: "",
     };
     fetchVersions(1).then(() =>
-        window.scrollTo({ top: 0, behavior: "smooth" })
+        window.scrollTo({ top: 0, behavior: "smooth" }),
     );
 };
 
@@ -452,7 +465,7 @@ watch(
         loading.value = true;
         await Promise.all([fetchVersions(), fetchUploaders()]);
         loading.value = false;
-    }
+    },
 );
 </script>
 <style scoped>
