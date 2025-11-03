@@ -97,7 +97,7 @@
                                         class="btn border-0 text-primary"
                                         title="Xem chi tiết"
                                         @click="
-                                            versionIdToShow = version.version_id
+                                            detailVersion(version.version_id)
                                         "
                                     >
                                         <i class="bi bi-eye"></i>
@@ -150,12 +150,11 @@
 
                 <!-- Modal detail version-->
                 <DocumentVersionDetailModal
+                    ref="detailModal"
                     :document-id="documentId"
-                    :version-id="versionIdToShow"
                     :format-file-size="formatFileSize"
                     :format-mime-type="formatMimeType"
                     :format-date="formatDate"
-                    @update:versionId="versionIdToShow = $event"
                 />
 
                 <!-- Modal upload version -->
@@ -209,7 +208,7 @@ const loading = ref(false);
 const loadingActions = ref({});
 
 // Detail
-const versionIdToShow = ref(null);
+const detailModal = ref(null);
 
 // Upload
 const uploadModal = ref(null);
@@ -451,6 +450,13 @@ const resetFilters = () => {
     fetchVersions(1).then(() =>
         window.scrollTo({ top: 0, behavior: "smooth" }),
     );
+};
+
+// Detail version
+const detailVersion = (versionId) => {
+    if (detailModal.value) {
+        detailModal.value.showModalVersion(versionId);
+    }
 };
 
 onMounted(async () => {

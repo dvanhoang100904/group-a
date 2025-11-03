@@ -48,23 +48,26 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 // Nhan props tu cha
 const props = defineProps({
-    versionId: Number,
     documentId: Number,
 });
 // ref modal chinh
 const modalRef = ref(null);
+
 // instance Bootstrap modal
 let bsModal = null;
 
 // Trang thai loading
 const loading = ref(false);
+
 // Luu thong bao loi
 const error = ref(null);
+
 // URL file preview PDF/Doc/PDF da convert
 const previewUrl = ref(null);
 
@@ -89,35 +92,44 @@ const closeModal = () => {
     error.value = null;
 };
 
-watch(
-    () => props.versionId,
-    async (versionId) => {
-        if (!versionId || !props.documentId) return;
+const showPreviewVersion = async (versionId) => {
+    if (!versionId || !props.documentId) return;
 
-        // Hien thi modal truoc khi load
-        showModal();
-        loading.value = true;
-        error.value = null;
-        previewUrl.value = null;
+    showModal();
+    loading.value = true;
+    error.value = null;
+    previewUrl.value = null;
 
-        try {
-            const res = await axios.get(
-                `/api/documents/${props.documentId}/versions/${versionId}/preview`
-            );
-            if (res.data.success && res.data.data?.preview_path) {
-                previewUrl.value = res.data.data.preview_path;
-            } else {
-                error.value = res.data.message || "Không thể tải preview";
-            }
-        } catch (e) {
-            error.value = "Lỗi khi tải preview";
-        } finally {
-            loading.value = false;
+    try {
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/versions/${versionId}/preview`,
+        );
+        if (res.data.success && res.data.data?.preview_path) {
+            previewUrl.value = res.data.data.preview_path;
+        } else {
+            hideModal();
+            await Swal.fire({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message || "Không thể tải preview",
+            });
+            previewUrl.value = null;
         }
+    } catch (e) {
+        console.error(e);
+        hideModal();
+        await Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Đã xảy ra lỗi khi tải preview. Vui lòng thử lại!",
+        });
+        previewUrl.value = null;
+    } finally {
+        loading.value = false;
     }
-);
+};
 
-defineExpose({ showModal, hideModal, closeModal });
+defineExpose({ showModal, hideModal, closeModal, showPreviewVersion });
 </script>
 
 <style scoped>
