@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
 {
@@ -60,15 +61,13 @@ class Document extends Model
 
     public function subject()
     {
-        return $this->belongsTo(Subject::class, 'subject_id')->withDefault([
-            'name' => 'Chưa có',
-            'department_id' => null,
-        ]);
+        return $this->belongsTo(Subject::class, 'subject_id');
     }
 
-    public function versions()
+    /** Document Versions */
+    public function versions(): HasMany
     {
-        return $this->hasMany(DocumentVersion::class, 'document_id');
+        return $this->hasMany(DocumentVersion::class, 'document_id', 'document_id');
     }
 
     public function previews()
@@ -76,9 +75,10 @@ class Document extends Model
         return $this->hasMany(DocumentPreview::class, 'document_id');
     }
 
-    public function accesses()
+    /** Document Accesses */
+    public function accesses(): HasMany
     {
-        return $this->hasMany(DocumentAccess::class, 'document_id');
+        return $this->hasMany(DocumentAccess::class, 'document_id', 'document_id');
     }
 
     public function reports()

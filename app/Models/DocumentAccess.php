@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentAccess extends Model
 {
@@ -39,23 +40,27 @@ class DocumentAccess extends Model
         'granted_to_role_id' => 'integer',
     ];
 
-    public function document()
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    public function grantedBy()
+    /** User */
+    public function grantedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'granted_by');
+        return $this->belongsTo(User::class, 'granted_by', 'user_id');
     }
 
-    public function grantedToUser()
+    /** User */
+    public function grantedToUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'granted_to_user_id');
+        return $this->belongsTo(User::class, 'granted_to_user_id', 'user_id');
     }
 
-    public function grantedToRole()
+    /** Role */
+    public function grantedToRole(): BelongsTo
     {
-        return $this->belongsTo(Role::class, 'granted_to_role_id');
+        return $this->belongsTo(Role::class, 'granted_to_role_id', 'role_id');
     }
 }
