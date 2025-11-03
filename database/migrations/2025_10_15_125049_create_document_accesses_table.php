@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('can_download')->default(0);
             $table->boolean('can_share')->default(0);
             $table->timestamp('expiration_date')->nullable();
+            $table->boolean('no_expiry')->default(0);
             $table->unsignedInteger('document_id');
             $table->unsignedInteger('granted_by');
             $table->unsignedInteger('granted_to_user_id')->nullable();

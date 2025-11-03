@@ -249,7 +249,7 @@ const formatMimeType = (mime) => {
 const fetchUploaders = async () => {
     try {
         const res = await axios.get(
-            `/api/documents/${props.documentId}/versions/uploaders`
+            `/api/documents/${props.documentId}/versions/uploaders`,
         );
         if (res.data.success) {
             users.value = res.data.data;
@@ -276,13 +276,13 @@ const fetchVersions = async (page = 1) => {
                           filters.value.status === "true",
                 from_date: filters.value.date_from,
                 to_date: filters.value.date_to,
-            }).filter(([_, v]) => v !== undefined && v !== "")
+            }).filter(([_, v]) => v !== undefined && v !== ""),
         );
 
         // Goi api lay danh sach phien ban cua tai lieu theo id
         const res = await axios.get(
             `/api/documents/${props.documentId}/versions`,
-            { params }
+            { params },
         );
         // Luu du lieu tra ve vao state versions
         if (res.data.success) {
@@ -319,7 +319,7 @@ const downloadVersion = async (version) => {
 
     if (
         !confirm(
-            `Bạn có chắc muốn tải xuống phiên bản #${version.version_number}?`
+            `Bạn có chắc muốn tải xuống phiên bản #${version.version_number}?`,
         )
     ) {
         return;
@@ -330,7 +330,7 @@ const downloadVersion = async (version) => {
     try {
         const res = await axios.get(
             `/api/documents/${props.documentId}/versions/${version.version_id}/download`,
-            { responseType: "blob" }
+            { responseType: "blob" },
         );
 
         // Ten file
@@ -360,7 +360,7 @@ const downloadVersion = async (version) => {
 const restoreVersion = async (version) => {
     if (
         !confirm(
-            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number}?`
+            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number}?`,
         )
     ) {
         return;
@@ -370,7 +370,7 @@ const restoreVersion = async (version) => {
 
     try {
         const res = await axios.post(
-            `/api/documents/${props.documentId}/versions/${version.version_id}/restore`
+            `/api/documents/${props.documentId}/versions/${version.version_id}/restore`,
         );
         alert(res.data.message || "Đã khôi phục thành công!");
         // Sau khi khoi phuc reload lai danh sach
@@ -379,7 +379,7 @@ const restoreVersion = async (version) => {
         console.log(err);
         alert(
             err.response?.data?.message ||
-                "Không thể khôi phục phiên bản này. Vui lòng thử lại."
+                "Không thể khôi phục phiên bản này. Vui lòng thử lại.",
         );
     } finally {
         loadingActions.value[version.version_id] = false;
@@ -390,7 +390,7 @@ const restoreVersion = async (version) => {
 const deleteVersion = async (version) => {
     if (
         !confirm(
-            `Bạn có chắc chắn muốn xóa phiên bản #${version.version_number}?`
+            `Bạn có chắc chắn muốn xóa phiên bản #${version.version_number}?`,
         )
     ) {
         return;
@@ -400,7 +400,7 @@ const deleteVersion = async (version) => {
 
     try {
         const res = await axios.delete(
-            `/api/documents/${props.documentId}/versions/${version.version_id}`
+            `/api/documents/${props.documentId}/versions/${version.version_id}`,
         );
 
         alert(res.data.message || "Đã xóa phiên bản thành công!");
@@ -411,7 +411,7 @@ const deleteVersion = async (version) => {
         console.error(err);
         alert(
             err.response?.data?.message ||
-                "Không thể xóa phiên bản này. Vui lòng thử lại."
+                "Không thể xóa phiên bản này. Vui lòng thử lại.",
         );
     } finally {
         loadingActions.value[version.version_id] = false;
@@ -422,7 +422,7 @@ const deleteVersion = async (version) => {
 const changePage = (page) => {
     if (page < 1 || page > versions.value.last_page) return;
     fetchVersions(page).then(() =>
-        window.scrollTo({ top: 0, behavior: "smooth" })
+        window.scrollTo({ top: 0, behavior: "smooth" }),
     );
 };
 
@@ -436,7 +436,7 @@ const resetFilters = () => {
         date_to: "",
     };
     fetchVersions(1).then(() =>
-        window.scrollTo({ top: 0, behavior: "smooth" })
+        window.scrollTo({ top: 0, behavior: "smooth" }),
     );
 };
 
@@ -452,7 +452,7 @@ watch(
         loading.value = true;
         await Promise.all([fetchVersions(), fetchUploaders()]);
         loading.value = false;
-    }
+    },
 );
 </script>
 <style scoped>

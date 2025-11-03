@@ -1,10 +1,10 @@
 import { createApp } from "vue";
 
-import DocumentAccessList from "../components/documentAccesses/DocumentAccessList.vue";
+import DocumentAccessList from "../Components/DocumentAccesses/DocumentAccessList.vue";
 
-const el = document.getElementById("document-access-list");
-if (el) {
+const dal = document.getElementById("document-access-list");
+if (dal) {
     createApp(DocumentAccessList, {
-        documentId: el.dataset.documentId,
-    }).mount(el);
+        documentId: dal.dataset.documentId,
+    }).mount(dal);
 }
