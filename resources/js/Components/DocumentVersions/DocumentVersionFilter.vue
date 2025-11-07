@@ -71,7 +71,7 @@
                 class="btn btn-sm btn-secondary"
                 @click="handleReset"
             >
-                <i class="bi bi-x-circle me-1"></i> Reset
+                <i class="bi bi-x-circle me-1"></i> Đặt lại
             </button>
         </div>
     </form>

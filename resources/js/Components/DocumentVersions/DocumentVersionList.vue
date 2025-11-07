@@ -45,7 +45,7 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-primary">
                             <tr class="text-center">
-                                <th>#</th>
+                                <th>STT</th>
                                 <th>Phiên bản</th>
                                 <th>Người cập nhật</th>
                                 <th>Ngày cập nhật</th>
@@ -57,10 +57,10 @@
                         <tbody>
                             <tr
                                 class="text-center"
-                                v-for="version in versions.data"
+                                v-for="(version, index) in versions.data"
                                 :key="version.version_id"
                             >
-                                <td>{{ version.version_id }}</td>
+                                <td>{{ index + 1 }}</td>
                                 <td>v{{ version.version_number }}</td>
                                 <td>
                                     {{ version.user?.name || "Không rõ" }}

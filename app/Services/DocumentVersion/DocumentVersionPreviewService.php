@@ -21,10 +21,25 @@ class DocumentVersionPreviewService
      */
     public function getOrGeneratePreview(int $versionId, ?int $documentId = null): ?array
     {
-        // Lay phien ban tai lieu kem previews
-        $version = DocumentVersion::with(['previews' => function ($q) {
-            $q->active()->latestCreated()->limit(1);
-        }])->find($versionId);
+        $version = DocumentVersion::query()
+            ->select([
+                'version_id',
+                'file_path',
+                'document_id'
+            ])
+            ->with([
+                'previews' => function ($q) {
+                    $q->where(function ($q) {
+                        $q->whereNull('expires_at')
+                            ->orWhere('expires_at', '>', now());
+                    })
+                        ->select('preview_id', 'version_id', 'document_id', 'preview_path')
+                        ->orderByDesc('created_at')
+                        ->limit(1);
+                }
+            ])
+            ->find($versionId);
+
         if (!$version) {
             return null;
         }
