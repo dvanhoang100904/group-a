@@ -243,35 +243,33 @@
         </div>
         <!-- modal preview file -->
         <FilePreviewModal
-            v-show="versionToPreview"
-            v-model:version-id="versionToPreview"
+            ref="previewModal"
             :document-id="selectedVersion?.document_id"
         />
     </div>
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from "vue";
+import { ref, nextTick } from "vue";
 import axios from "axios";
+import Swal from "sweetalert2";
 import FilePreviewModal from "./DocumentVersionPreviewModal.vue";
 
 // Nhan props tu cha
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
-    versionId: { type: [String, Number], default: null },
     formatFileSize: Function,
     formatMimeType: Function,
     formatDate: Function,
 });
 
-const emit = defineEmits(["update:versionId"]);
-
 const selectedVersion = ref(null);
 const loading = ref(false);
-const versionToPreview = ref(null);
+const previewModal = ref(null);
 
 // ref modal chinh
 const modalRef = ref(null);
+
 // instance Bootstrap modal
 let bsModal = null;
 
@@ -293,43 +291,52 @@ const hideModal = () => {
 const closeModal = () => {
     hideModal();
     selectedVersion.value = null;
-    emit("update:versionId", null);
 };
 
 // File preview
 const previewFile = () => {
-    versionToPreview.value = null;
     nextTick(() => {
-        versionToPreview.value = selectedVersion.value.version_id;
+        previewModal.value.showPreviewVersion(selectedVersion.value.version_id);
     });
 };
 
-// Watch versionId changes
-watch(
-    () => props.versionId,
-    async (versionId) => {
-        if (!versionId) return;
+const showModalVersion = async (versionId) => {
+    if (!versionId) return;
 
-        showModal();
-        selectedVersion.value = null;
-        loading.value = true;
+    showModal();
+    selectedVersion.value = null;
+    loading.value = true;
 
-        try {
-            const res = await axios.get(
-                `/api/documents/${props.documentId}/versions/${versionId}`,
-            );
-            if (res.data.success) selectedVersion.value = res.data.data;
-        } catch (err) {
-            console.error(err);
-            alert("Không thể tải chi tiết phiên bản");
-            closeModal();
-        } finally {
-            loading.value = false;
+    try {
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/versions/${versionId}`,
+        );
+        if (res.data.success) {
+            selectedVersion.value = res.data.data;
+        } else {
+            hideModal();
+            await Swal.fire({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message || "Không thể tải chi tiết phiên bản",
+            });
+            selectedVersion.value = null;
         }
-    },
-);
+    } catch (err) {
+        console.error(err);
+        hideModal();
+        await Swal.fire({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Đã xảy ra lỗi khi tải chi tiết phiên bản. Vui lòng thử lại!",
+        });
+        selectedVersion.value = null;
+    } finally {
+        loading.value = false;
+    }
+};
 
-defineExpose({ showModal, hideModal, closeModal });
+defineExpose({ showModal, hideModal, closeModal, showModalVersion });
 </script>
 
 <style scoped>

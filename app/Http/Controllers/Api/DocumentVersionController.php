@@ -23,7 +23,7 @@ class DocumentVersionController extends Controller
     /**
      * Hien thi danh sach phien ban tai lieu co phan trang
      */
-    public function index(DocumentVersionFilterRequest $request, $documentId): JsonResponse
+    public function index(DocumentVersionFilterRequest $request, int $documentId): JsonResponse
     {
         $document = $this->documentVersionService->getDocument($documentId);
 
@@ -75,40 +75,60 @@ class DocumentVersionController extends Controller
     /** 
      * Xem chi tiet phien ban tai lieu
      */
-    public function show($documentId, $versionId)
+    public function show(int $documentId, int $versionId)
     {
-        $version = $this->documentVersionService->getDocumentVersion($documentId, $versionId);
+        $document = $this->documentVersionService->getDocument($documentId);
 
-        if (!$version) {
+        if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Phiên bản không tồn tại'
+                'message' => 'Tài liệu không tồn tại'
             ], 404);
         }
 
+        $data = $this->documentVersionService->getDocumentVersion($documentId, $versionId);
+
+        if ($data) {
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => 'phiên bản tải thành công'
+            ]);
+        }
+
         return response()->json([
-            'success' => true,
-            'data' => $version
-        ]);
+            'success' => false,
+            'message' => 'Phiên bản không tồn tại'
+        ], 404);
     }
 
     /**
      * Hien thi preview file
      */
-    public function preview($documentId, $versionId)
+    public function preview(int $documentId, int $versionId)
     {
-        $data = $this->previewService->getOrGeneratePreview($versionId, $documentId);
+        $document = $this->documentVersionService->getDocument($documentId);
 
-        if (!$data) {
+        if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không thể tạo preview hoặc phiên bản không tồn tại',
+                'message' => 'Tài liệu không tồn tại'
             ], 404);
         }
 
+        $data = $this->previewService->getOrGeneratePreview($versionId, $documentId);
+
+        if ($data) {
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => 'tạo preview thành công'
+            ]);
+        }
+
         return response()->json([
-            'success' => true,
-            'data' => $data,
-        ]);
+            'success' => false,
+            'message' => 'Phiên bản không tồn tại'
+        ], 404);
     }
 }
