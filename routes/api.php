@@ -18,7 +18,7 @@ use App\Http\Controllers\Api\DocumentDetailController;
 // Document Versions
 Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index']);
 Route::get('/documents/{documentId}/versions/compare', [DocumentVersionCompareController::class, 'compare']);
-Route::get('/documents/{documentId}/versions/uploaders', [DocumentVersionController::class, 'uploaders']);
+Route::get('/documents/{documentId}/versions/users', [DocumentVersionController::class, 'listUsers']);
 Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'show']);
 Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionController::class, 'preview']);
 Route::post('/documents/{id}/versions', [DocumentVersionActionController::class, 'store']);
