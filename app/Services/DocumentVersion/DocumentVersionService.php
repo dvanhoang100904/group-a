@@ -92,7 +92,7 @@ class DocumentVersionService
      */
     public function getDocumentVersion(int $documentId, int $versionId): ?DocumentVersion
     {
-        return DocumentVersion::query()
+        $documentVersion = DocumentVersion::query()
             ->select([
                 'version_id',
                 'version_number',
@@ -104,12 +104,18 @@ class DocumentVersionService
                 'is_current_version',
                 'created_at'
             ])
-            ->byDocument($documentId)
-            ->byVersion($versionId)
             ->with([
                 'user:user_id,name',
             ])
+            ->where('document_id', $documentId)
+            ->where('version_id', $versionId)
             ->first();
+
+        if (!$documentVersion) {
+            return null;
+        }
+
+        return $documentVersion;
     }
 
     /**

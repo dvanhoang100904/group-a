@@ -87,17 +87,17 @@ class DocumentVersionController extends Controller
 
         $data = $this->documentVersionService->getDocumentVersion($documentId, $versionId);
 
-        if ($data) {
+        if (!$data) {
             return response()->json([
-                'success' => true,
-                'data' => $data,
-                'message' => 'phiên bản tải thành công'
+                'success' => false,
+                'message' => 'Phiên bản tài liệu không tồn tại. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Phiên bản tài liệu không tồn tại. Vui lòng thử lại.'
+            'success' => true,
+            'data' => $data,
+            'message' => 'Thông tin chi tiết phiên bản tài liệu'
         ]);
     }
 
@@ -117,17 +117,17 @@ class DocumentVersionController extends Controller
 
         $data = $this->previewService->getOrGeneratePreview($versionId, $documentId);
 
-        if ($data) {
+        if (!$data) {
             return response()->json([
-                'success' => true,
-                'data' => $data,
-                'message' => 'tạo preview thành công'
+                'success' => false,
+                'message' => 'Phiên bản tài liệu không tồn tại. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Phiên bản tài liệu không tồn tại. Vui lòng thử lại.'
+            'success' => true,
+            'data' => $data,
+            'message' => 'Mở preview phiên bản tài liệu'
         ]);
     }
 }

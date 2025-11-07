@@ -255,7 +255,6 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import FilePreviewModal from "./DocumentVersionPreviewModal.vue";
 
-// Nhan props tu cha
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
     formatFileSize: Function,
@@ -270,7 +269,6 @@ const previewModal = ref(null);
 // ref modal chinh
 const modalRef = ref(null);
 
-// instance Bootstrap modal
 let bsModal = null;
 
 // Hien thi modal
@@ -295,17 +293,24 @@ const closeModal = () => {
 
 // File preview
 const previewFile = () => {
-    nextTick(() => {
-        previewModal.value.showPreviewVersion(selectedVersion.value.version_id);
-    });
+    if (selectedVersion.value && previewModal.value) {
+        nextTick(() => {
+            previewModal.value.showPreviewVersion(
+                selectedVersion.value.version_id,
+            );
+        });
+    }
 };
 
 const showModalVersion = async (versionId) => {
-    if (!versionId) return;
+    if (!versionId) {
+        return;
+    }
 
-    showModal();
     selectedVersion.value = null;
     loading.value = true;
+
+    showModal();
 
     try {
         const res = await axios.get(
