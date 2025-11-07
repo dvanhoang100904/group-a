@@ -98,7 +98,7 @@ watch(localFilters, (newVal) => emit("update:modelValue", { ...newVal }), {
 watch(
     () => props.modelValue,
     (newVal) => Object.assign(localFilters, newVal),
-    { deep: true }
+    { deep: true },
 );
 
 // Reset local filters

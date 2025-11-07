@@ -22,11 +22,16 @@ class DocumentVersionController extends Controller
         $document = $this->documentVersionService->getDocumentWithRelations($documentId);
 
         if (!$document) {
-            return redirect()->route('documents.index')->with('error', 'Tài liệu không tồn tại hoặc đã bị xóa.');
+            return redirect()->route('documents.index')
+                ->with('error', 'Tài liệu này không còn tồn tại. Vui lòng thử lại.');
         }
 
-        return view('documents.versions.index', [
+        $data = [
             'document' => $document,
-        ]);
+            'subject' => $document->subject,
+            'department' => $document->subject->department
+        ];
+
+        return view('documents.versions.index', $data);
     }
 }
