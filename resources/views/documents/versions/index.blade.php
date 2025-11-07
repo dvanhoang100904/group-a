@@ -12,10 +12,10 @@
                 </a>
             </li>
             <li class="breadcrumb-item">
-                <a class="text-dark text-decoration-none"
+                {{-- <a class="text-dark text-decoration-none"
                     href="{{ route('documents.show', ['id' => $document->document_id]) }}">
                     </i>{{ $document->title }}
-                </a>
+                </a> --}}
             </li>
             <li class="breadcrumb-item active" aria-current="page">
                 Phiên bản tài liệu
@@ -34,16 +34,12 @@
     {{-- detail document --}}
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body">
-            @if ($document)
-                <h5 class="fw-bold mb-2">{{ $document->title }}</h5>
-                <p class="text-muted small mb-0">
-                    Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
-                    Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong> |
-                    Số phiên bản: <strong>{{ $document->versions_count }}</strong>
-                </p>
-            @else
-                <p class="text-danger">Tài liệu không tồn tại</p>
-            @endif
+            <h5 class="fw-bold mb-2">{{ $document->title }}</h5>
+            <p class="text-muted small mb-0">
+                Môn học: <strong>{{ $subject->name ?? 'Chưa có' }}</strong> |
+                Khoa: <strong>{{ $department->name ?? 'Chưa có' }}</strong> |
+                Số phiên bản: <strong>{{ $document->versions_count }}</strong>
+            </p>
         </div>
     </div>
 
