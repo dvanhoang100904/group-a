@@ -27,14 +27,16 @@ class Activity extends Model
         'folder_id' => 'integer',
     ];
 
-    public function document()
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    public function user()
+    /** User */
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
     /** Document Version */
@@ -43,8 +45,9 @@ class Activity extends Model
         return $this->belongsTo(DocumentVersion::class, 'version_id', 'version_id');
     }
 
-    public function folder()
+    /** Folder */
+    public function folder(): BelongsTo
     {
-        return $this->belongsTo(Folder::class, 'folder_id');
+        return $this->belongsTo(Folder::class, 'folder_id', 'folder_id');
     }
 }
