@@ -12,10 +12,10 @@
                 </a>
             </li>
             <li class="breadcrumb-item">
-                {{-- <a class="text-dark text-decoration-none"
+                <a class="text-dark text-decoration-none"
                     href="{{ route('documents.show', ['id' => $document->document_id]) }}">
                     </i>{{ $document->title }}
-                </a> --}}
+                </a>
             </li>
             <li class="breadcrumb-item active" aria-current="page">
                 Phiên bản tài liệu
