@@ -27,23 +27,6 @@ class Document extends Model
         'subject_id' => 'integer',
     ];
 
-    /** Lay so version tiep theo */
-    public function getNextVersionNumber(): int
-    {
-        $lastVersion = $this->versions()
-            ->orderByDesc('version_number')
-            ->first();
-        return $lastVersion ? $lastVersion->version_number + 1 : 1;
-    }
-
-    /** Dat version moi la current, cac version khac false */
-    public function setCurrentVersion($version)
-    {
-        $this->versions()
-            ->where('version_id', '!=', $version->version_id)
-            ->update(['is_current_version' => false]);
-    }
-
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

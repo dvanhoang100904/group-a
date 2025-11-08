@@ -40,10 +40,16 @@ class DocumentVersionUploadService
             // 2. Luu file vao storage/app/public/docs
             $filePath = $file->storeAs('docs', $fileName, 'public');
 
-            // 3. Tao phien ban moi 
+            // 3. Lay so phien ban moi
+            $lastVersion = $document->versions()
+                ->orderByDesc('version_number')
+                ->first();
+            $nextVersionNumber = $lastVersion ? $lastVersion->version_number + 1 : 1;
+
+            // 4. Tao phien ban moi 
             $version = new DocumentVersion([
                 'document_id' => $document->document_id,
-                'version_number' => $document->getNextVersionNumber(),
+                'version_number' => $nextVersionNumber,
                 'file_path' => $filePath,
                 'file_size' => $file->getSize(),
                 'mime_type' => $file->getMimeType(),
@@ -53,8 +59,12 @@ class DocumentVersionUploadService
             ]);
             $version->save();
 
-            // 4. Danh dau phien ban nay la hien tai
-            $document->setCurrentVersion($version);
+            // 5. Danh dau phien ban nay la hien tai
+            $oldVersions = $document->versions()->where('version_id', '!=', $version->version_id)->get();
+            foreach ($oldVersions as $oldVersion) {
+                $oldVersion->is_current_version = false;
+                $oldVersion->save();
+            }
 
             // 5. Sinh preview file
             $this->previewService->getOrGeneratePreview($version->version_id, $document->document_id);
