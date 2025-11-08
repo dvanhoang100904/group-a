@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentAccess extends Model
 {
@@ -18,6 +19,7 @@ class DocumentAccess extends Model
         'can_download',
         'can_share',
         'expiration_date',
+        'no_expiry',
         'document_id',
         'granted_by',
         'granted_to_user_id',
@@ -31,29 +33,46 @@ class DocumentAccess extends Model
         'can_upload' => 'boolean',
         'can_download' => 'boolean',
         'can_share' => 'boolean',
+        'no_expiry' => 'boolean',
         'document_id' => 'integer',
         'granted_by' => 'integer',
         'granted_to_user_id' => 'integer',
         'granted_to_role_id' => 'integer',
     ];
 
-    public function document()
+    /** loc theo id tai lieu */
+    public function scopeForDocument($query, int $documentId)
     {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $query->where('document_id', $documentId);
     }
 
-    public function grantedBy()
+    /** Loc theo id quyen */
+    public function scopeByAccessId($query, int $accessId)
     {
-        return $this->belongsTo(User::class, 'granted_by');
+        return $query->where('access_id', $accessId);
     }
 
-    public function grantedToUser()
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'granted_to_user_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    public function grantedToRole()
+    /** User */
+    public function grantedBy(): BelongsTo
     {
-        return $this->belongsTo(Role::class, 'granted_to_role_id');
+        return $this->belongsTo(User::class, 'granted_by', 'user_id');
+    }
+
+    /** User */
+    public function grantedToUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'granted_to_user_id', 'user_id');
+    }
+
+    /** Role */
+    public function grantedToRole(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'granted_to_role_id', 'role_id');
     }
 }

@@ -69,13 +69,15 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ Request::routeIs('monhoc.*') ? 'active' : '' }}" 
+                 href="{{ route('monhoc.index') }}">
                     <i class="bi bi-journal-bookmark"></i>
                     <span class="link-text">Môn học</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                 <a class="nav-link {{ Request::routeIs('khoa.*') ? 'active' : '' }}" 
+                 href="{{ route('khoa.index') }}">
                     <i class="bi bi-building"></i>
                     <span class="link-text">Khoa / Bộ môn</span>
                 </a>
