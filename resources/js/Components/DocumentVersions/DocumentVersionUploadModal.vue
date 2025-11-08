@@ -301,6 +301,13 @@ const submitUpload = async () => {
         if (res.data.success) {
             success.value = res.data.message;
 
+            Swal.fire({
+                icon: "success",
+                title: "Upload thành công",
+                text: res.data.message,
+                timer: 2000,
+            });
+
             emit("uploaded", res.data.data);
 
             setTimeout(() => {

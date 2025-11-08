@@ -42,19 +42,21 @@
                 </div>
 
                 <!-- body -->
-                <div class="modal-body">
-                    <template v-if="loading">
-                        <!-- Loading skeleton / spinner -->
-                        <div class="text-center py-5">
-                            <div
-                                class="spinner-border text-primary"
-                                role="status"
-                            >
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </template>
-                    <template v-else>
+                <div
+                    class="modal-body position-relative"
+                    style="min-height: 100px"
+                >
+                    <div
+                        v-if="loading"
+                        class="overlay-loading d-flex justify-content-center align-items-center"
+                    >
+                        <div
+                            class="spinner-border text-primary"
+                            role="status"
+                            aria-label="Loading"
+                        ></div>
+                    </div>
+                    <div v-else>
                         <div class="row mb-4">
                             <div class="col-12">
                                 <h6 class="section-title mb-3">
@@ -211,7 +213,7 @@
                                 </div>
                             </div>
                         </div>
-                    </template>
+                    </div>
                 </div>
 
                 <!-- footer -->
@@ -265,8 +267,6 @@ const props = defineProps({
 const selectedVersion = ref(null);
 const loading = ref(false);
 const previewModal = ref(null);
-
-// ref modal chinh
 const modalRef = ref(null);
 
 let bsModal = null;
@@ -289,6 +289,29 @@ const hideModal = () => {
 const closeModal = () => {
     hideModal();
     selectedVersion.value = null;
+};
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
 };
 
 // File preview
@@ -320,17 +343,17 @@ const showModalVersion = async (versionId) => {
             selectedVersion.value = res.data.data;
         } else {
             hideModal();
-            await Swal.fire({
+            await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể tải chi tiết phiên bản",
+                text: res.data.message || "Không thể tải chi tiết phiên bản.",
             });
             selectedVersion.value = null;
         }
     } catch (err) {
         console.error(err);
         hideModal();
-        await Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
             text: "Đã xảy ra lỗi khi tải chi tiết phiên bản. Vui lòng thử lại!",
@@ -409,5 +432,20 @@ defineExpose({ showModal, hideModal, closeModal, showModalVersion });
 
 .card.bg-light {
     background-color: #f8fafd !important;
+}
+
+.overlay-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.6);
+    z-index: 1055;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: progress;
+    transition: opacity 0.2s ease;
 }
 </style>

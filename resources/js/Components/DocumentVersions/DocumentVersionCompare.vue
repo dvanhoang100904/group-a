@@ -28,6 +28,7 @@
                         </option>
                     </select>
                 </div>
+
                 <div class="col-md-5">
                     <label for="versionB" class="form-label small fw-semibold"
                         >Phiên bản B</label
@@ -48,6 +49,7 @@
                         </option>
                     </select>
                 </div>
+
                 <div class="col-md-2 text-end">
                     <button
                         class="btn btn-outline-primary w-100 mt-3 px-3"
@@ -60,31 +62,39 @@
                 </div>
             </form>
 
-            <div class="mt-4 border-top pt-3" v-if="differences.length">
-                <h6 class="fw-bold text-primary mb-3">Kết quả so sánh</h6>
-                <ul class="list-group small">
-                    <li
-                        v-for="(diff, index) in differences"
-                        :key="index"
-                        class="list-group-item"
-                    >
-                        <i :class="iconClass(diff.type) + ' me-2'"></i>
-                        <span v-if="diff.type === 'size'">
-                            Kích thước thay đổi từ
-                            <strong
-                                >{{ formatFileSize(diff.old) }} →
-                                {{ formatFileSize(diff.new) }}</strong
+            <div class="mt-4 border-top pt-3">
+                <template v-if="differences.length">
+                    <h6 class="fw-bold text-primary mb-3">Kết quả so sánh</h6>
+                    <ul class="list-group small">
+                        <li
+                            v-for="(diff, index) in differences"
+                            :key="index"
+                            class="list-group-item"
+                        >
+                            <i :class="iconClass(diff.type) + ' me-2'"></i>
+                            <span v-if="diff.type === 'size'">
+                                Kích thước thay đổi từ
+                                <strong
+                                    >{{ formatFileSize(diff.old) }} →
+                                    {{ formatFileSize(diff.new) }}</strong
+                                >
+                            </span>
+                            <span v-else-if="diff.type === 'note'"
+                                >Ghi chú mới: “{{ diff.new }}”</span
                             >
-                        </span>
-                        <span v-else-if="diff.type === 'note'"
-                            >Ghi chú mới: “{{ diff.new }}”</span
-                        >
-                        <span v-else-if="diff.type === 'user'"
-                            >Người cập nhật thay đổi: “{{ diff.old }} →
-                            {{ diff.new }}”</span
-                        >
-                    </li>
-                </ul>
+                            <span v-else-if="diff.type === 'user'">
+                                Người cập nhật thay đổi: “{{ diff.old }} →
+                                {{ diff.new }}”
+                            </span>
+                        </li>
+                    </ul>
+                </template>
+
+                <template v-else-if="!loading && versionA && versionB">
+                    <p class="text-muted">
+                        Không có sự khác biệt nào giữa các phiên bản.
+                    </p>
+                </template>
             </div>
         </div>
     </div>
@@ -93,6 +103,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
@@ -105,6 +116,29 @@ const versionB = ref("");
 const differences = ref([]);
 const loading = ref(false);
 let cancelToken = null;
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
+};
 
 const iconClass = (type) => {
     switch (type) {
@@ -121,21 +155,37 @@ const iconClass = (type) => {
 
 const compareVersions = async () => {
     if (!versionA.value || !versionB.value) {
-        alert("Vui lòng chọn cả hai phiên bản");
+        await showSwal({
+            icon: "warning",
+            title: "Lỗi",
+            text: "Vui lòng chọn cả hai phiên bản",
+        });
         return;
     }
 
     if (versionA.value === versionB.value) {
-        alert("Hai phiên bản phải khác nhau để so sánh");
+        await showSwal({
+            icon: "warning",
+            title: "Lỗi",
+            text: "Hai phiên bản phải khác nhau để so sánh",
+        });
         return;
     }
 
-    // Huy request
     if (cancelToken) cancelToken.cancel("Request bị hủy do thao tác mới");
     cancelToken = axios.CancelToken.source();
 
     loading.value = true;
     differences.value = [];
+
+    Swal.fire({
+        title: "Đang so sánh...",
+        text: "Vui lòng chờ",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+    });
 
     try {
         const res = await axios.get(
@@ -146,35 +196,57 @@ const compareVersions = async () => {
                     version_b: versionB.value,
                 },
                 cancelToken: cancelToken.token,
-            }
+            },
         );
 
-        differences.value = res.data.success ? res.data.data : [];
+        Swal.close();
+
+        if (res.data.success) {
+            differences.value = res.data.data.length ? res.data.data : [];
+            if (!differences.value.length) {
+                await showSwal({
+                    icon: "info",
+                    title: "Kết quả",
+                    text: "Hai phiên bản giống nhau, không có sự khác biệt nào.",
+                });
+            }
+        } else {
+            differences.value = [];
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message || "Không thể so sánh phiên bản",
+            });
+        }
     } catch (err) {
+        Swal.close();
         if (!axios.isCancel(err)) {
             console.error(err);
-            alert("Không thể so sánh phiên bản");
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: "Đã xảy ra lỗi khi so sánh phiên bản. Vui lòng thử lại!",
+            });
         }
     } finally {
         loading.value = false;
     }
 };
 
-// Watch versionA và versionB de tu clear differences khi doi lua chon
+// Clear differences khi đổi selection
 watch([versionA, versionB], () => {
     differences.value = [];
 });
 </script>
+
 <style scoped>
 .btn {
     border-radius: 0.5rem;
     font-weight: 500;
 }
-
 .bg-light {
     background-color: #f8fafd !important;
 }
-
 .card {
     transition: all 0.2s ease;
 }

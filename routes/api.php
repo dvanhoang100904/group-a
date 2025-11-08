@@ -5,8 +5,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Api\DocumentVersionController;
-use App\Http\Controllers\Api\DocumentVersionActionController;
-use App\Http\Controllers\Api\DocumentVersionCompareController;
 use App\Http\Controllers\Api\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentAccessActionController;
 use App\Http\Controllers\Api\DocumentDetailController;
@@ -17,14 +15,14 @@ use App\Http\Controllers\Api\DocumentDetailController;
 
 // Document Versions
 Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index']);
-Route::get('/documents/{documentId}/versions/compare', [DocumentVersionCompareController::class, 'compare']);
+Route::get('/documents/{documentId}/versions/compare', [DocumentVersionController::class, 'compare']);
 Route::get('/documents/{documentId}/versions/users', [DocumentVersionController::class, 'listUsers']);
 Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'show']);
 Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionController::class, 'preview']);
 Route::post('/documents/{documentId}/versions', [DocumentVersionController::class, 'store']);
-Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionActionController::class, 'download']);
-Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionActionController::class, 'restore']);
-Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionActionController::class, 'destroy']);
+Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionController::class, 'download']);
+Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionController::class, 'restore']);
+Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'destroy']);
 
 // Document Accesses
 Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index']);

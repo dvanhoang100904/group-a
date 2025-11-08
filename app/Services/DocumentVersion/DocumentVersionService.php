@@ -2,10 +2,16 @@
 
 namespace App\Services\DocumentVersion;
 
+use App\Models\Activity;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\User;
+use Exception;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use PhpParser\Node\Stmt\Return_;
 
 class DocumentVersionService
 {
@@ -132,5 +138,196 @@ class DocumentVersionService
                 'user_id',
                 'name'
             ]);
+    }
+
+    /**
+     * Tai xuong phien ban tai lieu
+     */
+    public function downloadVersion(int $documentId, int $versionId)
+    {
+        $version = DocumentVersion::query()
+            ->select([
+                'version_id',
+                'version_number',
+                'file_path',
+                'document_id'
+            ])
+            ->with('document:document_id')
+            ->where('document_id', $documentId)
+            ->where('version_id', $versionId)
+            ->first();
+
+        if (!$version) {
+            return null;
+        }
+
+        $filePath = $version->file_path;
+
+        // Kiem tra file ton tai
+        if (empty($filePath) || !Storage::disk('public')->exists($filePath)) {
+            return null;
+        }
+
+        // Lay ten file hien thi khi tai xuong
+        $fileName = basename($filePath);
+
+        // Stream file de tranh load toan bo vao bo nho
+        return response()->streamDownload(function () use ($filePath, $version) {
+            $stream = Storage::disk('public')->readStream($filePath);
+            fpassthru($stream);
+            fclose($stream);
+
+            // Ghi log
+            try {
+                DB::beginTransaction();
+                $activity = new Activity([
+                    'action' => 'download',
+                    'user_id' => auth()->id() ?? 1,
+                    'action_detail' => json_encode([
+                        'message' => "Tải xuống phiên bản #{$version->version_number}."
+                    ]),
+                ]);
+                $version->document?->activities()->save($activity);
+
+                DB::commit();
+            } catch (Exception $e) {
+                DB::rollBack();
+                Log::error('Lỗi tải xuống phiên bản tài liệu: ' . $e->getMessage());
+                return null;
+            }
+        }, $fileName);
+    }
+
+
+    /**
+     * Khoi phuc phien ban tai lieu
+     */
+    public function restoreVersion(int $documentId, int $versionId)
+    {
+        // Lay phien ban can khoi phuc cung tai lieu 
+        $version = DocumentVersion::query()
+            ->select([
+                'version_id',
+                'version_number',
+                'document_id',
+                'is_current_version'
+            ])
+            ->with('document:document_id')
+            ->where('document_id', $documentId)
+            ->where('version_id', $versionId)
+            ->first();
+
+        if (!$version) {
+            return null;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Neu la phien ban hien tai thi bo qua cap nhat
+            if ($version->is_current_version) {
+                return $version;
+            }
+
+            // Cap nhat chi khi co thay doi bo current cu, set current moi
+            $currentVersions = DocumentVersion::where('document_id', $documentId)
+                ->where('is_current_version', true)
+                ->get();
+
+            foreach ($currentVersions as $currentVersion) {
+                $currentVersion->is_current_version = false;
+                $currentVersion->save();
+            }
+
+            $version->is_current_version = true;
+            $version->save();
+
+            // Ghi log
+            try {
+                $activity = new Activity([
+                    'action' => 'restore',
+                    'user_id' => auth()->id() ?? 1,
+                    'action_detail' => json_encode([
+                        'message' => "Khôi phục phiên bản #{$version->version_number} làm phiên bản hiện tại."
+                    ], JSON_UNESCAPED_UNICODE),
+                ]);
+                $version->document?->activities()->save($activity);
+            } catch (Exception $e) {
+                DB::rollBack();
+                Log::error('Lỗi khôi phục phiên bản tài liệu: ' . $e->getMessage());
+                return null;
+            }
+
+            DB::commit();
+
+            return $version;
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi khôi phục phiên bản tài liệu: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Xoa phien ban tai lieu
+     */
+    public function deleteVersion(int $documentId, int $versionId)
+    {
+        $version = DocumentVersion::query()
+            ->select([
+                'version_id',
+                'version_number',
+                'document_id',
+                'is_current_version'
+            ])
+            ->with('document:document_id')
+            ->where('document_id', $documentId)
+            ->where('version_id', $versionId)
+            ->first();
+
+        if (!$version) {
+            return null;
+        }
+
+        // Khong cho xoa phien ban hien tai
+        if ($version->is_current_version) {
+            return null;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Xoa file neu ton tai
+            if ($version->file_path && Storage::disk('public')->exists($version->file_path)) {
+                Storage::disk('public')->delete($version->file_path);
+            }
+
+            // Xoa ban ghi
+            $version->delete();
+
+            // Ghi log
+            try {
+                $activity = new Activity([
+                    'action' => 'delete',
+                    'user_id' => auth()->id() ?? 1,
+                    'action_detail' => json_encode([
+                        'message' => "Đã xóa phiên bản #{$version->version_number}.",
+                    ], JSON_UNESCAPED_UNICODE),
+                ]);
+                $version->document?->activities()->save($activity);
+            } catch (Exception $e) {
+                DB::rollBack();
+                Log::error('Lỗi Xóa phiên bản tài liệu: ' . $e->getMessage());
+                return null;
+            }
+
+            DB::commit();
+
+            return $version;
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi Xóa phiên bản tài liệu: ' . $e->getMessage());
+            return null;
+        }
     }
 }
