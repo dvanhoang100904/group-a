@@ -240,6 +240,19 @@ class DocumentVersionController extends Controller
             ]);
         }
 
-        return $this->documentVersionService->deleteVersion($documentId, $versionId);
+        $version = $this->documentVersionService->deleteVersion($documentId, $versionId);
+
+        if (!$version) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra. Vui lòng thử lại.'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Khôi phục phiên bản thành công',
+            'data' => $version
+        ]);
     }
 }

@@ -217,6 +217,29 @@ const filters = ref({
     date_to: "",
 });
 
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
+};
+
 // Format date
 const formatDate = (dateStr) => new Date(dateStr).toLocaleString("vi-VN");
 
@@ -297,22 +320,18 @@ const fetchVersions = async (page = 1) => {
                 last_page: 1,
                 per_page: 5,
             };
-            Swal.fire({
+            await showSwal({
                 icon: "error",
                 title: "Lỗi",
                 text: res.data?.message ?? "Không thể tải danh sách phiên bản",
-                confirmButtonText: "Đồng ý",
-                confirmButtonColor: "#0d6efd",
             });
         }
     } catch (err) {
         console.error(err);
-        Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
             text: "Vui lòng thử lại!",
-            confirmButtonText: "Đồng ý",
-            confirmButtonColor: "#0d6efd",
         });
     } finally {
         loading.value = false;
@@ -322,25 +341,21 @@ const fetchVersions = async (page = 1) => {
 // Download version
 const downloadVersion = async (version) => {
     if (!version.file_path) {
-        Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi",
             text: "Không tìm thấy file để tải. Vui lòng thử lại.",
-            confirmButtonText: "Đồng ý",
-            confirmButtonColor: "#0d6efd",
         });
         return;
     }
 
-    const confirmResult = await Swal.fire({
-        title: `Xác nhận tải xuống?`,
+    const confirmResult = await showSwal({
         icon: "warning",
-        text: `Bạn có chắc chắn muốn tải xuống phiên bản v${version.version_number} không?.`,
+        title: `Xác nhận tải xuống?`,
+        text: `Bạn có chắc chắn muốn tải xuống phiên bản v${version.version_number}?`,
         showCancelButton: true,
         confirmButtonText: "Tải xuống",
-        cancelButtonText: "Không",
         confirmButtonColor: "#0d6efd",
-        cancelButtonColor: "#6c757d",
     });
 
     if (!confirmResult.isConfirmed) {
@@ -348,6 +363,15 @@ const downloadVersion = async (version) => {
     }
 
     loadingActions.value[version.version_id] = true;
+
+    Swal.fire({
+        title: "Đang xem...",
+        text: "Vui lòng chờ",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+    });
 
     try {
         const res = await axios.get(
@@ -371,21 +395,20 @@ const downloadVersion = async (version) => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
 
-        Swal.fire({
+        Swal.close();
+
+        await showSwal({
             icon: "success",
             title: "Tải xuống thành công",
             text: `Phiên bản #${version.version_number} đã được tải xuống.`,
-            confirmButtonText: "Đồng ý",
-            confirmButtonColor: "#0d6efd",
         });
     } catch (err) {
         console.error("Lỗi tải file:", err);
-        Swal.fire({
+        Swal.close();
+        await showSwal({
             icon: "error",
             title: "Lỗi tải file",
             text: "Không thể tải file. Vui lòng thử lại.",
-            confirmButtonText: "Đồng ý",
-            confirmButtonColor: "#0d6efd",
         });
     } finally {
         loadingActions.value[version.version_id] = false;
@@ -394,15 +417,13 @@ const downloadVersion = async (version) => {
 
 // Restore version
 const restoreVersion = async (version) => {
-    const confirmResult = await Swal.fire({
-        title: `Xác nhận khôi phục?`,
+    const confirmResult = await showSwal({
         icon: "warning",
-        text: `Bạn có chắc chắn muốn khôi phục phiên bản v${version.version_number} không?.`,
+        title: `Xác nhận khôi phục?`,
+        text: `Bạn có chắc chắn muốn khôi phục phiên bản v${version.version_number}?`,
         showCancelButton: true,
         confirmButtonText: "Khôi phục",
-        cancelButtonText: "Không",
         confirmButtonColor: "#0d6efd",
-        cancelButtonColor: "#6c757d",
     });
 
     if (!confirmResult.isConfirmed) {
@@ -411,7 +432,14 @@ const restoreVersion = async (version) => {
 
     loadingActions.value[version.version_id] = true;
 
-    loadingActions.value[version.version_id] = true;
+    Swal.fire({
+        title: "Đang khôi phục...",
+        text: "Vui lòng chờ",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+    });
 
     try {
         const res = await axios.post(
@@ -419,35 +447,32 @@ const restoreVersion = async (version) => {
         );
 
         if (res.data.success) {
-            Swal.fire({
+            await showSwal({
                 icon: "success",
                 title: "Khôi phục thành công",
                 text: res.data.message,
-                confirmButtonText: "Đồng ý",
-                confirmButtonColor: "#0d6efd",
             });
+
+            // Sau khi khoi phuc reload lai danh sach
+            await fetchVersions(versions.value.current_page);
         } else {
-            Swal.fire({
+            await showSwal({
                 icon: "error",
                 title: "Lỗi",
                 text:
                     res.data.message ||
                     "Không thể khôi phục phiên bản. Vui lòng thử lại.",
-                confirmButtonText: "Đồng ý",
-                confirmButtonColor: "#0d6efd",
             });
         }
 
-        // Sau khi khoi phuc reload lai danh sach
-        await fetchVersions(versions.value.current_page);
+        Swal.close();
     } catch (err) {
         console.log(err);
-        Swal.fire({
+        Swal.close();
+        await showSwal({
             icon: "error",
             title: "Lỗi khôi phục phiên bản",
             text: "Không thể khôi phục phiên bản. Vui lòng thử lại.",
-            confirmButtonText: "Đồng ý",
-            confirmButtonColor: "#0d6efd",
         });
     } finally {
         loadingActions.value[version.version_id] = false;
@@ -456,33 +481,76 @@ const restoreVersion = async (version) => {
 
 // Delete version
 const deleteVersion = async (version) => {
-    if (
-        !confirm(
-            `Bạn có chắc chắn muốn xóa phiên bản #${version.version_number}?`,
-        )
-    ) {
+    const confirmResult = await showSwal({
+        icon: "warning",
+        title: "Xác nhận xóa?",
+        text: `Bạn có chắc chắn muốn xóa phiên bản v${version.version_number}?`,
+        showCancelButton: true,
+        confirmButtonText: "Xóa",
+        confirmButtonColor: "#dc3545",
+    });
+
+    if (!confirmResult.isConfirmed) {
         return;
     }
 
     loadingActions.value[version.version_id] = true;
+
+    Swal.fire({
+        title: "Đang Xóa...",
+        text: "Vui lòng chờ",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+    });
 
     try {
         const res = await axios.delete(
             `/api/documents/${props.documentId}/versions/${version.version_id}`,
         );
 
-        alert(res.data.message || "Đã xóa phiên bản thành công!");
+        if (res.data.success) {
+            await showSwal({
+                icon: "success",
+                title: "Xóa thành công",
+                text: res.data.message,
+            });
+            // Sau khi xoa, reload lai danh sach phien ban
+            await fetchVersions(versions.value.current_page);
+        } else {
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message,
+            });
+        }
 
-        // Sau khi xoa, reload lai danh sach phien ban
-        await fetchVersions(versions.value.current_page);
+        Swal.close();
     } catch (err) {
         console.error(err);
-        alert(
-            err.response?.data?.message ||
-                "Không thể xóa phiên bản này. Vui lòng thử lại.",
-        );
+        Swal.close();
+        await showSwal({
+            icon: "error",
+            title: "Lỗi",
+            text: "Không thể xóa phiên bản. Vui lòng thử lại",
+        });
     } finally {
         loadingActions.value[version.version_id] = false;
+    }
+};
+
+// Detail version
+const detailVersion = (versionId) => {
+    if (detailModal.value) {
+        detailModal.value.showModalVersion(versionId);
+    }
+};
+
+// Upload version
+const uploadVersion = () => {
+    if (uploadModal.value) {
+        uploadModal.value.showModal();
     }
 };
 
@@ -506,20 +574,6 @@ const resetFilters = () => {
     fetchVersions(1).then(() =>
         window.scrollTo({ top: 0, behavior: "smooth" }),
     );
-};
-
-// Detail version
-const detailVersion = (versionId) => {
-    if (detailModal.value) {
-        detailModal.value.showModalVersion(versionId);
-    }
-};
-
-// Upload version
-const uploadVersion = () => {
-    if (uploadModal.value) {
-        uploadModal.value.showModal();
-    }
 };
 
 onMounted(async () => {

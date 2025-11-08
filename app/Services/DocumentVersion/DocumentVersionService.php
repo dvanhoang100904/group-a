@@ -226,7 +226,6 @@ class DocumentVersionService
 
             // Neu la phien ban hien tai thi bo qua cap nhat
             if ($version->is_current_version) {
-                DB::commit();
                 return $version;
             }
 
@@ -234,7 +233,6 @@ class DocumentVersionService
             $currentVersions = DocumentVersion::where('document_id', $documentId)
                 ->where('is_current_version', true)
                 ->get();
-
 
             foreach ($currentVersions as $currentVersion) {
                 $currentVersion->is_current_version = false;
@@ -275,31 +273,29 @@ class DocumentVersionService
      */
     public function deleteVersion(int $documentId, int $versionId)
     {
-        DB::beginTransaction();
+        $version = DocumentVersion::query()
+            ->select([
+                'version_id',
+                'version_number',
+                'document_id',
+                'is_current_version'
+            ])
+            ->with('document:document_id')
+            ->where('document_id', $documentId)
+            ->where('version_id', $versionId)
+            ->first();
+
+        if (!$version) {
+            return null;
+        }
+
+        // Khong cho xoa phien ban hien tai
+        if ($version->is_current_version) {
+            return null;
+        }
+
         try {
-            $version = DocumentVersion::query()
-                ->with('document:document_id')
-                ->byDocument($documentId)
-                ->byVersion($versionId)
-                ->select(['version_id', 'file_path', 'is_current_version', 'version_number', 'document_id'])
-                ->first();
-
-            if (!$version) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Phiên bản không tồn tại hoặc đã bị xó.',
-                ], 404);
-            }
-
-            // Khong cho xoa phien ban hien tai
-            if (!$version->isDeletable()) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => "Không thể xóa phiên bản hiện tại (#{$version->version_number}).",
-                ]);
-            }
+            DB::beginTransaction();
 
             // Xoa file neu ton tai
             if ($version->file_path && Storage::disk('public')->exists($version->file_path)) {
@@ -311,31 +307,27 @@ class DocumentVersionService
 
             // Ghi log
             try {
-                $version->document?->activities()->create([
+                $activity = new Activity([
                     'action' => 'delete',
-                    'user_id' => Auth::id() ?? 1,
+                    'user_id' => auth()->id() ?? 1,
                     'action_detail' => json_encode([
                         'message' => "Đã xóa phiên bản #{$version->version_number}.",
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
-            } catch (\Throwable $th) {
-                report($th);
+                $version->document?->activities()->save($activity);
+            } catch (Exception $e) {
+                DB::rollBack();
+                Log::error('Lỗi Xóa phiên bản tài liệu: ' . $e->getMessage());
+                return null;
             }
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => "Phiên bản #{$version->version_number} đã được xóa thành công.",
-            ]);
-        } catch (\Throwable $th) {
+            return $version;
+        } catch (Exception $e) {
             DB::rollBack();
-            report($th);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra khi xóa phiên bản.',
-            ], 500);
+            Log::error('Lỗi Xóa phiên bản tài liệu: ' . $e->getMessage());
+            return null;
         }
     }
 }

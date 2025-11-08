@@ -62,10 +62,6 @@
                         <p class="mt-2">Đang tải preview...</p>
                     </div>
 
-                    <div v-else-if="error" class="text-center py-5 text-danger">
-                        <p>{{ error }}</p>
-                    </div>
-
                     <div v-else class="iframe-wrapper">
                         <iframe
                             ref="iframeRef"
@@ -109,8 +105,6 @@ let bsModal = null;
 
 const loading = ref(false);
 
-const error = ref(null);
-
 const previewUrl = ref(null);
 
 const zoomLevel = ref(1);
@@ -132,8 +126,30 @@ const hideModal = () => {
 const closeModal = () => {
     hideModal();
     previewUrl.value = null;
-    error.value = null;
     zoomLevel.value = 1;
+};
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
 };
 
 const showPreviewVersion = async (versionId) => {
@@ -141,7 +157,6 @@ const showPreviewVersion = async (versionId) => {
 
     showModal();
     loading.value = true;
-    error.value = null;
     previewUrl.value = null;
 
     try {
@@ -153,16 +168,16 @@ const showPreviewVersion = async (versionId) => {
             nextTick(() => resetZoom());
         } else {
             hideModal();
-            await Swal.fire({
+            await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể tải preview",
+                text: res.data.message || "Không thể tải preview.",
             });
         }
     } catch (e) {
         console.error(e);
         hideModal();
-        await Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
             text: "Đã xảy ra lỗi khi tải preview. Vui lòng thử lại!",
