@@ -3,9 +3,12 @@
 namespace App\Services\DocumentVersion;
 
 use App\Models\Document;
+use App\Models\DocumentVersion;
+use Exception;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use PHPUnit\Event\Code\Throwable;
 use Illuminate\Support\Str;
 
 class DocumentVersionUploadService
@@ -20,45 +23,54 @@ class DocumentVersionUploadService
     /**
      * Upload file va tao phien ban moi cho tai lieu
      */
-    public function upload(Document $document, $file, ?string $changeNote = null, ?int $userId = null)
+    public function uploadVersion(Int $documentId, UploadedFile $file, array $data, ?int $userId = null): ?DocumentVersion
     {
-        DB::beginTransaction();
+        $document = Document::find($documentId);
+
+        if (!$document) {
+            return null;
+        }
 
         try {
-            // Tao ten file
-            $fileName = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
-                . '.' . $file->getClientOriginalExtension();
+            DB::beginTransaction();
 
-            $path = $file->storeAs('docs', $fileName, 'public');
+            // 1. Tao ten file duy nhat 
+            $fileName = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
 
-            // Tao version moi 
-            $version = $document->versions()->create([
+            // 2. Luu file vao storage/app/public/docs
+            $filePath = $file->storeAs('docs', $fileName, 'public');
+
+            // 3. Tao phien ban moi 
+            $version = new DocumentVersion([
+                'document_id' => $document->document_id,
                 'version_number' => $document->getNextVersionNumber(),
-                'file_path' => $path,
+                'file_path' => $filePath,
                 'file_size' => $file->getSize(),
                 'mime_type' => $file->getMimeType(),
-                'change_note' => $changeNote,
+                'change_note' => $data['change_note'] ?? null,
                 'is_current_version' => true,
                 'user_id' => $userId ?? auth()->id() ?? 1,
             ]);
+            $version->save();
 
-            // Cap nhat cac version khac ve khong current
+            // 4. Danh dau phien ban nay la hien tai
             $document->setCurrentVersion($version);
 
-            // Sinh preview file
+            // 5. Sinh preview file
             $this->previewService->getOrGeneratePreview($version->version_id, $document->document_id);
 
             DB::commit();
 
             return $version;
-        } catch (Throwable $e) {
+        } catch (Exception $e) {
             DB::rollBack();
+            Log::error('Lỗi upload phiên bản tài liệu: ' . $e->getMessage());
 
-            if (isset($path) && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+            if (isset($filePath) && Storage::disk('public')->exists($filePath)) {
+                Storage::disk('public')->delete($filePath);
             }
 
-            throw $e;
+            return null;
         }
     }
 }

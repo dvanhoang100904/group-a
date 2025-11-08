@@ -71,7 +71,7 @@
                                                     <small class="text-muted">
                                                         {{
                                                             formatFileSize(
-                                                                selectedFile.size
+                                                                selectedFile.size,
                                                             )
                                                         }}
                                                     </small>
@@ -198,14 +198,20 @@ const emit = defineEmits(["uploaded"]);
 // Ref modal chinh
 const modalRef = ref(null);
 
-// Instance bootstrap modal
 let bsModal = null;
 
 const changeNote = ref("");
+
 const loading = ref(false);
+
 const error = ref(null);
+
 const success = ref(null);
+
+const fileInput = ref(null);
+
 const progress = ref(0);
+
 const selectedFile = ref(null);
 
 // Hien thi modal
@@ -289,11 +295,18 @@ const submitUpload = async () => {
                 onUploadProgress: (e) => {
                     progress.value = Math.round((e.loaded / e.total) * 100);
                 },
-            }
+            },
         );
 
         if (res.data.success) {
             success.value = res.data.message;
+
+            Swal.fire({
+                icon: "success",
+                title: "Upload thành công",
+                text: res.data.message,
+                timer: 2000,
+            });
 
             emit("uploaded", res.data.data);
 
@@ -317,6 +330,7 @@ const submitUpload = async () => {
 
 defineExpose({ showModal, hideModal, closeModal });
 </script>
+
 <style scoped>
 .border-dashed {
     border: 2px dashed #dee2e6;
