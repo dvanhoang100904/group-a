@@ -21,7 +21,7 @@ Route::get('/documents/{documentId}/versions/compare', [DocumentVersionCompareCo
 Route::get('/documents/{documentId}/versions/users', [DocumentVersionController::class, 'listUsers']);
 Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'show']);
 Route::get('/documents/{documentId}/versions/{versionId}/preview', [DocumentVersionController::class, 'preview']);
-Route::post('/documents/{id}/versions', [DocumentVersionActionController::class, 'store']);
+Route::post('/documents/{documentId}/versions', [DocumentVersionController::class, 'store']);
 Route::get('/documents/{documentId}/versions/{versionId}/download', [DocumentVersionActionController::class, 'download']);
 Route::post('/documents/{documentId}/versions/{versionId}/restore', [DocumentVersionActionController::class, 'restore']);
 Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionActionController::class, 'destroy']);
