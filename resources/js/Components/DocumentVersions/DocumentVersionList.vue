@@ -365,7 +365,7 @@ const downloadVersion = async (version) => {
     loadingActions.value[version.version_id] = true;
 
     Swal.fire({
-        title: "Đang xem...",
+        title: "Đang tải xuống...",
         text: "Vui lòng chờ",
         allowOutsideClick: false,
         didOpen: () => {
