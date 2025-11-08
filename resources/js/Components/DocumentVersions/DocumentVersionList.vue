@@ -18,7 +18,7 @@
                 <!-- Upload -->
                 <button
                     class="btn btn-sm btn-primary px-3"
-                    @click="uploadModal.showModal()"
+                    @click="uploadVersion()"
                 >
                     <i class="bi bi-upload me-1"></i> Tải lên
                 </button>
@@ -446,6 +446,13 @@ const resetFilters = () => {
 const detailVersion = (versionId) => {
     if (detailModal.value) {
         detailModal.value.showModalVersion(versionId);
+    }
+};
+
+// Upload version
+const uploadVersion = () => {
+    if (uploadModal.value) {
+        uploadModal.value.showModal();
     }
 };
 

@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DocumentVersion\DocumentVersionFilterRequest;
+use App\Http\Requests\DocumentVersion\UploadDocumentVersionRequest;
 use App\Services\DocumentVersion\DocumentVersionPreviewService;
 use App\Services\DocumentVersion\DocumentVersionService;
+use App\Services\DocumentVersion\DocumentVersionUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,11 +15,13 @@ class DocumentVersionController extends Controller
 {
     protected DocumentVersionService $documentVersionService;
     protected DocumentVersionPreviewService $previewService;
+    protected DocumentVersionUploadService $uploadService;
 
-    public function __construct(DocumentVersionService $documentVersionService, DocumentVersionPreviewService $previewService)
+    public function __construct(DocumentVersionService $documentVersionService, DocumentVersionPreviewService $previewService, DocumentVersionUploadService $uploadService)
     {
         $this->documentVersionService = $documentVersionService;
         $this->previewService = $previewService;
+        $this->uploadService = $uploadService;
     }
 
     /**
@@ -128,6 +132,42 @@ class DocumentVersionController extends Controller
             'success' => true,
             'data' => $data,
             'message' => 'Mở preview phiên bản tài liệu'
+        ]);
+    }
+
+    /**
+     * Upload tai lieu phen ban moi
+     */
+    public function store(UploadDocumentVersionRequest $request, $documentId)
+    {
+        $document = $this->documentVersionService->getDocumentById($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
+        }
+
+        $file = $request->file('file');
+
+        $data = $request->only([
+            'change_note'
+        ]);
+
+        $version = $this->uploadService->uploadVersion($documentId, $file, $data);
+
+        if (!$version) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra vui lòng thử lại .'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tải lên phiên bản mới thành công',
+            'data' => $version
         ]);
     }
 }
