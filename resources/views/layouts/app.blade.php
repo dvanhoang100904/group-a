@@ -60,10 +60,9 @@
             @endif
 
             @yield('content')
-
-            {{-- Footer --}}
-            @include('layouts.footer')
         </div>
+        {{-- Footer --}}
+        @include('layouts.footer')
     </main>
 
     {{-- Bootstrap JS --}}
