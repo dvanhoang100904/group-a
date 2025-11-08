@@ -13,9 +13,9 @@
             </li>
             <li class="breadcrumb-item">
                 {{-- <a class="text-dark text-decoration-none"
-                        href="{{ route('documents.show', ['id' => $document->document_id]) }}">
-                        </i>{{ $document->title }}
-                    </a> --}}
+                    href="{{ route('documents.show', ['id' => $document->document_id]) }}">
+                    </i>{{ $document->title }}
+                </a> --}}
             </li>
             <li class="breadcrumb-item active" aria-current="page">
                 Phiên bản tài liệu
@@ -25,7 +25,7 @@
 
     <!-- header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0 fw-bold text-primary fs-4">
+        <h3 class="mb-0 fw-bold text-primary fs-5">
             <i class="bi bi-clock-history me-2"></i>
             Phiên bản tài liệu
         </h3>
@@ -34,16 +34,12 @@
     {{-- detail document --}}
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body">
-            @if ($document)
-                <h5 class="fw-bold mb-2">{{ $document->title }}</h5>
-                <p class="text-muted small mb-0">
-                    Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
-                    Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong> |
-                    Số phiên bản: <strong>{{ $document->versions_count }}</strong>
-                </p>
-            @else
-                <p class="text-danger">Tài liệu không tồn tại</p>
-            @endif
+            <h5 class="fw-bold mb-2">{{ $document->title }}</h5>
+            <p class="text-muted small mb-0">
+                Môn học: <strong>{{ $subject->name ?? 'Chưa có' }}</strong> |
+                Khoa: <strong>{{ $department->name ?? 'Chưa có' }}</strong> |
+                Số phiên bản: <strong>{{ $document->versions_count }}</strong>
+            </p>
         </div>
     </div>
 

@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class DocumentVersion extends Model
 {
@@ -104,31 +107,35 @@ class DocumentVersion extends Model
     }
 
     /** Preview moi nhat con hieu luc */
-    public function latestPreview()
+    public function latestPreview(): HasOne
     {
-        return $this->hasOne(DocumentPreview::class, 'version_id')
+        return $this->hasOne(DocumentPreview::class, 'version_id', 'version_id')
             ->select('preview_id', 'version_id', 'preview_path', 'expires_at', 'created_at')
             ->active()
             ->latestCreated();
     }
 
-    public function document()
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    public function user()
+    /** User */
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
-    public function previews()
+    /** Document Previews */
+    public function previews(): HasMany
     {
-        return $this->hasMany(DocumentPreview::class, 'version_id');
+        return $this->hasMany(DocumentPreview::class, 'version_id', 'version_id');
     }
 
-    public function activities()
+    /** Activities */
+    public function activities(): HasMany
     {
-        return $this->hasMany(Activity::class, 'version_id');
+        return $this->hasMany(Activity::class, 'version_id', 'version_id');
     }
 }
