@@ -17,7 +17,7 @@ class DocumentAccessController extends Controller
     /**
      * Hien thi trang phan quyen va chia se tai lieu
      */
-    public function index($documentId)
+    public function index(int $documentId)
     {
         $document = $this->documentAccessService->getDocumentWithRelations($documentId);
 

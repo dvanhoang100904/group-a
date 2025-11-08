@@ -55,7 +55,7 @@ class DocumentAccessController extends Controller
         ], 500);
     }
 
-    public function users($documentId)
+    public function users(int $documentId)
     {
         $document = $this->documentAccessService->getDocument($documentId);
 
@@ -82,7 +82,7 @@ class DocumentAccessController extends Controller
         ], 500);
     }
 
-    public function roles($documentId)
+    public function roles(int $documentId)
     {
         $document = $this->documentAccessService->getDocument($documentId);
 

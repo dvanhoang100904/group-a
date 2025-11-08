@@ -15,9 +15,10 @@
                     <i class="bi bi-list-ul me-1"></i>
                     Danh sách phiên bản
                 </span>
+                <!-- Upload -->
                 <button
                     class="btn btn-sm btn-primary px-3"
-                    @click="uploadModal.showModal()"
+                    @click="uploadVersion()"
                 >
                     <i class="bi bi-upload me-1"></i> Tải lên
                 </button>
@@ -25,7 +26,7 @@
 
             <div class="card-body">
                 <!-- Filter search -->
-                <VersionFilter
+                <DocumentVersionFilter
                     v-model="filters"
                     :users="users"
                     @filter="fetchVersions(1)"
@@ -43,34 +44,31 @@
                 <div v-else class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-primary">
-                            <tr>
-                                <th class="text-center">#</th>
-                                <th class="text-center">Phiên bản</th>
-                                <th class="text-center">Người cập nhật</th>
-                                <th class="text-center">Ngày cập nhật</th>
-                                <th class="text-center">Trạng thái</th>
-                                <th class="text-center">Hành động</th>
+                            <tr class="text-center">
+                                <th>STT</th>
+                                <th>Phiên bản</th>
+                                <th>Người cập nhật</th>
+                                <th>Ngày cập nhật</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
                             </tr>
                         </thead>
 
                         <tbody>
                             <tr
+                                class="text-center"
                                 v-for="(version, index) in versions.data"
                                 :key="version.version_id"
                             >
-                                <td class="text-center">{{ index + 1 }}</td>
-                                <td class="text-center">
-                                    <strong
-                                        >v{{ version.version_number }}</strong
-                                    >
-                                </td>
-                                <td class="text-center">
+                                <td>{{ index + 1 }}</td>
+                                <td>v{{ version.version_number }}</td>
+                                <td>
                                     {{ version.user?.name || "Không rõ" }}
                                 </td>
-                                <td class="text-center">
+                                <td>
                                     {{ formatDate(version.created_at) }}
                                 </td>
-                                <td class="text-center">
+                                <td>
                                     <span
                                         v-if="version.is_current_version"
                                         class="badge bg-success-subtle text-success"
@@ -94,7 +92,7 @@
                                         class="btn border-0 text-primary"
                                         title="Xem chi tiết"
                                         @click="
-                                            versionIdToShow = version.version_id
+                                            detailVersion(version.version_id)
                                         "
                                     >
                                         <i class="bi bi-eye"></i>
@@ -137,7 +135,7 @@
                     </table>
 
                     <!-- Pagination -->
-                    <VersionPagination
+                    <DocumentVersionPagination
                         :current-page="versions.current_page"
                         :last-page="versions.last_page"
                         :max-pages-to-show="7"
@@ -145,25 +143,24 @@
                     />
                 </div>
 
-                <!-- Modal detail version-->
-                <VersionDetailModal
+                <!-- Version detail modal-->
+                <DocumentVersionDetailModal
+                    ref="detailModal"
                     :document-id="documentId"
-                    :version-id="versionIdToShow"
                     :format-file-size="formatFileSize"
                     :format-mime-type="formatMimeType"
                     :format-date="formatDate"
-                    @update:versionId="versionIdToShow = $event"
                 />
 
-                <!-- Modal upload version -->
-                <VersionUploadModal
+                <!-- Version upload modal -->
+                <DocumentVersionUploadModal
                     ref="uploadModal"
                     :document-id="documentId"
                     :format-file-size="formatFileSize"
                     @uploaded="fetchVersions"
                 />
 
-                <!-- Compare version -->
+                <!-- Version Compare -->
                 <DocumentVersionCompare
                     :document-id="props.documentId"
                     :versions="versions.data"
@@ -177,18 +174,19 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import axios from "axios";
-import VersionDetailModal from "./VersionDetailModal.vue";
-import VersionUploadModal from "./VersionUploadModal.vue";
+import Swal from "sweetalert2";
+import DocumentVersionDetailModal from "./DocumentVersionDetailModal.vue";
+import DocumentVersionUploadModal from "./DocumentVersionUploadModal.vue";
 import DocumentVersionCompare from "./DocumentVersionCompare.vue";
-import VersionPagination from "./VersionPagination.vue";
-import VersionFilter from "./VersionFilter.vue";
+import DocumentVersionPagination from "./DocumentVersionPagination.vue";
+import DocumentVersionFilter from "./DocumentVersionFilter.vue";
 
-// Nhan props
+// Props
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
 });
 
-// Luu danh sach cac phien ban
+// Versions
 const versions = ref({
     data: [],
     current_page: 1,
@@ -196,16 +194,16 @@ const versions = ref({
     per_page: 5,
 });
 
-// List users
+// Users
 const users = ref([]);
 
-// Trang thai loading
+// Loading
 const loading = ref(false);
 
 const loadingActions = ref({});
 
 // Detail
-const versionIdToShow = ref(null);
+const detailModal = ref(null);
 
 // Upload
 const uploadModal = ref(null);
@@ -218,6 +216,29 @@ const filters = ref({
     date_from: "",
     date_to: "",
 });
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
+};
 
 // Format date
 const formatDate = (dateStr) => new Date(dateStr).toLocaleString("vi-VN");
@@ -245,11 +266,11 @@ const formatMimeType = (mime) => {
     return mime;
 };
 
-// List uploaders
-const fetchUploaders = async () => {
+// Fetch users
+const fetchUsers = async () => {
     try {
         const res = await axios.get(
-            `/api/documents/${props.documentId}/versions/uploaders`,
+            `/api/documents/${props.documentId}/versions/users`,
         );
         if (res.data.success) {
             users.value = res.data.data;
@@ -259,9 +280,8 @@ const fetchUploaders = async () => {
     }
 };
 
-// List document versions
+// Fetch document versions
 const fetchVersions = async (page = 1) => {
-    // Bat loading khi bat dau goi api
     loading.value = true;
     try {
         const params = Object.fromEntries(
@@ -273,24 +293,25 @@ const fetchVersions = async (page = 1) => {
                     filters.value.status === ""
                         ? undefined
                         : filters.value.status === true ||
-                          filters.value.status === "true",
+                            filters.value.status === "true"
+                          ? 1
+                          : 0,
                 from_date: filters.value.date_from,
                 to_date: filters.value.date_to,
             }).filter(([_, v]) => v !== undefined && v !== ""),
         );
 
-        // Goi api lay danh sach phien ban cua tai lieu theo id
         const res = await axios.get(
             `/api/documents/${props.documentId}/versions`,
             { params },
         );
-        // Luu du lieu tra ve vao state versions
+
         if (res.data.success) {
             versions.value = {
-                data: res.data.data.data || [],
-                current_page: res.data.data.current_page || 1,
-                last_page: res.data.data.last_page || 1,
-                per_page: res.data.data.per_page || 5,
+                data: res.data.data || [],
+                current_page: res.data.pagination?.current_page || 1,
+                last_page: res.data.pagination?.last_page || 1,
+                per_page: res.data.pagination?.per_page || 5,
             };
         } else {
             versions.value = {
@@ -299,13 +320,20 @@ const fetchVersions = async (page = 1) => {
                 last_page: 1,
                 per_page: 5,
             };
-            alert(res.data?.message ?? "Không thể tải danh sách phiên bản");
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data?.message ?? "Không thể tải danh sách phiên bản",
+            });
         }
     } catch (err) {
         console.error(err);
-        alert("Lỗi hệ thống, vui lòng thử lại!");
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Vui lòng thử lại!",
+        });
     } finally {
-        // Tat loading
         loading.value = false;
     }
 };
@@ -313,19 +341,37 @@ const fetchVersions = async (page = 1) => {
 // Download version
 const downloadVersion = async (version) => {
     if (!version.file_path) {
-        alert("Không tìm thấy file để tải.");
+        await showSwal({
+            icon: "error",
+            title: "Lỗi",
+            text: "Không tìm thấy file để tải. Vui lòng thử lại.",
+        });
         return;
     }
 
-    if (
-        !confirm(
-            `Bạn có chắc muốn tải xuống phiên bản #${version.version_number}?`,
-        )
-    ) {
+    const confirmResult = await showSwal({
+        icon: "warning",
+        title: `Xác nhận tải xuống?`,
+        text: `Bạn có chắc chắn muốn tải xuống phiên bản v${version.version_number}?`,
+        showCancelButton: true,
+        confirmButtonText: "Tải xuống",
+        confirmButtonColor: "#0d6efd",
+    });
+
+    if (!confirmResult.isConfirmed) {
         return;
     }
 
     loadingActions.value[version.version_id] = true;
+
+    Swal.fire({
+        title: "Đang tải xuống...",
+        text: "Vui lòng chờ",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+    });
 
     try {
         const res = await axios.get(
@@ -348,9 +394,22 @@ const downloadVersion = async (version) => {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
+
+        Swal.close();
+
+        await showSwal({
+            icon: "success",
+            title: "Tải xuống thành công",
+            text: `Phiên bản #${version.version_number} đã được tải xuống.`,
+        });
     } catch (err) {
         console.error("Lỗi tải file:", err);
-        alert("Không thể tải file. Kiểm tra console để biết lỗi chi tiết.");
+        Swal.close();
+        await showSwal({
+            icon: "error",
+            title: "Lỗi tải file",
+            text: "Không thể tải file. Vui lòng thử lại.",
+        });
     } finally {
         loadingActions.value[version.version_id] = false;
     }
@@ -358,29 +417,63 @@ const downloadVersion = async (version) => {
 
 // Restore version
 const restoreVersion = async (version) => {
-    if (
-        !confirm(
-            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number}?`,
-        )
-    ) {
+    const confirmResult = await showSwal({
+        icon: "warning",
+        title: `Xác nhận khôi phục?`,
+        text: `Bạn có chắc chắn muốn khôi phục phiên bản v${version.version_number}?`,
+        showCancelButton: true,
+        confirmButtonText: "Khôi phục",
+        confirmButtonColor: "#0d6efd",
+    });
+
+    if (!confirmResult.isConfirmed) {
         return;
     }
 
     loadingActions.value[version.version_id] = true;
 
+    Swal.fire({
+        title: "Đang khôi phục...",
+        text: "Vui lòng chờ",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+    });
+
     try {
         const res = await axios.post(
             `/api/documents/${props.documentId}/versions/${version.version_id}/restore`,
         );
-        alert(res.data.message || "Đã khôi phục thành công!");
-        // Sau khi khoi phuc reload lai danh sach
-        await fetchVersions(versions.value.current_page);
+
+        if (res.data.success) {
+            await showSwal({
+                icon: "success",
+                title: "Khôi phục thành công",
+                text: res.data.message,
+            });
+
+            // Sau khi khoi phuc reload lai danh sach
+            await fetchVersions(versions.value.current_page);
+        } else {
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text:
+                    res.data.message ||
+                    "Không thể khôi phục phiên bản. Vui lòng thử lại.",
+            });
+        }
+
+        Swal.close();
     } catch (err) {
         console.log(err);
-        alert(
-            err.response?.data?.message ||
-                "Không thể khôi phục phiên bản này. Vui lòng thử lại.",
-        );
+        Swal.close();
+        await showSwal({
+            icon: "error",
+            title: "Lỗi khôi phục phiên bản",
+            text: "Không thể khôi phục phiên bản. Vui lòng thử lại.",
+        });
     } finally {
         loadingActions.value[version.version_id] = false;
     }
@@ -388,33 +481,76 @@ const restoreVersion = async (version) => {
 
 // Delete version
 const deleteVersion = async (version) => {
-    if (
-        !confirm(
-            `Bạn có chắc chắn muốn xóa phiên bản #${version.version_number}?`,
-        )
-    ) {
+    const confirmResult = await showSwal({
+        icon: "warning",
+        title: "Xác nhận xóa?",
+        text: `Bạn có chắc chắn muốn xóa phiên bản v${version.version_number}?`,
+        showCancelButton: true,
+        confirmButtonText: "Xóa",
+        confirmButtonColor: "#dc3545",
+    });
+
+    if (!confirmResult.isConfirmed) {
         return;
     }
 
     loadingActions.value[version.version_id] = true;
+
+    Swal.fire({
+        title: "Đang Xóa...",
+        text: "Vui lòng chờ",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+    });
 
     try {
         const res = await axios.delete(
             `/api/documents/${props.documentId}/versions/${version.version_id}`,
         );
 
-        alert(res.data.message || "Đã xóa phiên bản thành công!");
+        if (res.data.success) {
+            await showSwal({
+                icon: "success",
+                title: "Xóa thành công",
+                text: res.data.message,
+            });
+            // Sau khi xoa, reload lai danh sach phien ban
+            await fetchVersions(versions.value.current_page);
+        } else {
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message,
+            });
+        }
 
-        // Sau khi xoa, reload lai danh sach phien ban
-        await fetchVersions(versions.value.current_page);
+        Swal.close();
     } catch (err) {
         console.error(err);
-        alert(
-            err.response?.data?.message ||
-                "Không thể xóa phiên bản này. Vui lòng thử lại.",
-        );
+        Swal.close();
+        await showSwal({
+            icon: "error",
+            title: "Lỗi",
+            text: "Không thể xóa phiên bản. Vui lòng thử lại",
+        });
     } finally {
         loadingActions.value[version.version_id] = false;
+    }
+};
+
+// Detail version
+const detailVersion = (versionId) => {
+    if (detailModal.value) {
+        detailModal.value.showModalVersion(versionId);
+    }
+};
+
+// Upload version
+const uploadVersion = () => {
+    if (uploadModal.value) {
+        uploadModal.value.showModal();
     }
 };
 
@@ -442,7 +578,7 @@ const resetFilters = () => {
 
 onMounted(async () => {
     loading.value = true;
-    await Promise.all([fetchVersions(), fetchUploaders()]);
+    await Promise.all([fetchVersions(), fetchUsers()]);
     loading.value = false;
 });
 
@@ -450,7 +586,7 @@ watch(
     () => props.documentId,
     async () => {
         loading.value = true;
-        await Promise.all([fetchVersions(), fetchUploaders()]);
+        await Promise.all([fetchVersions(), fetchUsers()]);
         loading.value = false;
     },
 );

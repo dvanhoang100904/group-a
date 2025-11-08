@@ -2,14 +2,21 @@
 
 namespace App\Services\DocumentVersion;
 
+use App\Models\Document;
 use App\Models\DocumentVersion;
 
 class DocumentVersionCompareService
 {
     public function compareVersions(int $documentId, int $versionAId, int $versionBId): ?array
     {
-        $versionA = DocumentVersion::byDocument($documentId)->find($versionAId);
-        $versionB = DocumentVersion::byDocument($documentId)->find($versionBId);
+        $document = Document::find($documentId);
+
+        if (!$document) {
+            return null;
+        }
+
+        $versionA = DocumentVersion::where('document_id', $documentId)->find($versionAId);
+        $versionB = DocumentVersion::where('document_id', $documentId)->find($versionBId);
 
         if (!$versionA || !$versionB) {
             return null;
