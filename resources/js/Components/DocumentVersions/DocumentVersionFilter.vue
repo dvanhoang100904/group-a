@@ -71,7 +71,7 @@
                 class="btn btn-sm btn-secondary"
                 @click="handleReset"
             >
-                <i class="bi bi-x-circle me-1"></i> Reset
+                <i class="bi bi-x-circle me-1"></i> Đặt lại
             </button>
         </div>
     </form>
@@ -98,7 +98,7 @@ watch(localFilters, (newVal) => emit("update:modelValue", { ...newVal }), {
 watch(
     () => props.modelValue,
     (newVal) => Object.assign(localFilters, newVal),
-    { deep: true }
+    { deep: true },
 );
 
 // Reset local filters

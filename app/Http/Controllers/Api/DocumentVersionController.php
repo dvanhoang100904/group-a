@@ -21,17 +21,17 @@ class DocumentVersionController extends Controller
     }
 
     /**
-     * Hien thi danh sach phien ban tai lieu co phan trang
+     * Hien thi danh sach phien ban tai lieu co loc tim kiem phan trang
      */
     public function index(DocumentVersionFilterRequest $request, int $documentId): JsonResponse
     {
-        $document = $this->documentVersionService->getDocument($documentId);
+        $document = $this->documentVersionService->getDocumentById($documentId);
 
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
         }
 
         $filters = $request->only([
@@ -44,26 +44,25 @@ class DocumentVersionController extends Controller
 
         $data = $this->documentVersionService->getDocumentVersionsHasPaginated($documentId, $filters);
 
-        if ($data) {
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-                'message' => 'Danh sách phiên bản tải thành công'
-            ]);
-        }
-
         return response()->json([
-            'success' => false,
-            'message' => 'Tài liệu không tồn tại'
-        ], 404);
+            'success' => true,
+            'data' => $data->items(),
+            'pagination' => [
+                'total' => $data->total(),
+                'per_page' => $data->perPage(),
+                'current_page' => $data->currentPage(),
+                'last_page' => $data->lastPage(),
+            ],
+            'message' => $data->isEmpty() ? 'Chưa có phiên bản nào' : 'Danh sách phiên bản tải thành công',
+        ]);
     }
 
     /**
-     * Hiển thị danh sách nguoi dung
+     * Hien thi danh sach nguoi dung de loc phien ban tai lieu
      */
-    public function uploaders($documentId)
+    public function listUsers($documentId)
     {
-        $users = $this->documentVersionService->getUploaders($documentId);
+        $users = $this->documentVersionService->getUsersForDocumentVersion($documentId);
 
         return response()->json([
             'success' => true,
@@ -77,29 +76,29 @@ class DocumentVersionController extends Controller
      */
     public function show(int $documentId, int $versionId)
     {
-        $document = $this->documentVersionService->getDocument($documentId);
+        $document = $this->documentVersionService->getDocumentById($documentId);
 
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
         }
 
         $data = $this->documentVersionService->getDocumentVersion($documentId, $versionId);
 
-        if ($data) {
+        if (!$data) {
             return response()->json([
-                'success' => true,
-                'data' => $data,
-                'message' => 'phiên bản tải thành công'
+                'success' => false,
+                'message' => 'Phiên bản tài liệu không tồn tại. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Phiên bản không tồn tại'
-        ], 404);
+            'success' => true,
+            'data' => $data,
+            'message' => 'Thông tin chi tiết phiên bản tài liệu'
+        ]);
     }
 
     /**
@@ -107,28 +106,28 @@ class DocumentVersionController extends Controller
      */
     public function preview(int $documentId, int $versionId)
     {
-        $document = $this->documentVersionService->getDocument($documentId);
+        $document = $this->documentVersionService->getDocumentById($documentId);
 
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
         }
 
         $data = $this->previewService->getOrGeneratePreview($versionId, $documentId);
 
-        if ($data) {
+        if (!$data) {
             return response()->json([
-                'success' => true,
-                'data' => $data,
-                'message' => 'tạo preview thành công'
+                'success' => false,
+                'message' => 'Phiên bản tài liệu không tồn tại. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Phiên bản không tồn tại'
-        ], 404);
+            'success' => true,
+            'data' => $data,
+            'message' => 'Mở preview phiên bản tài liệu'
+        ]);
     }
 }

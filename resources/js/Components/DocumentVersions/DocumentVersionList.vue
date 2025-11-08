@@ -15,6 +15,7 @@
                     <i class="bi bi-list-ul me-1"></i>
                     Danh sách phiên bản
                 </span>
+                <!-- Upload -->
                 <button
                     class="btn btn-sm btn-primary px-3"
                     @click="uploadModal.showModal()"
@@ -43,37 +44,31 @@
                 <div v-else class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-primary">
-                            <tr>
-                                <th class="text-center">#</th>
-                                <th class="text-center">Phiên bản</th>
-                                <th class="text-center">Người cập nhật</th>
-                                <th class="text-center">Ngày cập nhật</th>
-                                <th class="text-center">Trạng thái</th>
-                                <th class="text-center">Hành động</th>
+                            <tr class="text-center">
+                                <th>STT</th>
+                                <th>Phiên bản</th>
+                                <th>Người cập nhật</th>
+                                <th>Ngày cập nhật</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
                             </tr>
                         </thead>
 
                         <tbody>
                             <tr
+                                class="text-center"
                                 v-for="(version, index) in versions.data"
                                 :key="version.version_id"
                             >
-                                <td class="text-center">{{ index + 1 }}</td>
-                                <td class="text-center">
-                                    <strong
-                                        >v{{ version.version_number }}</strong
-                                    >
-                                </td>
-                                <td class="text-center">
-                                    <i
-                                        class="bi bi-people text-primary me-1"
-                                    ></i>
+                                <td>{{ index + 1 }}</td>
+                                <td>v{{ version.version_number }}</td>
+                                <td>
                                     {{ version.user?.name || "Không rõ" }}
                                 </td>
-                                <td class="text-center">
+                                <td>
                                     {{ formatDate(version.created_at) }}
                                 </td>
-                                <td class="text-center">
+                                <td>
                                     <span
                                         v-if="version.is_current_version"
                                         class="badge bg-success-subtle text-success"
@@ -148,7 +143,7 @@
                     />
                 </div>
 
-                <!-- Modal detail version-->
+                <!-- Version detail modal-->
                 <DocumentVersionDetailModal
                     ref="detailModal"
                     :document-id="documentId"
@@ -157,7 +152,7 @@
                     :format-date="formatDate"
                 />
 
-                <!-- Modal upload version -->
+                <!-- Version upload modal -->
                 <DocumentVersionUploadModal
                     ref="uploadModal"
                     :document-id="documentId"
@@ -165,7 +160,7 @@
                     @uploaded="fetchVersions"
                 />
 
-                <!-- Compare version -->
+                <!-- Version Compare -->
                 <DocumentVersionCompare
                     :document-id="props.documentId"
                     :versions="versions.data"
@@ -186,12 +181,11 @@ import DocumentVersionCompare from "./DocumentVersionCompare.vue";
 import DocumentVersionPagination from "./DocumentVersionPagination.vue";
 import DocumentVersionFilter from "./DocumentVersionFilter.vue";
 
-// Nhan props
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
 });
 
-// Luu danh sach cac phien ban
+// Versions
 const versions = ref({
     data: [],
     current_page: 1,
@@ -199,10 +193,10 @@ const versions = ref({
     per_page: 5,
 });
 
-// List users
+// Users
 const users = ref([]);
 
-// Trang thai loading
+// Loading
 const loading = ref(false);
 
 const loadingActions = ref({});
@@ -248,11 +242,11 @@ const formatMimeType = (mime) => {
     return mime;
 };
 
-// List uploaders
-const fetchUploaders = async () => {
+// Fetch users
+const fetchUsers = async () => {
     try {
         const res = await axios.get(
-            `/api/documents/${props.documentId}/versions/uploaders`,
+            `/api/documents/${props.documentId}/versions/users`,
         );
         if (res.data.success) {
             users.value = res.data.data;
@@ -262,9 +256,8 @@ const fetchUploaders = async () => {
     }
 };
 
-// List document versions
+// Fetch document versions
 const fetchVersions = async (page = 1) => {
-    // Bat loading khi bat dau goi api
     loading.value = true;
     try {
         const params = Object.fromEntries(
@@ -282,19 +275,17 @@ const fetchVersions = async (page = 1) => {
             }).filter(([_, v]) => v !== undefined && v !== ""),
         );
 
-        // Goi api lay danh sach phien ban cua tai lieu theo id
         const res = await axios.get(
             `/api/documents/${props.documentId}/versions`,
             { params },
         );
 
-        // Luu du lieu tra ve vao state versions
         if (res.data.success) {
             versions.value = {
-                data: res.data.data.data || [],
-                current_page: res.data.data.current_page || 1,
-                last_page: res.data.data.last_page || 1,
-                per_page: res.data.data.per_page || 5,
+                data: res.data.data || [],
+                current_page: res.data.pagination?.current_page || 1,
+                last_page: res.data.pagination?.last_page || 1,
+                per_page: res.data.pagination?.per_page || 5,
             };
         } else {
             versions.value = {
@@ -317,7 +308,6 @@ const fetchVersions = async (page = 1) => {
             text: "Vui lòng thử lại!",
         });
     } finally {
-        // Tat loading
         loading.value = false;
     }
 };
@@ -461,7 +451,7 @@ const detailVersion = (versionId) => {
 
 onMounted(async () => {
     loading.value = true;
-    await Promise.all([fetchVersions(), fetchUploaders()]);
+    await Promise.all([fetchVersions(), fetchUsers()]);
     loading.value = false;
 });
 
@@ -469,7 +459,7 @@ watch(
     () => props.documentId,
     async () => {
         loading.value = true;
-        await Promise.all([fetchVersions(), fetchUploaders()]);
+        await Promise.all([fetchVersions(), fetchUsers()]);
         loading.value = false;
     },
 );
