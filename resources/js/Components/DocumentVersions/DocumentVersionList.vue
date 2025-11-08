@@ -300,6 +300,8 @@ const fetchVersions = async (page = 1) => {
                 icon: "error",
                 title: "Lỗi",
                 text: res.data?.message ?? "Không thể tải danh sách phiên bản",
+                confirmButtonText: "Đồng ý",
+                confirmButtonColor: "#0d6efd",
             });
         }
     } catch (err) {
@@ -308,6 +310,8 @@ const fetchVersions = async (page = 1) => {
             icon: "error",
             title: "Lỗi hệ thống",
             text: "Vui lòng thử lại!",
+            confirmButtonText: "Đồng ý",
+            confirmButtonColor: "#0d6efd",
         });
     } finally {
         loading.value = false;
@@ -317,15 +321,28 @@ const fetchVersions = async (page = 1) => {
 // Download version
 const downloadVersion = async (version) => {
     if (!version.file_path) {
-        alert("Không tìm thấy file để tải.");
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi",
+            text: "Không tìm thấy file để tải.",
+            confirmButtonText: "Đồng ý",
+            confirmButtonColor: "#0d6efd",
+        });
         return;
     }
 
-    if (
-        !confirm(
-            `Bạn có chắc muốn tải xuống phiên bản #${version.version_number}?`,
-        )
-    ) {
+    const confirmResult = await Swal.fire({
+        title: `Xác nhận tải xuống?`,
+        icon: "warning",
+        text: `Bạn có chắc chắn muốn tải xuống phiên bản v${version.version_number} không?.`,
+        showCancelButton: true,
+        confirmButtonText: "Tải xuống",
+        cancelButtonText: "Không",
+        confirmButtonColor: "#0d6efd",
+        cancelButtonColor: "#6c757d",
+    });
+
+    if (!confirmResult.isConfirmed) {
         return;
     }
 
@@ -352,9 +369,23 @@ const downloadVersion = async (version) => {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
+
+        Swal.fire({
+            icon: "success",
+            title: "Tải xuống thành công",
+            text: `Phiên bản #${version.version_number} đã được tải xuống.`,
+            confirmButtonText: "Đồng ý",
+            confirmButtonColor: "#0d6efd",
+        });
     } catch (err) {
         console.error("Lỗi tải file:", err);
-        alert("Không thể tải file. Kiểm tra console để biết lỗi chi tiết.");
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi tải file",
+            text: "Không thể tải file. Kiểm tra console để biết chi tiết.",
+            confirmButtonText: "Đồng ý",
+            confirmButtonColor: "#0d6efd",
+        });
     } finally {
         loadingActions.value[version.version_id] = false;
     }

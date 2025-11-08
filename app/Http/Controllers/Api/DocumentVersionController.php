@@ -160,7 +160,7 @@ class DocumentVersionController extends Controller
         if (!$version) {
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra vui lòng thử lại .'
+                'message' => 'Có lỗi xảy ra. Vui lòng thử lại .'
             ]);
         }
 
@@ -169,5 +169,65 @@ class DocumentVersionController extends Controller
             'message' => 'Tải lên phiên bản mới thành công',
             'data' => $version
         ]);
+    }
+
+    /**
+     * Tai xuong phien ban tai lieu
+     */
+    public function download($documentId, $versionId)
+    {
+        $document = $this->documentVersionService->getDocumentById($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
+        }
+
+        $version = $this->documentVersionService->downloadVersion($documentId, $versionId);
+
+        if (!$version) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra. Vui lòng thử lại.'
+            ]);
+        }
+
+        return $version;
+    }
+
+    /**
+     * Khoi phuc phien ban tai lieu
+     */
+    public function restore($documentId, $versionId)
+    {
+        $document = $this->documentVersionService->getDocumentById($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
+        }
+
+        return $this->documentVersionService->restoreVersion($documentId, $versionId);
+    }
+
+    /**
+     * Xoa phien ban tai lieu
+     */
+    public function destroy($documentId, $versionId)
+    {
+        $document = $this->documentVersionService->getDocumentById($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
+        }
+
+        return $this->documentVersionService->deleteVersion($documentId, $versionId);
     }
 }
