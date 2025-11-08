@@ -24,7 +24,7 @@ class DocumentVersionFilterRequest extends FormRequest
         return [
             'keyword' => 'nullable|string|max:255',
             'user_id' => 'nullable|integer|exists:users,user_id',
-            'status' => 'nullable|in:draft,published,archived',
+            'status' => 'nullable|boolean',
             'from_date' => 'nullable|date',
             'to_date' => 'nullable|date|after_or_equal:from_date',
         ];
