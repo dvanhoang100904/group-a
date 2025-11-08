@@ -59,14 +59,13 @@ class DocumentVersionUploadService
             ]);
             $version->save();
 
-            // 5. Danh dau phien ban nay la hien tai
-            $oldVersions = $document->versions()->where('version_id', '!=', $version->version_id)->get();
-            foreach ($oldVersions as $oldVersion) {
+            // 5. Danh dau cac phien ban cu la khong hien tai       
+            foreach ($document->versions()->where('version_id', '!=', $version->version_id)->cursor() as $oldVersion) {
                 $oldVersion->is_current_version = false;
                 $oldVersion->save();
             }
 
-            // 5. Sinh preview file
+            // 6. Sinh preview file
             $this->previewService->getOrGeneratePreview($version->version_id, $document->document_id);
 
             DB::commit();
