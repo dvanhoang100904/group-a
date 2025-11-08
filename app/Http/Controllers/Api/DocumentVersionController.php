@@ -170,7 +170,7 @@ class DocumentVersionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Tải lên phiên bản mới thành công',
+            'message' => 'Tải lên tài liệu phiên bản mới thành công',
             'data' => $version
         ]);
     }
