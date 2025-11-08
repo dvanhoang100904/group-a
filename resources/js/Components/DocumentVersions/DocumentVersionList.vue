@@ -269,7 +269,9 @@ const fetchVersions = async (page = 1) => {
                     filters.value.status === ""
                         ? undefined
                         : filters.value.status === true ||
-                          filters.value.status === "true",
+                            filters.value.status === "true"
+                          ? 1
+                          : 0,
                 from_date: filters.value.date_from,
                 to_date: filters.value.date_to,
             }).filter(([_, v]) => v !== undefined && v !== ""),
