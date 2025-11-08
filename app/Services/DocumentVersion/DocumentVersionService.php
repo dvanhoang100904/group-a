@@ -198,6 +198,78 @@ class DocumentVersionService
         }, $fileName);
     }
 
+
+    /**
+     * Khoi phuc phien ban tai lieu
+     */
+    public function restoreVersion(int $documentId, int $versionId)
+    {
+        // Lay phien ban can khoi phuc cung tai lieu 
+        $version = DocumentVersion::query()
+            ->select([
+                'version_id',
+                'version_number',
+                'document_id',
+                'is_current_version'
+            ])
+            ->with('document:document_id')
+            ->where('document_id', $documentId)
+            ->where('version_id', $versionId)
+            ->first();
+
+        if (!$version) {
+            return null;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Neu la phien ban hien tai thi bo qua cap nhat
+            if ($version->is_current_version) {
+                DB::commit();
+                return $version;
+            }
+
+            // Cap nhat chi khi co thay doi bo current cu, set current moi
+            $currentVersions = DocumentVersion::where('document_id', $documentId)
+                ->where('is_current_version', true)
+                ->get();
+
+
+            foreach ($currentVersions as $currentVersion) {
+                $currentVersion->is_current_version = false;
+                $currentVersion->save();
+            }
+
+            $version->is_current_version = true;
+            $version->save();
+
+            // Ghi log
+            try {
+                $activity = new Activity([
+                    'action' => 'restore',
+                    'user_id' => auth()->id() ?? 1,
+                    'action_detail' => json_encode([
+                        'message' => "Khôi phục phiên bản #{$version->version_number} làm phiên bản hiện tại."
+                    ], JSON_UNESCAPED_UNICODE),
+                ]);
+                $version->document?->activities()->save($activity);
+            } catch (Exception $e) {
+                DB::rollBack();
+                Log::error('Lỗi khôi phục phiên bản tài liệu: ' . $e->getMessage());
+                return null;
+            }
+
+            DB::commit();
+
+            return $version;
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi khôi phục phiên bản tài liệu: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     /**
      * Xoa phien ban tai lieu
      */
@@ -263,74 +335,6 @@ class DocumentVersionService
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi xóa phiên bản.',
-            ], 500);
-        }
-    }
-
-    /**
-     * Khoi phuc phien ban tai lieu
-     */
-    public function restoreVersion(int $documentId, int $versionId)
-    {
-        DB::beginTransaction();
-        try {
-            // Lay phien ban can khoi phuc cung tai lieu 
-            $version = DocumentVersion::query()
-                ->with('document:document_id')
-                ->byDocument($documentId)
-                ->byVersion($versionId)
-                ->select(['version_id', 'version_number', 'document_id', 'is_current_version'])
-                ->first();
-
-            if (!$version) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Phiên bản cần khôi phục không tồn tại hoặc đã bị xóa.',
-                ], 404);
-            }
-
-            // Neu la phien ban hien tai thi bo qua cap nhat
-            if ($version->is_current_version) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => true,
-                    'message' => "Phiên bản #{$version->version_number} đã là phiên bản hiện tại.",
-                ], JSON_UNESCAPED_UNICODE);
-            }
-
-            // Cap nhat chi khi co thay doi bo current cu, set current moi
-            DocumentVersion::clearCurrent($documentId);
-            $version->markAsCurrent();
-
-            // Ghi log
-            try {
-                $version->document?->activities()->create([
-                    'action' => 'restore',
-                    'user_id' => Auth::id() ?? 1,
-                    'action_detail' => json_encode([
-                        'message' => "Khôi phục phiên bản #{$version->version_number} làm phiên bản hiện tại."
-                    ], JSON_UNESCAPED_UNICODE),
-                ]);
-            } catch (\Throwable $th) {
-                // Khong lam gian doan response neu loi log
-                report($th);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => "Đã khôi phục phiên bản #{$version->version_number} thành công.",
-            ]);
-        } catch (\Throwable $th) {
-            //throw $th;
-            DB::rollBack();
-            report($th);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Có lỗi xảy ra khi khôi phục phiên bản.',
             ], 500);
         }
     }

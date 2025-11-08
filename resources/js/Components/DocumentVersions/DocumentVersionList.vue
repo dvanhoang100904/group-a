@@ -181,6 +181,7 @@ import DocumentVersionCompare from "./DocumentVersionCompare.vue";
 import DocumentVersionPagination from "./DocumentVersionPagination.vue";
 import DocumentVersionFilter from "./DocumentVersionFilter.vue";
 
+// Props
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
 });
@@ -324,7 +325,7 @@ const downloadVersion = async (version) => {
         Swal.fire({
             icon: "error",
             title: "Lỗi",
-            text: "Không tìm thấy file để tải.",
+            text: "Không tìm thấy file để tải. Vui lòng thử lại.",
             confirmButtonText: "Đồng ý",
             confirmButtonColor: "#0d6efd",
         });
@@ -382,7 +383,7 @@ const downloadVersion = async (version) => {
         Swal.fire({
             icon: "error",
             title: "Lỗi tải file",
-            text: "Không thể tải file. Kiểm tra console để biết chi tiết.",
+            text: "Không thể tải file. Vui lòng thử lại.",
             confirmButtonText: "Đồng ý",
             confirmButtonColor: "#0d6efd",
         });
@@ -393,13 +394,22 @@ const downloadVersion = async (version) => {
 
 // Restore version
 const restoreVersion = async (version) => {
-    if (
-        !confirm(
-            `Bạn có chắc muốn khôi phục phiên bản #${version.version_number}?`,
-        )
-    ) {
+    const confirmResult = await Swal.fire({
+        title: `Xác nhận khôi phục?`,
+        icon: "warning",
+        text: `Bạn có chắc chắn muốn khôi phục phiên bản v${version.version_number} không?.`,
+        showCancelButton: true,
+        confirmButtonText: "Khôi phục",
+        cancelButtonText: "Không",
+        confirmButtonColor: "#0d6efd",
+        cancelButtonColor: "#6c757d",
+    });
+
+    if (!confirmResult.isConfirmed) {
         return;
     }
+
+    loadingActions.value[version.version_id] = true;
 
     loadingActions.value[version.version_id] = true;
 
@@ -407,15 +417,38 @@ const restoreVersion = async (version) => {
         const res = await axios.post(
             `/api/documents/${props.documentId}/versions/${version.version_id}/restore`,
         );
-        alert(res.data.message || "Đã khôi phục thành công!");
+
+        if (res.data.success) {
+            Swal.fire({
+                icon: "success",
+                title: "Khôi phục thành công",
+                text: res.data.message,
+                confirmButtonText: "Đồng ý",
+                confirmButtonColor: "#0d6efd",
+            });
+        } else {
+            Swal.fire({
+                icon: "error",
+                title: "Lỗi",
+                text:
+                    res.data.message ||
+                    "Không thể khôi phục phiên bản. Vui lòng thử lại.",
+                confirmButtonText: "Đồng ý",
+                confirmButtonColor: "#0d6efd",
+            });
+        }
+
         // Sau khi khoi phuc reload lai danh sach
         await fetchVersions(versions.value.current_page);
     } catch (err) {
         console.log(err);
-        alert(
-            err.response?.data?.message ||
-                "Không thể khôi phục phiên bản này. Vui lòng thử lại.",
-        );
+        Swal.fire({
+            icon: "error",
+            title: "Lỗi khôi phục phiên bản",
+            text: "Không thể khôi phục phiên bản. Vui lòng thử lại.",
+            confirmButtonText: "Đồng ý",
+            confirmButtonColor: "#0d6efd",
+        });
     } finally {
         loadingActions.value[version.version_id] = false;
     }
