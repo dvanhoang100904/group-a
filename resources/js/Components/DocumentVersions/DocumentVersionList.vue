@@ -153,7 +153,7 @@
                         <DocumentVersionPagination
                             :current-page="versions.current_page"
                             :last-page="versions.last_page"
-                            :max-pages-to-show="7"
+                            :max-pages-to-show="5"
                             @page-changed="changePage"
                         />
                     </div>
@@ -293,6 +293,11 @@ const fetchUsers = async () => {
         }
     } catch (err) {
         console.error(err);
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Vui lòng thử lại!",
+        });
     }
 };
 

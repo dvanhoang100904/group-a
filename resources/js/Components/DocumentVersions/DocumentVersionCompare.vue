@@ -19,12 +19,12 @@
                     >
                         <option value="">Chọn phiên bản...</option>
                         <option
-                            v-for="v in versions"
-                            :key="v.version_id"
-                            :value="v.version_id"
-                            :disabled="v.version_id === versionB"
+                            v-for="version in versions"
+                            :key="version.version_id"
+                            :value="version.version_id"
+                            :disabled="version.version_id === versionB"
                         >
-                            v{{ v.version_number }}
+                            v{{ version.version_number }}
                         </option>
                     </select>
                 </div>
@@ -40,12 +40,12 @@
                     >
                         <option value="">Chọn phiên bản...</option>
                         <option
-                            v-for="v in versions"
-                            :key="v.version_id"
-                            :value="v.version_id"
-                            :disabled="v.version_id === versionA"
+                            v-for="version in versions"
+                            :key="version.version_id"
+                            :value="version.version_id"
+                            :disabled="version.version_id === versionA"
                         >
-                            v{{ v.version_number }}
+                            v{{ version.version_number }}
                         </option>
                     </select>
                 </div>
