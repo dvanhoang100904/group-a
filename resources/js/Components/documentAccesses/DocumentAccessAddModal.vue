@@ -348,7 +348,6 @@ const showSwal = ({
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
     timer,
-    showConfirmButton,
 }) => {
     return Swal.fire({
         icon,
@@ -360,7 +359,8 @@ const showSwal = ({
         cancelButtonText,
         cancelButtonColor,
         timer,
-        showConfirmButton,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
     });
 };
 
@@ -385,7 +385,6 @@ const submitAdd = async () => {
                 title: "Thêm thành công",
                 text: res.data.message,
                 timer: 2000,
-                showConfirmButton: false,
             });
 
             emit("added");

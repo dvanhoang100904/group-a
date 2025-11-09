@@ -212,7 +212,7 @@ class DocumentAccessController extends Controller
      */
     public function destroy(int $documentId, int $accessId): JsonResponse
     {
-        $document = $this->documentAccessService->getDocument($documentId);
+        $document = $this->documentAccessService->getDocumentById($documentId);
 
         if (!$document) {
             return response()->json([
@@ -221,18 +221,19 @@ class DocumentAccessController extends Controller
             ]);
         }
 
-        $data = $this->deleteService->deleteAccess($documentId, $accessId);
+        $access = $this->deleteService->deleteAccess($documentId, $accessId);
 
-        if ($data) {
+        if (!$access) {
             return response()->json([
-                'success' => true,
-                'message' => 'Xóa quyền chia sẻ thành công.',
+                'success' => false,
+                'message' => 'Không thể xóa quyền chia sẻ. Vui lòng thử lại.',
             ]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Không thể xóa quyền chia sẻ.',
-        ], 500);
+            'success' => true,
+            'message' => 'Quyền chia sẻ đã xóa thành công.',
+            'data' => $access,
+        ]);
     }
 }

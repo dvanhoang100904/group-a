@@ -177,7 +177,7 @@
                                         <button
                                             class="btn border-0 text-primary"
                                             title="Chỉnh sửa"
-                                            @click="openUpdateModal(access)"
+                                            @click="updateAccess(access)"
                                         >
                                             <i class="bi bi-pencil"></i>
                                         </button>
@@ -234,10 +234,12 @@ import DocumentAccessPagination from "./DocumentAccessPagination.vue";
 import DocumentAccessAddModal from "./DocumentAccessAddModal.vue";
 import DocumentAccessUpdateModal from "./DocumentAccessUpdateModal.vue";
 
+// Props
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
 });
 
+// Accesses
 const accesses = ref({
     data: [],
     current_page: 1,
@@ -247,13 +249,17 @@ const accesses = ref({
 
 // Loading
 const loading = ref(false);
+
+// Loading actions
 const loadingActions = ref({});
 
-// Add
+// Add modal
 const addModal = ref(null);
 
-// Edit
+// Selected access
 const selectedAccess = ref(null);
+
+// Update modal
 const updateModal = ref(null);
 
 // Users
@@ -273,7 +279,6 @@ const showSwal = ({
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
     timer,
-    showConfirmButton,
 }) => {
     return Swal.fire({
         icon,
@@ -285,7 +290,8 @@ const showSwal = ({
         cancelButtonText,
         cancelButtonColor,
         timer,
-        showConfirmButton,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
     });
 };
 
@@ -395,12 +401,6 @@ const fetchAccesses = async (page = 1) => {
     }
 };
 
-// Open update modal
-const openUpdateModal = (access) => {
-    selectedAccess.value = { ...access };
-    nextTick(() => updateModal.value.showModal());
-};
-
 // Delete access
 const deleteAccess = async (access) => {
     const confirmResult = await showSwal({
@@ -439,6 +439,7 @@ const deleteAccess = async (access) => {
                 icon: "success",
                 title: "Xóa thành công",
                 text: res.data.message,
+                timer: 2000,
             });
             await fetchAccesses(accesses.value.current_page);
         } else {
@@ -447,6 +448,11 @@ const deleteAccess = async (access) => {
                 title: "Lỗi",
                 text: res.data.message,
             });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = "/my-documents";
+                return;
+            }
         }
 
         Swal.close();
@@ -456,18 +462,24 @@ const deleteAccess = async (access) => {
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Không thể xóa phiên bản. Vui lòng thử lại",
+            text: "Có lỗi xảy ra. Vui lòng thử lại",
         });
     } finally {
         loadingActions.value[access.access_id] = false;
     }
 };
 
+// Update access
+const updateAccess = (access) => {
+    selectedAccess.value = { ...access };
+    nextTick(() => updateModal.value.showModal());
+};
+
 // Format date
 const formatDate = (dateStr) =>
     dateStr ? new Date(dateStr).toLocaleDateString("vi-VN") : "-";
 
-// Pagination
+// Change Page
 const changePage = (page) => {
     if (page < 1 || page > accesses.value.last_page) return;
     fetchAccesses(page).then(() =>
