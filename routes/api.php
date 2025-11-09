@@ -6,7 +6,6 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Api\DocumentVersionController;
 use App\Http\Controllers\Api\DocumentAccessController;
-use App\Http\Controllers\Api\DocumentAccessActionController;
 use App\Http\Controllers\Api\DocumentDetailController;
 
 // Route::get('/user', function (Request $request) {
@@ -28,9 +27,9 @@ Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionCo
 Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index']);
 Route::get('/documents/{documentId}/accesses/users', [DocumentAccessController::class, 'users']);
 Route::get('/documents/{documentId}/accesses/roles', [DocumentAccessController::class, 'roles']);
-Route::post('/documents/{documentId}/accesses', [DocumentAccessActionController::class, 'store']);
-Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'update']);
-Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'destroy']);
+Route::post('/documents/{documentId}/accesses', [DocumentAccessController::class, 'store']);
+Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'update']);
+Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'destroy']);
 
 
 // =========================
