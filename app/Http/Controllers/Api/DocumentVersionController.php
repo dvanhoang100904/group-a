@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DocumentVersion\CompareDocumentVersionRequest;
 use App\Http\Requests\DocumentVersion\DocumentVersionFilterRequest;
 use App\Http\Requests\DocumentVersion\UploadDocumentVersionRequest;
+use App\Services\DocumentVersion\DocumentVersionCompareService;
 use App\Services\DocumentVersion\DocumentVersionPreviewService;
 use App\Services\DocumentVersion\DocumentVersionService;
 use App\Services\DocumentVersion\DocumentVersionUploadService;
@@ -16,12 +18,14 @@ class DocumentVersionController extends Controller
     protected DocumentVersionService $documentVersionService;
     protected DocumentVersionPreviewService $previewService;
     protected DocumentVersionUploadService $uploadService;
+    protected DocumentVersionCompareService $compareService;
 
-    public function __construct(DocumentVersionService $documentVersionService, DocumentVersionPreviewService $previewService, DocumentVersionUploadService $uploadService)
+    public function __construct(DocumentVersionService $documentVersionService, DocumentVersionPreviewService $previewService, DocumentVersionUploadService $uploadService, DocumentVersionCompareService $compareService)
     {
         $this->documentVersionService = $documentVersionService;
         $this->previewService = $previewService;
         $this->uploadService = $uploadService;
+        $this->compareService = $compareService;
     }
 
     /**
@@ -166,7 +170,7 @@ class DocumentVersionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Tải lên phiên bản mới thành công',
+            'message' => 'Tải lên tài liệu phiên bản mới thành công',
             'data' => $version
         ]);
     }
@@ -253,6 +257,46 @@ class DocumentVersionController extends Controller
             'success' => true,
             'message' => 'Khôi phục phiên bản thành công',
             'data' => $version
+        ]);
+    }
+
+    /**
+     * So sanh hai phien ban tai lieu
+     */
+    public function compare(CompareDocumentVersionRequest $request, $documentId)
+    {
+        $document = $this->documentVersionService->getDocumentById($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+            ]);
+        }
+
+        $versionA = $request->query('version_a');
+        $versionB = $request->query('version_b');
+
+        if (!$versionA || !$versionB) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vui lòng chọn cả hai phiên bản'
+            ]);
+        }
+
+        $versions = $this->compareService->compareVersions($documentId, $versionA, $versionB);
+
+        if (!$versions) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Phiên bản không tồn tại. Vui lòng thử lại'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $versions,
+            'message' => 'So sanh hai phiên bản thành công'
         ]);
     }
 }

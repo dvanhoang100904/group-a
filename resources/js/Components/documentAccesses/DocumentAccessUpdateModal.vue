@@ -173,50 +173,53 @@ const permissions = [
 // Hien thi ten doi tuong chia se
 const targetDisplay = computed(() => {
     if (!props.access) return "—";
-    if (props.access.granted_to_type === "user") {
+
+    const { granted_to_type, granted_to_user_id, granted_to_role_id } =
+        props.access;
+
+    if (granted_to_type === "user") {
         const user = props.users.find(
-            (user) => user.user_id === props.access.granted_to_user_id,
+            (u) =>
+                u.user_id === granted_to_user_id || u.id === granted_to_user_id,
         );
         return user
             ? `Người dùng: ${user.name}`
-            : "Người dùng (không xác định)";
-    } else {
-        const role = props.roles.find(
-            (role) => role.role_id === props.access.granted_to_role_id,
-        );
-        return role ? `Vai trò: ${role.name}` : "Vai trò (không xác định)";
+            : `Người dùng (ID ${granted_to_user_id})`;
     }
-});
 
+    if (granted_to_type === "role") {
+        const role = props.roles.find(
+            (r) =>
+                r.role_id === granted_to_role_id || r.id === granted_to_role_id,
+        );
+        return role
+            ? `Vai trò: ${role.name}`
+            : `Vai trò (ID ${granted_to_role_id})`;
+    }
+
+    return "—";
+});
 const onNoExpiryChange = () => {
     if (form.value.no_expiry) {
         form.value.expiration_date = "";
     }
 };
 
-// Cap nhat quyen
+// Cap nhat form
 watch(
     () => props.access,
-    (newVal) => {
-        if (!newVal) return;
-
-        let formattedDate = "";
-        if (newVal.expiration_date) {
-            const date = new Date(newVal.expiration_date);
-            if (!isNaN(date)) {
-                formattedDate = date.toISOString().split("T")[0];
-            }
-        }
-
+    (a) => {
+        if (!a) return;
+        const date = a.expiration_date ? new Date(a.expiration_date) : null;
         form.value = {
-            expiration_date: formattedDate,
-            no_expiry: !!newVal.no_expiry,
-            can_view: !!newVal.can_view,
-            can_download: !!newVal.can_download,
-            can_edit: !!newVal.can_edit,
-            can_delete: !!newVal.can_delete,
-            can_upload: !!newVal.can_upload,
-            can_share: !!newVal.can_share,
+            expiration_date: date ? date.toISOString().split("T")[0] : "",
+            no_expiry: !!a.no_expiry,
+            can_view: !!a.can_view,
+            can_download: !!a.can_download,
+            can_edit: !!a.can_edit,
+            can_delete: !!a.can_delete,
+            can_upload: !!a.can_upload,
+            can_share: !!a.can_share,
         };
     },
     { immediate: true },
@@ -225,16 +228,8 @@ watch(
 const showModal = () => {
     if (!bsModal) bsModal = new bootstrap.Modal(modalRef.value);
     bsModal.show();
-    if (props.access) {
-        const a = props.access;
-        const date = a.expiration_date ? new Date(a.expiration_date) : null;
-        form.value.expiration_date = date
-            ? date.toISOString().split("T")[0]
-            : "";
-        form.value.no_expiry = !!a.no_expiry;
-        form.value.can_view = !!a.can_view;
-    }
 };
+
 const hideModal = () => {
     if (bsModal) {
         bsModal.hide();
@@ -245,6 +240,33 @@ const hideModal = () => {
 const closeModal = () => {
     hideModal();
     error.value = null;
+};
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+    timer,
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
+    });
 };
 
 const submitUpdate = async () => {
@@ -258,37 +280,35 @@ const submitUpdate = async () => {
         );
 
         if (res.data.success) {
-            await Swal.fire({
+            closeModal();
+            await showSwal({
                 icon: "success",
                 title: "Cập nhật thành công",
-                text: res.data.message || "Cập nhật quyền chia sẻ thành công!",
-                timer: 1500,
-                showConfirmButton: false,
+                text: res.data.message,
+                timer: 2000,
             });
 
             emit("updated");
-            closeModal();
         } else {
-            await Swal.fire({
-                icon: "warning",
-                title: "Không thể cập nhật",
-                text: res.data.message || "Không thể cập nhật quyền chia sẻ!",
-                confirmButtonText: "Đóng",
+            closeModal();
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message,
             });
 
-            error.value = res.data.message || "Không thể cập nhật quyền!";
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = "/my-documents";
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
-
-        await Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Có lỗi xảy ra khi cập nhật quyền chia sẻ. Vui lòng thử lại!",
-            confirmButtonText: "Đóng",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
         });
-
-        error.value = "Lỗi khi cập nhật quyền chia sẻ!";
     } finally {
         loading.value = false;
     }

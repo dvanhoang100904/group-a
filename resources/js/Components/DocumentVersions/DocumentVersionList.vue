@@ -1,173 +1,189 @@
 <template>
     <div>
         <!-- Loading -->
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <div class="mt-2 text-muted">Đang tải danh sách phiên bản...</div>
-        </div>
-        <div v-else class="card shadow-sm border-0">
+        <transition name="fade">
             <div
-                class="card-header bg-light d-flex justify-content-between align-items-center"
+                v-if="loading"
+                class="text-center py-5"
+                style="min-height: 460px"
             >
-                <span class="fw-bold">
-                    <i class="bi bi-list-ul me-1"></i>
-                    Danh sách phiên bản
-                </span>
-                <!-- Upload -->
-                <button
-                    class="btn btn-sm btn-primary px-3"
-                    @click="uploadVersion()"
-                >
-                    <i class="bi bi-upload me-1"></i> Tải lên
-                </button>
-            </div>
-
-            <div class="card-body">
-                <!-- Filter search -->
-                <DocumentVersionFilter
-                    v-model="filters"
-                    :users="users"
-                    @filter="fetchVersions(1)"
-                    @reset="resetFilters"
-                />
-
-                <!-- Tables -->
-                <div
-                    v-if="!versions.data || versions.data.length === 0"
-                    class="text-center text-muted py-4"
-                >
-                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                    Chưa có phiên bản nào
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
-                <div v-else class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-primary">
-                            <tr class="text-center">
-                                <th>STT</th>
-                                <th>Phiên bản</th>
-                                <th>Người cập nhật</th>
-                                <th>Ngày cập nhật</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
+                <div class="mt-2 text-muted">
+                    Đang tải danh sách phiên bản...
+                </div>
+            </div>
+        </transition>
+        <transition name="fade">
+            <div v-if="!loading" class="card shadow-sm border-0">
+                <div
+                    class="card-header bg-light d-flex justify-content-between align-items-center"
+                >
+                    <span class="fw-bold">
+                        <i class="bi bi-list-ul me-1"></i>
+                        Danh sách phiên bản
+                    </span>
+                    <!-- Upload -->
+                    <button
+                        class="btn btn-sm btn-primary px-3"
+                        @click="uploadVersion()"
+                    >
+                        <i class="bi bi-upload me-1"></i> Tải lên
+                    </button>
+                </div>
 
-                        <tbody>
-                            <tr
-                                class="text-center"
-                                v-for="(version, index) in versions.data"
-                                :key="version.version_id"
-                            >
-                                <td>{{ index + 1 }}</td>
-                                <td>v{{ version.version_number }}</td>
-                                <td>
-                                    {{ version.user?.name || "Không rõ" }}
-                                </td>
-                                <td>
-                                    {{ formatDate(version.created_at) }}
-                                </td>
-                                <td>
-                                    <span
-                                        v-if="version.is_current_version"
-                                        class="badge bg-success-subtle text-success"
-                                    >
-                                        <i class="bi bi-check-circle me-1"></i>
-                                        Hiện tại
-                                    </span>
-                                    <span
-                                        v-else
-                                        class="badge bg-secondary-subtle text-secondary"
-                                    >
-                                        <i class="bi bi-clock-history me-1"></i>
-                                        Cũ
-                                    </span>
-                                </td>
+                <div class="card-body">
+                    <!-- Filter search -->
+                    <DocumentVersionFilter
+                        v-model="filters"
+                        :users="users"
+                        @filter="fetchVersions(1)"
+                        @reset="resetFilters"
+                    />
 
-                                <!-- Actions -->
-                                <td class="text-center">
-                                    <!-- View -->
-                                    <button
-                                        class="btn border-0 text-primary"
-                                        title="Xem chi tiết"
-                                        @click="
-                                            detailVersion(version.version_id)
-                                        "
-                                    >
-                                        <i class="bi bi-eye"></i>
-                                    </button>
+                    <!-- Tables -->
+                    <div
+                        v-if="!versions.data || versions.data.length === 0"
+                        class="text-center text-muted py-4"
+                    >
+                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                        Chưa có phiên bản nào
+                    </div>
+                    <div v-else class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-primary">
+                                <tr class="text-center">
+                                    <th>STT</th>
+                                    <th>Phiên bản</th>
+                                    <th>Người cập nhật</th>
+                                    <th>Ngày cập nhật</th>
+                                    <th>Trạng thái</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
 
-                                    <!-- Download -->
-                                    <button
-                                        class="btn border-0 text-primary"
-                                        :disabled="loading"
-                                        title="Tải xuống"
-                                        @click="downloadVersion(version)"
-                                    >
-                                        <i class="bi bi-download"></i>
-                                    </button>
+                            <tbody>
+                                <tr
+                                    class="text-center"
+                                    v-for="(version, index) in versions.data"
+                                    :key="version.version_id"
+                                >
+                                    <td>{{ index + 1 }}</td>
+                                    <td>v{{ version.version_number }}</td>
+                                    <td>
+                                        {{ version.user?.name || "Không rõ" }}
+                                    </td>
+                                    <td>
+                                        {{ formatDate(version.created_at) }}
+                                    </td>
+                                    <td>
+                                        <span
+                                            v-if="version.is_current_version"
+                                            class="badge bg-success-subtle text-success"
+                                        >
+                                            <i
+                                                class="bi bi-check-circle me-1"
+                                            ></i>
+                                            Hiện tại
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="badge bg-secondary-subtle text-secondary"
+                                        >
+                                            <i
+                                                class="bi bi-clock-history me-1"
+                                            ></i>
+                                            Cũ
+                                        </span>
+                                    </td>
 
-                                    <!-- Restore -->
-                                    <button
-                                        class="btn border-0 text-primary"
-                                        title="Khôi phục phiên bản này"
-                                        :disabled="loading"
-                                        @click="restoreVersion(version)"
-                                    >
-                                        <i
-                                            class="bi bi-arrow-counterclockwise"
-                                        ></i>
-                                    </button>
+                                    <!-- Actions -->
+                                    <td class="text-center">
+                                        <!-- View -->
+                                        <button
+                                            class="btn border-0 text-primary"
+                                            title="Xem chi tiết"
+                                            @click="
+                                                detailVersion(
+                                                    version.version_id,
+                                                )
+                                            "
+                                        >
+                                            <i class="bi bi-eye"></i>
+                                        </button>
 
-                                    <!-- Delete -->
-                                    <button
-                                        class="btn border-0 text-primary"
-                                        title="Xóa phiên bản"
-                                        :disabled="loading"
-                                        @click="deleteVersion(version)"
-                                    >
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                        <!-- Download -->
+                                        <button
+                                            class="btn border-0 text-primary"
+                                            :disabled="loading"
+                                            title="Tải xuống"
+                                            @click="downloadVersion(version)"
+                                        >
+                                            <i class="bi bi-download"></i>
+                                        </button>
 
-                    <!-- Pagination -->
-                    <DocumentVersionPagination
-                        :current-page="versions.current_page"
-                        :last-page="versions.last_page"
-                        :max-pages-to-show="7"
-                        @page-changed="changePage"
+                                        <!-- Restore -->
+                                        <button
+                                            class="btn border-0 text-primary"
+                                            title="Khôi phục phiên bản này"
+                                            :disabled="loading"
+                                            @click="restoreVersion(version)"
+                                        >
+                                            <i
+                                                class="bi bi-arrow-counterclockwise"
+                                            ></i>
+                                        </button>
+
+                                        <!-- Delete -->
+                                        <button
+                                            class="btn border-0 text-primary"
+                                            title="Xóa phiên bản"
+                                            :disabled="loading"
+                                            @click="deleteVersion(version)"
+                                        >
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Pagination -->
+                        <DocumentVersionPagination
+                            :current-page="versions.current_page"
+                            :last-page="versions.last_page"
+                            :max-pages-to-show="5"
+                            @page-changed="changePage"
+                        />
+                    </div>
+
+                    <!-- Version detail modal-->
+                    <DocumentVersionDetailModal
+                        ref="detailModal"
+                        :document-id="documentId"
+                        :format-file-size="formatFileSize"
+                        :format-mime-type="formatMimeType"
+                        :format-date="formatDate"
+                    />
+
+                    <!-- Version upload modal -->
+                    <DocumentVersionUploadModal
+                        ref="uploadModal"
+                        :document-id="documentId"
+                        :format-file-size="formatFileSize"
+                        @uploaded="fetchVersions"
+                    />
+
+                    <!-- Version Compare -->
+                    <DocumentVersionCompare
+                        :document-id="props.documentId"
+                        :versions="versions.data"
+                        :format-file-size="formatFileSize"
                     />
                 </div>
-
-                <!-- Version detail modal-->
-                <DocumentVersionDetailModal
-                    ref="detailModal"
-                    :document-id="documentId"
-                    :format-file-size="formatFileSize"
-                    :format-mime-type="formatMimeType"
-                    :format-date="formatDate"
-                />
-
-                <!-- Version upload modal -->
-                <DocumentVersionUploadModal
-                    ref="uploadModal"
-                    :document-id="documentId"
-                    :format-file-size="formatFileSize"
-                    @uploaded="fetchVersions"
-                />
-
-                <!-- Version Compare -->
-                <DocumentVersionCompare
-                    :document-id="props.documentId"
-                    :versions="versions.data"
-                    :format-file-size="formatFileSize"
-                />
             </div>
-        </div>
+        </transition>
     </div>
 </template>
 
@@ -277,6 +293,11 @@ const fetchUsers = async () => {
         }
     } catch (err) {
         console.error(err);
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Vui lòng thử lại!",
+        });
     }
 };
 
@@ -365,7 +386,7 @@ const downloadVersion = async (version) => {
     loadingActions.value[version.version_id] = true;
 
     Swal.fire({
-        title: "Đang xem...",
+        title: "Đang tải xuống...",
         text: "Vui lòng chờ",
         allowOutsideClick: false,
         didOpen: () => {
@@ -603,5 +624,14 @@ watch(
 
 .bg-light {
     background-color: #f8fafd !important;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>
