@@ -1,231 +1,238 @@
 <template>
     <div>
         <!-- Loading -->
-        <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2 text-muted">
-                Đang tải danh sách quyền chia sẻ...
-            </div>
-        </div>
-        <div v-else class="card shadow-sm border-0">
-            <!-- Header -->
+        <transition name="fade">
             <div
-                class="card-header bg-light d-flex justify-content-between align-items-center"
+                v-if="loading"
+                class="text-center py-5"
+                style="min-height: 460px"
             >
-                <span class="fw-bold">
-                    <i class="bi bi-person-check me-2"></i> Danh sách quyền chia
-                    sẻ
-                </span>
-                <!-- Add -->
-                <button
-                    class="btn btn-sm btn-primary px-3"
-                    @click="addModal.showModal()"
-                >
-                    <i class="bi bi-plus-circle me-1"></i> Thêm quyền
-                </button>
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="mt-2 text-muted">
+                    Đang tải danh sách quyền chia sẻ...
+                </div>
             </div>
-
-            <div class="card-body">
-                <!-- Tables -->
+        </transition>
+        <!-- Loading -->
+        <transition name="fade">
+            <div v-if="!loading" class="card shadow-sm border-0">
+                <!-- Header -->
                 <div
-                    v-if="!accesses.data || accesses.data.length === 0"
-                    class="text-center text-muted py-4"
+                    class="card-header bg-light d-flex justify-content-between align-items-center"
                 >
-                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                    Chưa có quyền chia sẻ nào
+                    <span class="fw-bold">
+                        <i class="bi bi-person-check me-2"></i> Danh sách quyền
+                        chia sẻ
+                    </span>
+                    <!-- Add -->
+                    <button
+                        class="btn btn-sm btn-primary px-3"
+                        @click="addModal.showModal()"
+                    >
+                        <i class="bi bi-plus-circle me-1"></i> Thêm quyền
+                    </button>
                 </div>
-                <div v-else class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-primary">
-                            <tr>
-                                <th class="text-center">#</th>
-                                <th class="text-center">
-                                    Đối tượng được chia sẻ
-                                </th>
-                                <th class="text-center">Xem</th>
-                                <th class="text-center">Tải lên</th>
-                                <th class="text-center">Tải xuống</th>
-                                <th class="text-center">Chỉnh sửa</th>
-                                <th class="text-center">Xóa</th>
-                                <th class="text-center">Chia sẻ tiếp</th>
-                                <th class="text-center">Ngày hết hạn</th>
-                                <th class="text-center">Người cấp quyền</th>
-                                <th class="text-center">Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="(access, index) in accesses.data"
-                                :key="access.access_id"
-                            >
-                                <td class="text-center">
-                                    {{ index + 1 }}
-                                </td>
-                                <td class="text-center">
-                                    <span v-if="access.granted_to_user">
+
+                <div class="card-body">
+                    <!-- Tables -->
+                    <div
+                        v-if="!accesses.data || accesses.data.length === 0"
+                        class="text-center text-muted py-4"
+                    >
+                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                        Chưa có quyền chia sẻ nào
+                    </div>
+                    <div v-else class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th class="text-center">STT</th>
+                                    <th class="text-center">
+                                        Đối tượng được chia sẻ
+                                    </th>
+                                    <th class="text-center">Xem</th>
+                                    <th class="text-center">Tải lên</th>
+                                    <th class="text-center">Tải xuống</th>
+                                    <th class="text-center">Chỉnh sửa</th>
+                                    <th class="text-center">Xóa</th>
+                                    <th class="text-center">Chia sẻ tiếp</th>
+                                    <th class="text-center">Ngày hết hạn</th>
+                                    <th class="text-center">Người cấp quyền</th>
+                                    <th class="text-center">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="(access, index) in accesses.data"
+                                    :key="access.access_id"
+                                >
+                                    <td class="text-center">
+                                        {{ index + 1 }}
+                                    </td>
+                                    <td class="text-center">
+                                        <span v-if="access.granted_to_user">
+                                            Người dùng:
+                                            {{ access.granted_to_user?.name }}
+                                        </span>
+                                        <span
+                                            v-else-if="access.granted_to_role"
+                                        >
+                                            Vai trò:
+                                            {{ access.granted_to_role?.name }}
+                                        </span>
+                                        <span v-else>-</span>
+                                    </td>
+                                    <!-- View -->
+                                    <td class="text-center">
                                         <i
-                                            class="bi bi-person text-primary me-1"
+                                            :class="
+                                                access.can_view
+                                                    ? 'bi bi-check-circle-fill text-success'
+                                                    : 'bi bi-x-circle text-muted'
+                                            "
                                         ></i>
-                                        Người dùng:
-                                        {{ access.granted_to_user?.name }}
-                                    </span>
-                                    <span v-else-if="access.granted_to_role">
+                                    </td>
+
+                                    <!-- Upload -->
+                                    <td class="text-center">
                                         <i
-                                            class="bi bi-people text-primary me-1"
+                                            :class="
+                                                access.can_upload
+                                                    ? 'bi bi-check-circle-fill text-success'
+                                                    : 'bi bi-x-circle text-muted'
+                                            "
                                         ></i>
-                                        Vai trò:
-                                        {{ access.granted_to_role?.name }}
-                                    </span>
-                                    <span v-else>-</span>
-                                </td>
-                                <!-- View -->
-                                <td class="text-center">
-                                    <i
-                                        :class="
-                                            access.can_view
-                                                ? 'bi bi-check-circle-fill text-success'
-                                                : 'bi bi-x-circle text-muted'
-                                        "
-                                    ></i>
-                                </td>
+                                    </td>
 
-                                <!-- Upload -->
-                                <td class="text-center">
-                                    <i
-                                        :class="
-                                            access.can_upload
-                                                ? 'bi bi-check-circle-fill text-success'
-                                                : 'bi bi-x-circle text-muted'
-                                        "
-                                    ></i>
-                                </td>
-
-                                <!-- Download -->
-                                <td class="text-center">
-                                    <i
-                                        :class="
-                                            access.can_download
-                                                ? 'bi bi-check-circle-fill text-success'
-                                                : 'bi bi-x-circle text-muted'
-                                        "
-                                    ></i>
-                                </td>
-
-                                <!-- Edit -->
-                                <td class="text-center">
-                                    <i
-                                        :class="
-                                            access.can_edit
-                                                ? 'bi bi-check-circle-fill text-success'
-                                                : 'bi bi-x-circle text-muted'
-                                        "
-                                    ></i>
-                                </td>
-
-                                <!-- Delete -->
-                                <td class="text-center">
-                                    <i
-                                        :class="
-                                            access.can_delete
-                                                ? 'bi bi-check-circle-fill text-success'
-                                                : 'bi bi-x-circle text-muted'
-                                        "
-                                    ></i>
-                                </td>
-
-                                <!-- Share -->
-                                <td class="text-center">
-                                    <i
-                                        :class="
-                                            access.can_share
-                                                ? 'bi bi-check-circle-fill text-success'
-                                                : 'bi bi-x-circle text-muted'
-                                        "
-                                    ></i>
-                                </td>
-                                <td class="text-center">
-                                    <span
-                                        v-if="access.no_expiry"
-                                        class="badge bg-success-subtle text-success"
-                                    >
+                                    <!-- Download -->
+                                    <td class="text-center">
                                         <i
-                                            class="bi bi-infinity text-success me-1"
+                                            :class="
+                                                access.can_download
+                                                    ? 'bi bi-check-circle-fill text-success'
+                                                    : 'bi bi-x-circle text-muted'
+                                            "
                                         ></i>
-                                        Không giới hạn
-                                    </span>
-                                    <span v-else>
-                                        {{
-                                            formatDate(
-                                                access.expiration_date,
-                                            ) || "-"
-                                        }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    {{ access.granted_by?.name || "-" }}
-                                </td>
-                                <!-- Actions -->
-                                <td class="text-center">
+                                    </td>
+
                                     <!-- Edit -->
-                                    <button
-                                        class="btn border-0 text-primary"
-                                        title="Chỉnh sửa"
-                                        @click="openUpdateModal(access)"
-                                    >
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
+                                    <td class="text-center">
+                                        <i
+                                            :class="
+                                                access.can_edit
+                                                    ? 'bi bi-check-circle-fill text-success'
+                                                    : 'bi bi-x-circle text-muted'
+                                            "
+                                        ></i>
+                                    </td>
+
                                     <!-- Delete -->
-                                    <button
-                                        class="btn border-0 text-primary"
-                                        title="Xóa"
-                                        @click="deleteAccess(access)"
-                                    >
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                    <td class="text-center">
+                                        <i
+                                            :class="
+                                                access.can_delete
+                                                    ? 'bi bi-check-circle-fill text-success'
+                                                    : 'bi bi-x-circle text-muted'
+                                            "
+                                        ></i>
+                                    </td>
 
-                    <!-- Pagination -->
-                    <DocumentAccessPagination
-                        :current-page="accesses.current_page"
-                        :last-page="accesses.last_page"
-                        :max-pages-to-show="7"
-                        @page-changed="changePage"
+                                    <!-- Share -->
+                                    <td class="text-center">
+                                        <i
+                                            :class="
+                                                access.can_share
+                                                    ? 'bi bi-check-circle-fill text-success'
+                                                    : 'bi bi-x-circle text-muted'
+                                            "
+                                        ></i>
+                                    </td>
+
+                                    <!-- No expiry -->
+                                    <td class="text-center">
+                                        <span
+                                            v-if="access.no_expiry"
+                                            class="badge bg-success-subtle text-success"
+                                        >
+                                            <i
+                                                class="bi bi-infinity text-success me-1"
+                                            ></i>
+                                            Không giới hạn
+                                        </span>
+                                        <span v-else>
+                                            {{
+                                                formatDate(
+                                                    access.expiration_date,
+                                                ) || "-"
+                                            }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {{ access.granted_by?.name || "-" }}
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-center">
+                                        <!-- Edit -->
+                                        <button
+                                            class="btn border-0 text-primary"
+                                            title="Chỉnh sửa"
+                                            @click="openUpdateModal(access)"
+                                        >
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <!-- Delete -->
+                                        <button
+                                            class="btn border-0 text-primary"
+                                            title="Xóa"
+                                            @click="deleteAccess(access)"
+                                        >
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Pagination -->
+                        <DocumentAccessPagination
+                            :current-page="accesses.current_page"
+                            :last-page="accesses.last_page"
+                            :max-pages-to-show="5"
+                            @page-changed="changePage"
+                        />
+                    </div>
+
+                    <!-- Add modal -->
+                    <DocumentAccessAddModal
+                        ref="addModal"
+                        :document-id="documentId"
+                        :users="users"
+                        :roles="roles"
+                        @added="fetchAccesses"
                     />
-                </div>
 
-                <!-- Add modal -->
-                <DocumentAccessAddModal
-                    ref="addModal"
-                    :document-id="documentId"
-                    :users="users"
-                    :roles="roles"
-                    @added="fetchAccesses"
-                />
-
-                <!-- Update modal -->
-                <DocumentAccessUpdateModal
-                    ref="updateModal"
-                    :document-id="documentId"
-                    :access="selectedAccess"
-                    :users="users"
-                    :roles="roles"
-                    @updated="fetchAccesses"
-                />
-            </div>
-        </div>
+                    <!-- Update modal -->
+                    <DocumentAccessUpdateModal
+                        ref="updateModal"
+                        :document-id="documentId"
+                        :access="selectedAccess"
+                        :users="users"
+                        :roles="roles"
+                        @updated="fetchAccesses"
+                    />
+                </div></div
+        ></transition>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, nextTick } from "vue";
 import axios from "axios";
+import Swal from "sweetalert2";
 import DocumentAccessPagination from "./DocumentAccessPagination.vue";
 import DocumentAccessAddModal from "./DocumentAccessAddModal.vue";
 import DocumentAccessUpdateModal from "./DocumentAccessUpdateModal.vue";
-import Swal from "sweetalert2";
 
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
@@ -255,6 +262,29 @@ const users = ref([]);
 // Roles
 const roles = ref([]);
 
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
+};
+
 const fetchUsers = async () => {
     try {
         const res = await axios.get(
@@ -265,7 +295,7 @@ const fetchUsers = async () => {
         }
     } catch (err) {
         console.error(err);
-        await Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
             text: "Không thể tải danh sách người dùng!",
@@ -283,7 +313,7 @@ const fetchRoles = async () => {
         }
     } catch (err) {
         console.error(err);
-        await Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
             text: "Không thể tải danh sách vai trò!",
@@ -299,25 +329,32 @@ const fetchAccesses = async (page = 1) => {
             `/api/documents/${props.documentId}/accesses`,
             { params: { page } },
         );
+
         if (res.data.success) {
             accesses.value = {
-                data: res.data.data.data || [],
-                current_page: res.data.data.current_page || 1,
-                last_page: res.data.data.last_page || 1,
-                per_page: res.data.data.per_page || 5,
+                data: res.data.data || [],
+                current_page: res.data.pagination?.current_page || 1,
+                last_page: res.data.pagination?.last_page || 1,
+                per_page: res.data.pagination?.per_page || 5,
             };
         } else {
-            accesses.value = { data: [] };
-            await Swal.fire({
-                icon: "warning",
-                title: "Không thể tải dữ liệu",
+            accesses.value = {
+                data: [],
+                current_page: 1,
+                last_page: 1,
+                per_page: 5,
+            };
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
                 text:
-                    res.data.message || "Không thể tải danh sách quyền chia sẻ",
+                    res.data?.message ??
+                    "Không thể tải danh sách quyền chia sẻ",
             });
         }
     } catch (err) {
         console.error(err);
-        await Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
             text: "Lỗi hệ thống, vui lòng thử lại!",
@@ -413,5 +450,14 @@ watch(
 
 .bg-light {
     background-color: #f8fafd !important;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.3s;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

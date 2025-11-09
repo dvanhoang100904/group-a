@@ -17,16 +17,21 @@ class DocumentAccessController extends Controller
     /**
      * Hien thi trang phan quyen va chia se tai lieu
      */
-    public function index($documentId)
+    public function index(int $documentId)
     {
-        $document = $this->documentAccessService->getDocumentWithRelations($documentId);
+        $document = $this->documentAccessService->getDocument($documentId);
 
         if (!$document) {
-            return redirect()->route('documents.index')->with('error', 'Tài liệu không tồn tại hoặc đã bị xóa.');
+            return redirect()->route('documents.index')
+                ->with('error', 'Tài liệu không tồn tại. Vui lòng thử lại.');
         }
 
-        return view('documents.accesses.index', [
+        $data = [
             'document' => $document,
-        ]);
+            'subject' => $document->subject,
+            'department' => $document->subject->department
+        ];
+        
+        return view('documents.accesses.index', $data);
     }
 }

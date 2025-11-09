@@ -34,15 +34,11 @@
     {{-- detail document --}}
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body">
-            @if ($document)
-                <h3 class="fw-bold mb-2">{{ $document->title }}</h3>
-                <p class="text-muted small mb-0">
-                    Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
-                    Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong>
-                </p>
-            @else
-                <p class="text-danger">Tài liệu không tồn tại</p>
-            @endif
+            <h3 class="fw-bold mb-2">{{ $document->title }}</h3>
+            <p class="text-muted small mb-0">
+                Môn học: <strong>{{ $subject->name ?? 'Chưa có' }}</strong> |
+                Khoa: <strong>{{ $department->name ?? 'Chưa có' }}</strong>
+            </p>
         </div>
     </div>
 

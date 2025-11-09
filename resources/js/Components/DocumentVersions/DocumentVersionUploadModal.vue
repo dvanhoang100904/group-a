@@ -71,7 +71,7 @@
                                                     <small class="text-muted">
                                                         {{
                                                             formatFileSize(
-                                                                selectedFile.size
+                                                                selectedFile.size,
                                                             )
                                                         }}
                                                     </small>
@@ -186,6 +186,7 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 // Nhan props tu cha
 const props = defineProps({
@@ -198,14 +199,20 @@ const emit = defineEmits(["uploaded"]);
 // Ref modal chinh
 const modalRef = ref(null);
 
-// Instance bootstrap modal
 let bsModal = null;
 
 const changeNote = ref("");
+
 const loading = ref(false);
+
 const error = ref(null);
+
 const success = ref(null);
+
+const fileInput = ref(null);
+
 const progress = ref(0);
+
 const selectedFile = ref(null);
 
 // Hien thi modal
@@ -250,6 +257,29 @@ const onFileChange = (event) => {
     }
 };
 
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
+};
+
 // Xoa file da chon
 const removeFile = () => {
     selectedFile.value = null;
@@ -289,26 +319,28 @@ const submitUpload = async () => {
                 onUploadProgress: (e) => {
                     progress.value = Math.round((e.loaded / e.total) * 100);
                 },
-            }
+            },
         );
 
         if (res.data.success) {
             success.value = res.data.message;
+            closeModal();
+            await showSwal({
+                icon: "success",
+                title: "Tải lên thành công",
+                text: res.data.message,
+            });
 
             emit("uploaded", res.data.data);
-
-            setTimeout(() => {
-                closeModal();
-            }, 1500);
         } else {
             error.value = res.data.message || "Upload thất bại";
         }
     } catch (e) {
-        if (e.response && e.response.data && e.response.data.message) {
-            error.value = e.response.data.message;
-        } else {
-            error.value = "Có lỗi xảy ra khi tải lên";
-        }
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Không thể kết nối đến máy chủ. Vui lòng thử lại sau.",
+        });
     } finally {
         loading.value = false;
         progress.value = 0;
@@ -317,6 +349,7 @@ const submitUpload = async () => {
 
 defineExpose({ showModal, hideModal, closeModal });
 </script>
+
 <style scoped>
 .border-dashed {
     border: 2px dashed #dee2e6;

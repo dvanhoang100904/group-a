@@ -42,19 +42,21 @@
                 </div>
 
                 <!-- body -->
-                <div class="modal-body">
-                    <template v-if="loading">
-                        <!-- Loading skeleton / spinner -->
-                        <div class="text-center py-5">
-                            <div
-                                class="spinner-border text-primary"
-                                role="status"
-                            >
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </template>
-                    <template v-else>
+                <div
+                    class="modal-body position-relative"
+                    style="min-height: 100px"
+                >
+                    <div
+                        v-if="loading"
+                        class="overlay-loading d-flex justify-content-center align-items-center"
+                    >
+                        <div
+                            class="spinner-border text-primary"
+                            role="status"
+                            aria-label="Loading"
+                        ></div>
+                    </div>
+                    <div v-else>
                         <div class="row mb-4">
                             <div class="col-12">
                                 <h6 class="section-title mb-3">
@@ -96,7 +98,7 @@
                                         <div class="info-value">
                                             {{
                                                 formatMimeType(
-                                                    selectedVersion?.mime_type
+                                                    selectedVersion?.mime_type,
                                                 )
                                             }}
                                         </div>
@@ -117,7 +119,7 @@
                                         <div class="info-value">
                                             {{
                                                 formatFileSize(
-                                                    selectedVersion?.file_size
+                                                    selectedVersion?.file_size,
                                                 )
                                             }}
                                         </div>
@@ -167,7 +169,7 @@
                                         <div class="info-value">
                                             {{
                                                 formatDate(
-                                                    selectedVersion?.created_at
+                                                    selectedVersion?.created_at,
                                                 )
                                             }}
                                         </div>
@@ -211,7 +213,7 @@
                                 </div>
                             </div>
                         </div>
-                    </template>
+                    </div>
                 </div>
 
                 <!-- footer -->
@@ -243,36 +245,30 @@
         </div>
         <!-- modal preview file -->
         <FilePreviewModal
-            v-show="versionToPreview"
-            v-model:version-id="versionToPreview"
+            ref="previewModal"
             :document-id="selectedVersion?.document_id"
         />
     </div>
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from "vue";
+import { ref, nextTick } from "vue";
 import axios from "axios";
-import FilePreviewModal from "./FilePreviewModal.vue";
+import Swal from "sweetalert2";
+import FilePreviewModal from "./DocumentVersionPreviewModal.vue";
 
-// Nhan props tu cha
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
-    versionId: { type: [String, Number], default: null },
     formatFileSize: Function,
     formatMimeType: Function,
     formatDate: Function,
 });
 
-const emit = defineEmits(["update:versionId"]);
-
 const selectedVersion = ref(null);
 const loading = ref(false);
-const versionToPreview = ref(null);
-
-// ref modal chinh
+const previewModal = ref(null);
 const modalRef = ref(null);
-// instance Bootstrap modal
+
 let bsModal = null;
 
 // Hien thi modal
@@ -293,43 +289,82 @@ const hideModal = () => {
 const closeModal = () => {
     hideModal();
     selectedVersion.value = null;
-    emit("update:versionId", null);
+};
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
 };
 
 // File preview
 const previewFile = () => {
-    versionToPreview.value = null;
-    nextTick(() => {
-        versionToPreview.value = selectedVersion.value.version_id;
-    });
+    if (selectedVersion.value && previewModal.value) {
+        nextTick(() => {
+            previewModal.value.showPreviewVersion(
+                selectedVersion.value.version_id,
+            );
+        });
+    }
 };
 
-// Watch versionId changes
-watch(
-    () => props.versionId,
-    async (versionId) => {
-        if (!versionId) return;
-
-        showModal();
-        selectedVersion.value = null;
-        loading.value = true;
-
-        try {
-            const res = await axios.get(
-                `/api/documents/${props.documentId}/versions/${versionId}`
-            );
-            if (res.data.success) selectedVersion.value = res.data.data;
-        } catch (err) {
-            console.error(err);
-            alert("Không thể tải chi tiết phiên bản");
-            closeModal();
-        } finally {
-            loading.value = false;
-        }
+const showModalVersion = async (versionId) => {
+    if (!versionId) {
+        return;
     }
-);
 
-defineExpose({ showModal, hideModal, closeModal });
+    selectedVersion.value = null;
+    loading.value = true;
+
+    showModal();
+
+    try {
+        const res = await axios.get(
+            `/api/documents/${props.documentId}/versions/${versionId}`,
+        );
+        if (res.data.success) {
+            selectedVersion.value = res.data.data;
+        } else {
+            hideModal();
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message || "Không thể tải chi tiết phiên bản.",
+            });
+            selectedVersion.value = null;
+        }
+    } catch (err) {
+        console.error(err);
+        hideModal();
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Đã xảy ra lỗi khi tải chi tiết phiên bản. Vui lòng thử lại!",
+        });
+        selectedVersion.value = null;
+    } finally {
+        loading.value = false;
+    }
+};
+
+defineExpose({ showModal, hideModal, closeModal, showModalVersion });
 </script>
 
 <style scoped>
@@ -397,5 +432,20 @@ defineExpose({ showModal, hideModal, closeModal });
 
 .card.bg-light {
     background-color: #f8fafd !important;
+}
+
+.overlay-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.6);
+    z-index: 1055;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: progress;
+    transition: opacity 0.2s ease;
 }
 </style>
