@@ -23,7 +23,7 @@
 
                 <!-- Body -->
                 <div class="modal-body">
-                    <form class="row g-3" @submit.prevent="submitAccess">
+                    <form class="row g-3" @submit.prevent="submitAdd">
                         <!-- Users -->
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">
@@ -347,6 +347,8 @@ const showSwal = ({
     confirmButtonColor = "#0d6efd",
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
+    timer,
+    showConfirmButton,
 }) => {
     return Swal.fire({
         icon,
@@ -357,11 +359,13 @@ const showSwal = ({
         confirmButtonColor,
         cancelButtonText,
         cancelButtonColor,
+        timer,
+        showConfirmButton,
     });
 };
 
 // Submit form
-const submitAccess = async () => {
+const submitAdd = async () => {
     if (!validateForm()) return;
 
     try {
@@ -380,6 +384,8 @@ const submitAccess = async () => {
                 icon: "success",
                 title: "Thêm thành công",
                 text: res.data.message,
+                timer: 2000,
+                showConfirmButton: false,
             });
 
             emit("added");
@@ -388,7 +394,7 @@ const submitAccess = async () => {
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể thêm quyền chia sẻ!",
+                text: res.data.message,
             });
 
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
@@ -401,7 +407,7 @@ const submitAccess = async () => {
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Đã xảy ra lỗi khi thêm quyền chia sẻ. Vui lòng thử lại!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
         });
     } finally {
         loading.value = false;

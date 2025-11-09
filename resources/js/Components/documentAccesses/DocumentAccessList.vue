@@ -272,6 +272,8 @@ const showSwal = ({
     confirmButtonColor = "#0d6efd",
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
+    timer,
+    showConfirmButton,
 }) => {
     return Swal.fire({
         icon,
@@ -282,9 +284,12 @@ const showSwal = ({
         confirmButtonColor,
         cancelButtonText,
         cancelButtonColor,
+        timer,
+        showConfirmButton,
     });
 };
 
+// Fetch Users
 const fetchUsers = async () => {
     try {
         const res = await axios.get(
@@ -296,8 +301,9 @@ const fetchUsers = async () => {
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: "Không thể tải vai trò.",
+                text: res.data.message,
             });
+
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
                 window.location.href = "/my-documents";
                 return;
@@ -313,6 +319,7 @@ const fetchUsers = async () => {
     }
 };
 
+// Fetch roles
 const fetchRoles = async () => {
     try {
         const res = await axios.get(
@@ -324,8 +331,9 @@ const fetchRoles = async () => {
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: "Không thể tải người dùng.",
+                text: res.data.message,
             });
+
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
                 window.location.href = "/my-documents";
                 return;
@@ -367,10 +375,9 @@ const fetchAccesses = async (page = 1) => {
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text:
-                    res.data?.message ??
-                    "Không thể tải danh sách quyền chia sẻ",
+                text: res.data.message,
             });
+
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
                 window.location.href = "/my-documents";
                 return;
@@ -381,7 +388,7 @@ const fetchAccesses = async (page = 1) => {
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Lỗi hệ thống, vui lòng thử lại!",
+            text: "Có lỗi xảy ra. vui lòng thử lại.",
         });
     } finally {
         loading.value = false;

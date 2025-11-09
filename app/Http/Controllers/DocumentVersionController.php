@@ -23,7 +23,7 @@ class DocumentVersionController extends Controller
 
         if (!$document) {
             return redirect()->route('documents.index')
-                ->with('error', 'Tài liệu này không còn tồn tại. Vui lòng thử lại.');
+                ->with('error', 'Tài liệu không tồn tại. Vui lòng thử lại.');
         }
 
         $data = [

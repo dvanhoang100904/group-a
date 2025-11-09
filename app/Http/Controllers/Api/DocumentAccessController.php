@@ -37,7 +37,7 @@ class DocumentAccessController extends Controller
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
             ]);
         }
 
@@ -45,7 +45,7 @@ class DocumentAccessController extends Controller
         if ($document->uploaded_by !== $currentUserId && !auth()->user()->is_admin) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn không có quyền chia sẻ tài liệu này'
+                'message' => 'Bạn không có quyền chia sẻ tài liệu này. Vui lòng thử lại.'
             ]);
         }
 
@@ -60,7 +60,7 @@ class DocumentAccessController extends Controller
                 'current_page' => $data->currentPage(),
                 'last_page' => $data->lastPage(),
             ],
-            'message' => $data->isEmpty() ? 'Chưa có quyền chia sẻ nào' : 'Danh sách quyền chia sẻ tải thành công',
+            'message' => $data->isEmpty() ? 'Chưa có quyền chia sẻ nào. Vui lòng thử lại.' : 'Danh sách quyền chia sẻ tải thành công.',
         ]);
     }
 
@@ -71,8 +71,8 @@ class DocumentAccessController extends Controller
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
         }
 
         $users = $this->documentAccessService->getUsersForAccess($documentId);
@@ -80,14 +80,14 @@ class DocumentAccessController extends Controller
         if (!$users) {
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra vui lòng thử lại.',
+                'message' => 'Chưa có người dùng nào. Vui lòng thử lại.',
             ]);
         }
 
         return response()->json([
             'success' => true,
             'data' => $users,
-            'message' => 'Danh sách người upload của tài liệu'
+            'message' => 'Danh sách người dùng tải thành công.'
         ]);
     }
 
@@ -98,24 +98,24 @@ class DocumentAccessController extends Controller
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+            ]);
         }
 
-        $data = $this->documentAccessService->getRolesForAccess($documentId);
+        $roles = $this->documentAccessService->getRolesForAccess($documentId);
 
-        if ($data) {
+        if (!$roles) {
             return response()->json([
-                'success' => true,
-                'data' => $data,
-                'message' => 'Danh sách vai trò của tài liệu'
+                'success' => false,
+                'message' => 'Chưa có vai trò nào.',
             ]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Không thể tải danh sách.',
-        ], 500);
+            'success' => true,
+            'data' => $roles,
+            'message' => 'Danh sách vai trò tải thành công.'
+        ]);
     }
 
     /**
@@ -128,7 +128,7 @@ class DocumentAccessController extends Controller
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
             ]);
         }
 
@@ -151,13 +151,13 @@ class DocumentAccessController extends Controller
         if (!$access) {
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra. Vui lòng thử lại',
+                'message' => 'Không thể thêm quyền chia sẻ. Vui lòng thử lại.',
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Thêm quyền chia sẻ thành công.',
+            'message' => 'Quyền chia sẻ đã được thêm.',
             'data' => $access
         ]);
     }
@@ -167,34 +167,44 @@ class DocumentAccessController extends Controller
      */
     public function update(DocumentAccessUpdateRequest $request, int $documentId, int $accessId): JsonResponse
     {
-        $document = $this->documentAccessService->getDocument($documentId);
+        $document = $this->documentAccessService->getDocumentById($documentId);
 
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+            ]);
         }
 
-        $data = $this->updateService->updateAccess(
+        $data = $request->only([
+            'no_expiry',
+            'expiration_date',
+            'can_view',
+            'can_edit',
+            'can_delete',
+            'can_upload',
+            'can_download',
+            'can_share',
+        ]);
+
+        $access = $this->updateService->updateAccess(
             $documentId,
             $accessId,
-            $request->validated(),
-            auth()->id() ?? 1
+            $data,
         );
 
-        if ($data) {
+        if (!$access) {
             return response()->json([
-                'success' => true,
-                'message' => 'Cập nhật quyền chia sẻ thành công.',
-                'data' => $data
+                'success' => false,
+                'message' => 'Không thể cập nhật quyền chia sẻ. Vui lòng thử lại.',
             ]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Không thể cập nhật quyền chia sẻ (bản ghi có thể không tồn tại hoặc lỗi hệ thống).',
-        ], 500);
+            'success' => true,
+            'message' => 'Quyền chia sẻ đã cập nhật thành công.',
+            'data' => $access
+        ]);
     }
 
     /** 
@@ -207,8 +217,8 @@ class DocumentAccessController extends Controller
         if (!$document) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tài liệu không tồn tại'
-            ], 404);
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+            ]);
         }
 
         $data = $this->deleteService->deleteAccess($documentId, $accessId);
