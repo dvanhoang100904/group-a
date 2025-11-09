@@ -11,7 +11,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use PhpParser\Node\Stmt\Return_;
 
 class DocumentVersionService
 {
@@ -21,9 +20,9 @@ class DocumentVersionService
     /**
      * Lay tai lieu hien thi trang phien ban tai lieu
      */
-    public function getDocumentWithRelations(int $documentId): ?Document
+    public function getDocument(int $documentId): ?Document
     {
-        return Document::query()
+        $document = Document::query()
             ->select([
                 'document_id',
                 'title',
@@ -35,6 +34,12 @@ class DocumentVersionService
             ])
             ->withCount('versions')
             ->find($documentId);
+
+        if (!$document) {
+            return null;
+        }
+
+        return $document;
     }
 
     /**

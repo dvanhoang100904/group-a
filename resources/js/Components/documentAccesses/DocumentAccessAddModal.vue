@@ -313,6 +313,20 @@ const validateForm = () => {
         }
     }
 
+    const permissions = [
+        "can_view",
+        "can_download",
+        "can_edit",
+        "can_delete",
+        "can_upload",
+        "can_share",
+    ];
+    const hasPermission = permissions.some((key) => form.value[key]);
+    if (!hasPermission) {
+        error.value = "Vui lòng chọn ít nhất một quyền truy cập!";
+        return false;
+    }
+
     error.value = null;
     return true;
 };
@@ -321,6 +335,29 @@ const onNoExpiryChange = () => {
     if (form.value.no_expiry) {
         form.value.expiration_date = "";
     }
+};
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+    });
 };
 
 // Submit form
@@ -338,25 +375,30 @@ const submitAccess = async () => {
         );
 
         if (res.data.success) {
-            Swal.fire({
-                icon: "success",
-                title: "Thành công",
-                text: "Đã thêm quyền chia sẻ!",
-                timer: 1500,
-                showConfirmButton: false,
-            });
-            emit("added");
             closeModal();
+            await showSwal({
+                icon: "success",
+                title: "Thêm thành công",
+                text: res.data.message,
+            });
+
+            emit("added");
         } else {
-            Swal.fire({
+            closeModal();
+            await showSwal({
                 icon: "error",
                 title: "Lỗi",
                 text: res.data.message || "Không thể thêm quyền chia sẻ!",
             });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = "/my-documents";
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
-        Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
             text: "Đã xảy ra lỗi khi thêm quyền chia sẻ. Vui lòng thử lại!",

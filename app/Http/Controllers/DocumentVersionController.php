@@ -19,7 +19,7 @@ class DocumentVersionController extends Controller
      */
     public function index(int $documentId)
     {
-        $document = $this->documentVersionService->getDocumentWithRelations($documentId);
+        $document = $this->documentVersionService->getDocument($documentId);
 
         if (!$document) {
             return redirect()->route('documents.index')

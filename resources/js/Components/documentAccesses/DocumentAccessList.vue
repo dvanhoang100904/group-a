@@ -27,7 +27,7 @@
                     <!-- Add -->
                     <button
                         class="btn btn-sm btn-primary px-3"
-                        @click="addModal.showModal()"
+                        @click="addAccess()"
                     >
                         <i class="bi bi-plus-circle me-1"></i> Thêm quyền
                     </button>
@@ -292,13 +292,23 @@ const fetchUsers = async () => {
         );
         if (res.data.success) {
             users.value = res.data.data;
+        } else {
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: "Không thể tải vai trò.",
+            });
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = "/my-documents";
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Không thể tải danh sách người dùng!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
         });
     }
 };
@@ -310,13 +320,23 @@ const fetchRoles = async () => {
         );
         if (res.data.success) {
             roles.value = res.data.data;
+        } else {
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: "Không thể tải người dùng.",
+            });
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = "/my-documents";
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Không thể tải danh sách vai trò!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
         });
     }
 };
@@ -351,6 +371,10 @@ const fetchAccesses = async (page = 1) => {
                     res.data?.message ??
                     "Không thể tải danh sách quyền chia sẻ",
             });
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = "/my-documents";
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
@@ -372,24 +396,31 @@ const openUpdateModal = (access) => {
 
 // Delete access
 const deleteAccess = async (access) => {
-    const confirmResult = await Swal.fire({
-        title: "Xác nhận xóa quyền truy cập",
+    const confirmResult = await showSwal({
+        icon: "warning",
+        title: "Xác nhận xóa?",
         text: `Bạn có chắc chắn muốn xóa quyền của "${
             access.granted_to_user?.name ||
             access.granted_to_role?.name ||
             "Không xác định"
         }"? Thao tác này không thể khôi phục.`,
-        icon: "warning",
         showCancelButton: true,
         confirmButtonText: "Xóa",
-        cancelButtonText: "Hủy",
         confirmButtonColor: "#dc3545",
-        cancelButtonColor: "#6c757d",
     });
 
     if (!confirmResult.isConfirmed) return;
 
     loadingActions.value[access.access_id] = true;
+
+    Swal.fire({
+        title: "Đang xóa...",
+        text: "Vui lòng chờ",
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+    });
 
     try {
         const res = await axios.delete(
@@ -397,14 +428,29 @@ const deleteAccess = async (access) => {
         );
 
         if (res.data.success) {
-            Swal.fire("Thành công", res.data.message, "success");
+            await showSwal({
+                icon: "success",
+                title: "Xóa thành công",
+                text: res.data.message,
+            });
             await fetchAccesses(accesses.value.current_page);
         } else {
-            Swal.fire("Lỗi", res.data.message, "error");
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message,
+            });
         }
+
+        Swal.close();
     } catch (err) {
         console.error(err);
-        Swal.fire("Lỗi hệ thống", "Vui lòng thử lại!", "error");
+        Swal.close();
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Không thể xóa phiên bản. Vui lòng thử lại",
+        });
     } finally {
         loadingActions.value[access.access_id] = false;
     }
@@ -420,6 +466,13 @@ const changePage = (page) => {
     fetchAccesses(page).then(() =>
         window.scrollTo({ top: 0, behavior: "smooth" }),
     );
+};
+
+// Add access
+const addAccess = () => {
+    if (addModal.value) {
+        addModal.value.showModal();
+    }
 };
 
 onMounted(async () => {

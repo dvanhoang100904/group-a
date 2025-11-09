@@ -3,17 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DocumentAccess\DocumentAccessAddRequest;
+use App\Http\Requests\DocumentAccess\DocumentAccessUpdateRequest;
+use App\Services\DocumentAccess\DocumentAccessAddService;
+use App\Services\DocumentAccess\DocumentAccessDeleteService;
 use App\Services\DocumentAccess\DocumentAccessService;
+use App\Services\DocumentAccess\DocumentAccessUpdateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DocumentAccessController extends Controller
 {
     protected DocumentAccessService $documentAccessService;
+    protected DocumentAccessAddService $addService;
+    protected DocumentAccessUpdateService $updateService;
+    protected DocumentAccessDeleteService $deleteService;
 
-    public function __construct(DocumentAccessService $documentAccessService)
+    public function __construct(DocumentAccessService $documentAccessService, DocumentAccessAddService $addService, DocumentAccessUpdateService $updateService, DocumentAccessDeleteService $deleteService)
     {
         $this->documentAccessService = $documentAccessService;
+        $this->addService = $addService;
+        $this->updateService = $updateService;
+        $this->deleteService = $deleteService;
     }
 
     /**
@@ -104,6 +115,114 @@ class DocumentAccessController extends Controller
         return response()->json([
             'success' => false,
             'message' => 'Không thể tải danh sách.',
+        ], 500);
+    }
+
+    /**
+     * Them moi quyen chia se tai lieu 
+     */
+    public function store(DocumentAccessAddRequest $request, int $documentId): JsonResponse
+    {
+        $document = $this->documentAccessService->getDocumentById($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+            ]);
+        }
+
+        $data = $request->only([
+            'granted_to_type',
+            'granted_to_user_id',
+            'granted_to_role_id',
+            'no_expiry',
+            'expiration_date',
+            'can_view',
+            'can_edit',
+            'can_delete',
+            'can_upload',
+            'can_download',
+            'can_share',
+        ]);
+
+        $access = $this->addService->addAccess($data, $documentId, auth()->id() ?? 1);
+
+        if (!$access) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra. Vui lòng thử lại',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Thêm quyền chia sẻ thành công.',
+            'data' => $access
+        ]);
+    }
+
+    /**
+     * Cap nhat quyen chia se tai lieu
+     */
+    public function update(DocumentAccessUpdateRequest $request, int $documentId, int $accessId): JsonResponse
+    {
+        $document = $this->documentAccessService->getDocument($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại'
+            ], 404);
+        }
+
+        $data = $this->updateService->updateAccess(
+            $documentId,
+            $accessId,
+            $request->validated(),
+            auth()->id() ?? 1
+        );
+
+        if ($data) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật quyền chia sẻ thành công.',
+                'data' => $data
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Không thể cập nhật quyền chia sẻ (bản ghi có thể không tồn tại hoặc lỗi hệ thống).',
+        ], 500);
+    }
+
+    /** 
+     * Xoa quyen chia se tai lieu
+     */
+    public function destroy(int $documentId, int $accessId): JsonResponse
+    {
+        $document = $this->documentAccessService->getDocument($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại'
+            ], 404);
+        }
+
+        $data = $this->deleteService->deleteAccess($documentId, $accessId);
+
+        if ($data) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa quyền chia sẻ thành công.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Không thể xóa quyền chia sẻ.',
         ], 500);
     }
 }
