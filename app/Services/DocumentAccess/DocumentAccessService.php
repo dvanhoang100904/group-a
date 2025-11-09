@@ -17,22 +17,39 @@ class DocumentAccessService
     /**
      * Lay tai lieu hien thi trang quyen chia se tai lieu
      */
-    public function getDocumentWithRelations(int $documentId): ?Document
+    public function getDocument(int $documentId): ?Document
     {
-        return Document::select(['document_id', 'title', 'subject_id'])
+        $document = Document::query()
+            ->select([
+                'document_id',
+                'title',
+                'subject_id'
+            ])
             ->with([
                 'subject:subject_id,name,department_id',
                 'subject.department:department_id,name',
             ])
             ->find($documentId);
+
+        if (!$document) {
+            return null;
+        }
+
+        return $document;
     }
 
     /**
-     * Lay tai lieu
+     * Lay tai lieu theo id
      */
-    public function getDocument(int $documentId): ?Document
+    public function getDocumentById(int $documentId): ?Document
     {
-        return Document::find($documentId);
+        $document = Document::find($documentId);
+
+        if (!$document) {
+            return null;
+        }
+
+        return $document;
     }
 
     /**
@@ -41,7 +58,6 @@ class DocumentAccessService
     public function getDocumentAccessesHasPaginated(int $documentId): LengthAwarePaginator
     {
         return DocumentAccess::query()
-            ->forDocument($documentId)
             ->select([
                 'access_id',
                 'granted_by',
@@ -62,8 +78,9 @@ class DocumentAccessService
                 'grantedToUser:user_id,name',
                 'grantedToRole:role_id,name',
             ])
-            ->latest()
-            ->paginate(self::PER_PAGE)
+            ->where('document_id', $documentId)
+            ->orderByDesc('created_at')
+            ->paginate(self::PER_PAGE, ['*'], 'page')
             ->withQueryString();
     }
 
