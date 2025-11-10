@@ -23,24 +23,10 @@ class DocumentPreview extends Model
         'version_id' => 'integer'
     ];
 
-    /** Chi lay preview con hieu luc */
-    public function scopeActive($query)
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $query->where(function ($q) {
-            $q->whereNull('expires_at')
-                ->orWhere('expires_at', '>', now());
-        });
-    }
-
-    /** Lay moi nhat theo ngay tao */
-    public function scopeLatestCreated($query)
-    {
-        return $query->orderByDesc('created_at');
-    }
-
-    public function document()
-    {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
     /** Document Version */
@@ -49,8 +35,9 @@ class DocumentPreview extends Model
         return $this->belongsTo(DocumentVersion::class, 'version_id', 'version_id');
     }
 
+    /** User */
     public function generatedBy()
     {
-        return $this->belongsTo(User::class, 'generated_by');
+        return $this->belongsTo(User::class, 'generated_by', 'user_id');
     }
 }

@@ -19,19 +19,22 @@ class User extends Model
         'status' => 'boolean',
     ];
 
-    public function folders()
+    /** Folders */
+    public function folders(): HasMany
     {
-        return $this->hasMany(Folder::class, 'user_id');
+        return $this->hasMany(Folder::class, 'user_id', 'user_id');
     }
 
-    public function folderLogs()
+    /** Folder Logs */
+    public function folderLogs(): HasMany
     {
-        return $this->hasMany(FolderLog::class, 'moved_by');
+        return $this->hasMany(FolderLog::class, 'moved_by', 'user_id');
     }
 
-    public function documents()
+    /** Documents */
+    public function documents(): HasMany
     {
-        return $this->hasMany(Document::class, 'user_id');
+        return $this->hasMany(Document::class, 'user_id', 'user_id');
     }
 
     /** Document Versions */
@@ -52,18 +55,21 @@ class User extends Model
         return $this->hasMany(DocumentAccess::class, 'granted_to_user_id', 'user_id');
     }
 
-    public function generatedPreviews()
+    /** Document Previews */
+    public function generatedPreviews(): HasMany
     {
-        return $this->hasMany(DocumentPreview::class, 'generated_by');
+        return $this->hasMany(DocumentPreview::class, 'generated_by', 'user_id');
     }
 
-    public function activities()
+    /** Activities */
+    public function activities(): HasMany
     {
-        return $this->hasMany(Activity::class, 'user_id');
+        return $this->hasMany(Activity::class, 'user_id', 'user_id');
     }
 
-    public function reports()
+    /** Reports */
+    public function reports(): HasMany
     {
-        return $this->hasMany(Report::class, 'user_id');
+        return $this->hasMany(Report::class, 'user_id', 'user_id');
     }
 }

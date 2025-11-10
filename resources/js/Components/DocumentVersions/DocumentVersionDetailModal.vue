@@ -42,19 +42,21 @@
                 </div>
 
                 <!-- body -->
-                <div class="modal-body">
-                    <template v-if="loading">
-                        <!-- Loading skeleton / spinner -->
-                        <div class="text-center py-5">
-                            <div
-                                class="spinner-border text-primary"
-                                role="status"
-                            >
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </template>
-                    <template v-else>
+                <div
+                    class="modal-body position-relative"
+                    style="min-height: 100px"
+                >
+                    <div
+                        v-if="loading"
+                        class="overlay-loading d-flex justify-content-center align-items-center"
+                    >
+                        <div
+                            class="spinner-border text-primary"
+                            role="status"
+                            aria-label="Loading"
+                        ></div>
+                    </div>
+                    <div v-else>
                         <div class="row mb-4">
                             <div class="col-12">
                                 <h6 class="section-title mb-3">
@@ -211,7 +213,7 @@
                                 </div>
                             </div>
                         </div>
-                    </template>
+                    </div>
                 </div>
 
                 <!-- footer -->
@@ -255,7 +257,6 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import FilePreviewModal from "./DocumentVersionPreviewModal.vue";
 
-// Nhan props tu cha
 const props = defineProps({
     documentId: { type: [String, Number], required: true },
     formatFileSize: Function,
@@ -266,11 +267,8 @@ const props = defineProps({
 const selectedVersion = ref(null);
 const loading = ref(false);
 const previewModal = ref(null);
-
-// ref modal chinh
 const modalRef = ref(null);
 
-// instance Bootstrap modal
 let bsModal = null;
 
 // Hien thi modal
@@ -293,19 +291,56 @@ const closeModal = () => {
     selectedVersion.value = null;
 };
 
-// File preview
-const previewFile = () => {
-    nextTick(() => {
-        previewModal.value.showPreviewVersion(selectedVersion.value.version_id);
+// Url
+const url = `/documents`;
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+    timer,
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
     });
 };
 
-const showModalVersion = async (versionId) => {
-    if (!versionId) return;
+// File preview
+const previewFile = () => {
+    if (selectedVersion.value && previewModal.value) {
+        nextTick(() => {
+            previewModal.value.showPreviewVersion(
+                selectedVersion.value.version_id,
+            );
+        });
+    }
+};
 
-    showModal();
+const showModalVersion = async (versionId) => {
+    if (!versionId) {
+        return;
+    }
+
     selectedVersion.value = null;
     loading.value = true;
+
+    showModal();
 
     try {
         const res = await axios.get(
@@ -314,23 +349,26 @@ const showModalVersion = async (versionId) => {
         if (res.data.success) {
             selectedVersion.value = res.data.data;
         } else {
-            hideModal();
-            await Swal.fire({
+            closeModal();
+            await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể tải chi tiết phiên bản",
+                text: res.data.message,
             });
-            selectedVersion.value = null;
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
-        hideModal();
-        await Swal.fire({
+        closeModal();
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Đã xảy ra lỗi khi tải chi tiết phiên bản. Vui lòng thử lại!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
         });
-        selectedVersion.value = null;
     } finally {
         loading.value = false;
     }
@@ -404,5 +442,20 @@ defineExpose({ showModal, hideModal, closeModal, showModalVersion });
 
 .card.bg-light {
     background-color: #f8fafd !important;
+}
+
+.overlay-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.6);
+    z-index: 1055;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: progress;
+    transition: opacity 0.2s ease;
 }
 </style>
