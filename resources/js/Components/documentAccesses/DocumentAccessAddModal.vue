@@ -23,7 +23,7 @@
 
                 <!-- Body -->
                 <div class="modal-body">
-                    <form class="row g-3" @submit.prevent="submitAccess">
+                    <form class="row g-3" @submit.prevent="submitAdd">
                         <!-- Users -->
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">
@@ -218,6 +218,9 @@ let bsModal = null;
 const loading = ref(false);
 const error = ref(null);
 
+// Url
+const url = `/documents`;
+
 const form = ref({
     granted_to_type: "user",
     granted_to_user_id: "",
@@ -313,6 +316,20 @@ const validateForm = () => {
         }
     }
 
+    const permissions = [
+        "can_view",
+        "can_download",
+        "can_edit",
+        "can_delete",
+        "can_upload",
+        "can_share",
+    ];
+    const hasPermission = permissions.some((key) => form.value[key]);
+    if (!hasPermission) {
+        error.value = "Vui lòng chọn ít nhất một quyền truy cập!";
+        return false;
+    }
+
     error.value = null;
     return true;
 };
@@ -323,8 +340,35 @@ const onNoExpiryChange = () => {
     }
 };
 
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+    timer,
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
+    });
+};
+
 // Submit form
-const submitAccess = async () => {
+const submitAdd = async () => {
     if (!validateForm()) return;
 
     try {
@@ -338,28 +382,34 @@ const submitAccess = async () => {
         );
 
         if (res.data.success) {
-            Swal.fire({
-                icon: "success",
-                title: "Thành công",
-                text: "Đã thêm quyền chia sẻ!",
-                timer: 1500,
-                showConfirmButton: false,
-            });
-            emit("added");
             closeModal();
+            await showSwal({
+                icon: "success",
+                title: "Thêm thành công",
+                text: res.data.message,
+                timer: 2000,
+            });
+
+            emit("added");
         } else {
-            Swal.fire({
+            closeModal();
+            await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể thêm quyền chia sẻ!",
+                text: res.data.message,
             });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
-        Swal.fire({
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Đã xảy ra lỗi khi thêm quyền chia sẻ. Vui lòng thử lại!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
         });
     } finally {
         loading.value = false;
