@@ -90,10 +90,15 @@ class DocumentAccessService
     public function getUsersForAccess(int $documentId): Collection
     {
         return User::query()
-            ->select('user_id', 'name')
+            ->select([
+                'user_id',
+                'name'
+            ])
             ->where('status', true)
             ->whereNotIn('user_id', function ($q) use ($documentId) {
-                $q->select('granted_to_user_id')
+                $q->select([
+                    'granted_to_user_id'
+                ])
                     ->from('document_accesses')
                     ->where('document_id', $documentId)
                     ->whereNotNull('granted_to_user_id');
@@ -108,10 +113,15 @@ class DocumentAccessService
     public function getRolesForAccess(int $documentId): Collection
     {
         return Role::query()
-            ->select('role_id', 'name')
+            ->select([
+                'role_id',
+                'name'
+            ])
             ->where('status', true)
             ->whereNotIn('role_id', function ($q) use ($documentId) {
-                $q->select('granted_to_role_id')
+                $q->select([
+                    'granted_to_role_id'
+                ])
                     ->from('document_accesses')
                     ->where('document_id', $documentId)
                     ->whereNotNull('granted_to_role_id');

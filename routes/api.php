@@ -6,8 +6,15 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Api\DocumentVersionController;
 use App\Http\Controllers\Api\DocumentAccessController;
-use App\Http\Controllers\Api\DocumentAccessActionController;
 use App\Http\Controllers\Api\DocumentDetailController;
+use App\Http\Controllers\Api\TypeController;
+use App\Http\Controllers\Api\SubjectController;
+use App\Http\Controllers\Api\FolderController;
+
+
+
+
+
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -26,11 +33,11 @@ Route::delete('/documents/{documentId}/versions/{versionId}', [DocumentVersionCo
 
 // Document Accesses
 Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index']);
-Route::get('/documents/{documentId}/accesses/users', [DocumentAccessController::class, 'users']);
-Route::get('/documents/{documentId}/accesses/roles', [DocumentAccessController::class, 'roles']);
-Route::post('/documents/{documentId}/accesses', [DocumentAccessActionController::class, 'store']);
-Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'update']);
-Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessActionController::class, 'destroy']);
+Route::get('/documents/{documentId}/accesses/users', [DocumentAccessController::class, 'listUsers']);
+Route::get('/documents/{documentId}/accesses/roles', [DocumentAccessController::class, 'listRoles']);
+Route::post('/documents/{documentId}/accesses', [DocumentAccessController::class, 'store']);
+Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'update']);
+Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'destroy']);
 
 
 // =========================
@@ -46,12 +53,19 @@ Route::middleware(['api'])->group(function () {
     Route::get('/upload/metadata', [UploadController::class, 'getMetadata']);
     Route::get('/download/{version}', [UploadController::class, 'download']);
     Route::delete('/documents/{document}', [UploadController::class, 'destroy']);
+
+        Route::post('/documents/upload', [UploadController::class, 'store'])->name('api.upload.store');
 });
 
 // danh sách tài liệu của người dùng hiện tại 
-Route::get('/my-documents', [DocumentController::class, 'index']);
+Route::get('/list-documents', [DocumentController::class, 'index']);
 Route::get('/documents', [DocumentController::class, 'getDocuments']);
 
 // chi tiết tài liệu
 Route::get('/documents/{id}', [DocumentDetailController::class, 'show']);
 Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
+
+// danh sách loại tài liệu và môn học
+Route::get('/types', [TypeController::class, 'index']);
+Route::get('/subjects', [SubjectController::class, 'index']);
+Route::get('/folders', [FolderController::class, 'index']);
