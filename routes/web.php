@@ -11,7 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\KhoaController;
 use App\Http\Controllers\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentDetailController;
-
+use App\Http\Controllers\MonHocController;
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -42,7 +42,7 @@ Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
 
 // Documents List - Ngoc Dan
-Route::get('/my-documents', [DocumentController::class, 'index'])->name('documents.index');
+Route::get('/list-documents', [DocumentController::class, 'index'])->name('documents.index');
 
 // Document Versions
 Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
@@ -69,3 +69,16 @@ Route::prefix('khoa')->group(function () {
 Route::get('/documents/{id}', function ($id) {
     return view('documents.See_Document_Details.Document_Detail', ['documentId' => $id]);
 })->name('documents.show');
+
+// Môn học
+
+
+Route::prefix('monhoc')->group(function () {
+    Route::get('/', [MonHocController::class, 'index'])->name('monhoc.index');
+    Route::get('/create', [MonHocController::class, 'create'])->name('monhoc.create');
+    Route::post('/', [MonHocController::class, 'store'])->name('monhoc.store');
+    Route::get('/{id}', [MonHocController::class, 'show'])->name('monhoc.show');
+    Route::get('/{id}/edit', [MonHocController::class, 'edit'])->name('monhoc.edit');
+    Route::put('/{id}', [MonHocController::class, 'update'])->name('monhoc.update');
+    Route::delete('/{id}', [MonHocController::class, 'destroy'])->name('monhoc.destroy');
+});
