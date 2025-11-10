@@ -268,6 +268,9 @@ const users = ref([]);
 // Roles
 const roles = ref([]);
 
+// Url
+const url = `/documents`;
+
 // Form message
 const showSwal = ({
     icon,
@@ -311,7 +314,7 @@ const fetchUsers = async () => {
             });
 
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
-                window.location.href = "/my-documents";
+                window.location.href = url;
                 return;
             }
         }
@@ -341,8 +344,7 @@ const fetchRoles = async () => {
             });
 
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
-                window.location.href = "/my-documents";
-                return;
+                window.location.href = url;
             }
         }
     } catch (err) {
@@ -385,7 +387,7 @@ const fetchAccesses = async (page = 1) => {
             });
 
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
-                window.location.href = "/my-documents";
+                window.location.href = url;
                 return;
             }
         }
@@ -450,7 +452,7 @@ const deleteAccess = async (access) => {
             });
 
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
-                window.location.href = "/my-documents";
+                window.location.href = url;
                 return;
             }
         }

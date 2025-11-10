@@ -291,6 +291,9 @@ const closeModal = () => {
     selectedVersion.value = null;
 };
 
+// Url
+const url = `/documents`;
+
 // Form message
 const showSwal = ({
     icon,
@@ -301,6 +304,7 @@ const showSwal = ({
     confirmButtonColor = "#0d6efd",
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
+    timer,
 }) => {
     return Swal.fire({
         icon,
@@ -311,6 +315,9 @@ const showSwal = ({
         confirmButtonColor,
         cancelButtonText,
         cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
     });
 };
 
@@ -342,23 +349,26 @@ const showModalVersion = async (versionId) => {
         if (res.data.success) {
             selectedVersion.value = res.data.data;
         } else {
-            hideModal();
+            closeModal();
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể tải chi tiết phiên bản.",
+                text: res.data.message,
             });
-            selectedVersion.value = null;
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
-        hideModal();
+        closeModal();
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Đã xảy ra lỗi khi tải chi tiết phiên bản. Vui lòng thử lại!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
         });
-        selectedVersion.value = null;
     } finally {
         loading.value = false;
     }
