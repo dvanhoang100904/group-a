@@ -153,7 +153,7 @@
                         <DocumentVersionPagination
                             :current-page="versions.current_page"
                             :last-page="versions.last_page"
-                            :max-pages-to-show="7"
+                            :max-pages-to-show="5"
                             @page-changed="changePage"
                         />
                     </div>
@@ -233,6 +233,9 @@ const filters = ref({
     date_to: "",
 });
 
+// Url
+const url = `/documents`;
+
 // Form message
 const showSwal = ({
     icon,
@@ -243,6 +246,7 @@ const showSwal = ({
     confirmButtonColor = "#0d6efd",
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
+    timer,
 }) => {
     return Swal.fire({
         icon,
@@ -253,6 +257,9 @@ const showSwal = ({
         confirmButtonColor,
         cancelButtonText,
         cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
     });
 };
 
@@ -290,9 +297,25 @@ const fetchUsers = async () => {
         );
         if (res.data.success) {
             users.value = res.data.data;
+        } else {
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message,
+            });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
+        });
     }
 };
 
@@ -339,15 +362,20 @@ const fetchVersions = async (page = 1) => {
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data?.message ?? "Không thể tải danh sách phiên bản",
+                text: res.data.message,
             });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (err) {
         console.error(err);
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Vui lòng thử lại!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại!",
         });
     } finally {
         loading.value = false;
@@ -402,14 +430,14 @@ const downloadVersion = async (version) => {
             "file_download";
 
         // Tao link download
-        const url = window.URL.createObjectURL(res.data);
+        const urlDown = window.URL.createObjectURL(res.data);
         const link = document.createElement("a");
-        link.href = url;
+        link.href = urlDown;
         link.setAttribute("download", fileName);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(urlDown);
 
         Swal.close();
 
@@ -417,13 +445,14 @@ const downloadVersion = async (version) => {
             icon: "success",
             title: "Tải xuống thành công",
             text: `Phiên bản #${version.version_number} đã được tải xuống.`,
+            timer: 2000,
         });
     } catch (err) {
         console.error("Lỗi tải file:", err);
         Swal.close();
         await showSwal({
             icon: "error",
-            title: "Lỗi tải file",
+            title: "Lỗi hệ thống",
             text: "Không thể tải file. Vui lòng thử lại.",
         });
     } finally {
@@ -462,11 +491,14 @@ const restoreVersion = async (version) => {
             `/api/documents/${props.documentId}/versions/${version.version_id}/restore`,
         );
 
+        Swal.close();
+
         if (res.data.success) {
             await showSwal({
                 icon: "success",
                 title: "Khôi phục thành công",
                 text: res.data.message,
+                timer: 2000,
             });
 
             // Sau khi khoi phuc reload lai danh sach
@@ -475,13 +507,13 @@ const restoreVersion = async (version) => {
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text:
-                    res.data.message ||
-                    "Không thể khôi phục phiên bản. Vui lòng thử lại.",
+                text: res.data.message,
             });
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
-
-        Swal.close();
     } catch (err) {
         console.log(err);
         Swal.close();
@@ -525,12 +557,14 @@ const deleteVersion = async (version) => {
         const res = await axios.delete(
             `/api/documents/${props.documentId}/versions/${version.version_id}`,
         );
+        Swal.close();
 
         if (res.data.success) {
             await showSwal({
                 icon: "success",
                 title: "Xóa thành công",
                 text: res.data.message,
+                timer: 2000,
             });
             // Sau khi xoa, reload lai danh sach phien ban
             await fetchVersions(versions.value.current_page);
@@ -540,9 +574,12 @@ const deleteVersion = async (version) => {
                 title: "Lỗi",
                 text: res.data.message,
             });
-        }
 
-        Swal.close();
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
+        }
     } catch (err) {
         console.error(err);
         Swal.close();

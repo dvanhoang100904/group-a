@@ -2,37 +2,40 @@
 
 namespace App\Services\DocumentAccess;
 
+use App\Models\Document;
 use App\Models\DocumentAccess;
+use Exception;
 use Illuminate\Support\Facades\DB;
-use Throwable;
+use Illuminate\Support\Facades\Log;
 
 class DocumentAccessDeleteService
 {
     /**
      * Xoa quyen tai lieu
      */
-    public function deleteAccess($documentId, $accessId): bool
+    public function deleteAccess($documentId, $accessId): ?DocumentAccess
     {
-        DB::beginTransaction();
+        $access = DocumentAccess::query()
+            ->where('document_id', $documentId)
+            ->where('access_id', $accessId)
+            ->first();
+
+        if (!$access) {
+            return null;
+        }
 
         try {
-            $access = DocumentAccess::forDocument($documentId)
-                ->byAccessId($accessId)
-                ->first();
-
-            if (!$access) {
-                DB::rollBack();
-                return false;
-            }
+            DB::beginTransaction();
 
             $access->delete();
 
             DB::commit();
-            return true;
-        } catch (Throwable $th) {
+
+            return $access;
+        } catch (Exception $e) {
             DB::rollBack();
-            report($th);
-            return false;
+            Log::error('Lổi xóa quyền chia sẻ ' . $e->getMessage());
+            return null;
         }
     }
 }

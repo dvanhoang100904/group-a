@@ -19,12 +19,12 @@
                     >
                         <option value="">Chọn phiên bản...</option>
                         <option
-                            v-for="v in versions"
-                            :key="v.version_id"
-                            :value="v.version_id"
-                            :disabled="v.version_id === versionB"
+                            v-for="version in versions"
+                            :key="version.version_id"
+                            :value="version.version_id"
+                            :disabled="version.version_id === versionB"
                         >
-                            v{{ v.version_number }}
+                            v{{ version.version_number }}
                         </option>
                     </select>
                 </div>
@@ -40,12 +40,12 @@
                     >
                         <option value="">Chọn phiên bản...</option>
                         <option
-                            v-for="v in versions"
-                            :key="v.version_id"
-                            :value="v.version_id"
-                            :disabled="v.version_id === versionA"
+                            v-for="version in versions"
+                            :key="version.version_id"
+                            :value="version.version_id"
+                            :disabled="version.version_id === versionA"
                         >
-                            v{{ v.version_number }}
+                            v{{ version.version_number }}
                         </option>
                     </select>
                 </div>
@@ -117,6 +117,9 @@ const differences = ref([]);
 const loading = ref(false);
 let cancelToken = null;
 
+// Url
+const url = `/documents`;
+
 // Form message
 const showSwal = ({
     icon,
@@ -127,6 +130,7 @@ const showSwal = ({
     confirmButtonColor = "#0d6efd",
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
+    timer,
 }) => {
     return Swal.fire({
         icon,
@@ -137,6 +141,9 @@ const showSwal = ({
         confirmButtonColor,
         cancelButtonText,
         cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
     });
 };
 
@@ -207,7 +214,8 @@ const compareVersions = async () => {
                 await showSwal({
                     icon: "info",
                     title: "Kết quả",
-                    text: "Hai phiên bản giống nhau, không có sự khác biệt nào.",
+                    text: res.data.message,
+                    timer: 2000,
                 });
             }
         } else {
@@ -215,8 +223,13 @@ const compareVersions = async () => {
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể so sánh phiên bản",
+                text: res.data.message,
             });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (err) {
         Swal.close();
@@ -225,7 +238,7 @@ const compareVersions = async () => {
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: "Đã xảy ra lỗi khi so sánh phiên bản. Vui lòng thử lại!",
+                text: "Có lỗi xảy ra. Vui lòng thử lại.",
             });
         }
     } finally {

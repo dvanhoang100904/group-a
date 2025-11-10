@@ -257,6 +257,9 @@ const onFileChange = (event) => {
     }
 };
 
+// Url
+const url = `/documents`;
+
 // Form message
 const showSwal = ({
     icon,
@@ -267,6 +270,7 @@ const showSwal = ({
     confirmButtonColor = "#0d6efd",
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
+    timer,
 }) => {
     return Swal.fire({
         icon,
@@ -277,6 +281,9 @@ const showSwal = ({
         confirmButtonColor,
         cancelButtonText,
         cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
     });
 };
 
@@ -329,13 +336,24 @@ const submitUpload = async () => {
                 icon: "success",
                 title: "Tải lên thành công",
                 text: res.data.message,
+                timer: 2000,
             });
 
             emit("uploaded", res.data.data);
         } else {
-            error.value = res.data.message || "Upload thất bại";
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message,
+            });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (e) {
+        console.error(e);
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",

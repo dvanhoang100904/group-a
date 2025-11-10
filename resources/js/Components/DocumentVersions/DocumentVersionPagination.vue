@@ -67,12 +67,12 @@ import { computed } from "vue";
 const props = defineProps({
     currentPage: { type: Number, required: true },
     lastPage: { type: Number, required: true },
-    maxPagesToShow: { type: Number, default: 5 },
+    maxPagesToShow: { type: Number, default: 3 },
 });
 
 const emit = defineEmits(["page-changed"]);
 
-// Tính startPage và endPage (giữ cửa sổ 5 trang)
+// Tính startPage và endPage
 const startPage = computed(() => {
     let start = props.currentPage - Math.floor(props.maxPagesToShow / 2);
     if (start < 1) start = 1;
