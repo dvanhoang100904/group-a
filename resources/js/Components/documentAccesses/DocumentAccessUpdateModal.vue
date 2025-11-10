@@ -150,6 +150,9 @@ let bsModal = null;
 const loading = ref(false);
 const error = ref(null);
 
+// Url
+const url = `/documents`;
+
 const form = ref({
     expiration_date: "",
     no_expiry: false,
@@ -298,7 +301,7 @@ const submitUpdate = async () => {
             });
 
             if (res.data.message?.includes("Tài liệu không tồn tại")) {
-                window.location.href = "/my-documents";
+                window.location.href = url;
                 return;
             }
         }

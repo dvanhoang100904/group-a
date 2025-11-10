@@ -64,9 +64,9 @@ class DocumentAccessController extends Controller
         ]);
     }
 
-    public function users(int $documentId)
+    public function listUsers(int $documentId)
     {
-        $document = $this->documentAccessService->getDocument($documentId);
+        $document = $this->documentAccessService->getDocumentById($documentId);
 
         if (!$document) {
             return response()->json([
@@ -91,9 +91,9 @@ class DocumentAccessController extends Controller
         ]);
     }
 
-    public function roles(int $documentId)
+    public function listRoles(int $documentId)
     {
-        $document = $this->documentAccessService->getDocument($documentId);
+        $document = $this->documentAccessService->getDocumentById($documentId);
 
         if (!$document) {
             return response()->json([

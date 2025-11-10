@@ -61,7 +61,7 @@ class DocumentVersionController extends Controller
                 'current_page' => $data->currentPage(),
                 'last_page' => $data->lastPage(),
             ],
-            'message' => $data->isEmpty() ? 'Chưa có phiên bản nào' : 'Danh sách phiên bản tải thành công',
+            'message' => $data->isEmpty() ? 'Chưa có phiên bản nào. Vui lòng thử lại.' : 'Danh sách phiên bản tải thành công',
         ]);
     }
 
@@ -70,12 +70,27 @@ class DocumentVersionController extends Controller
      */
     public function listUsers($documentId)
     {
+        $document = $this->documentVersionService->getDocumentById($documentId);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
+            ]);
+        }
+
         $users = $this->documentVersionService->getUsersForDocumentVersion($documentId);
 
+        if (!$users) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chưa có người dùng nào.'
+            ]);
+        }
         return response()->json([
             'success' => true,
             'data' => $users,
-            'message' => 'Danh sách người upload của tài liệu'
+            'message' => 'Danh sách người dùng tải thành công.'
         ]);
     }
 
@@ -98,14 +113,14 @@ class DocumentVersionController extends Controller
         if (!$data) {
             return response()->json([
                 'success' => false,
-                'message' => 'Phiên bản tài liệu không tồn tại. Vui lòng thử lại.'
+                'message' => 'Không thể xem chi tiết phiên bản. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
             'success' => true,
             'data' => $data,
-            'message' => 'Thông tin chi tiết phiên bản tài liệu'
+            'message' => 'Chi tiết phiên bản đã xem thành công.'
         ]);
     }
 
@@ -128,14 +143,14 @@ class DocumentVersionController extends Controller
         if (!$data) {
             return response()->json([
                 'success' => false,
-                'message' => 'Phiên bản tài liệu không tồn tại. Vui lòng thử lại.'
+                'message' => 'Không thể xem preview file. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
             'success' => true,
             'data' => $data,
-            'message' => 'Mở preview phiên bản tài liệu'
+            'message' => 'Preview file phiên bản đã xem thành công.'
         ]);
     }
 
@@ -164,13 +179,13 @@ class DocumentVersionController extends Controller
         if (!$version) {
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra. Vui lòng thử lại .'
+                'message' => 'Không thể tải lên phiên bản mới. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Tải lên tài liệu phiên bản mới thành công',
+            'message' => 'Phiên bản mới đã tải lên thành công.',
             'data' => $version
         ]);
     }
@@ -194,7 +209,7 @@ class DocumentVersionController extends Controller
         if (!$version) {
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra. Vui lòng thử lại.'
+                'message' => 'Không thể tải xuống phiên bản. Vui lòng thử lại.'
             ]);
         }
 
@@ -220,12 +235,13 @@ class DocumentVersionController extends Controller
         if (!$version) {
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra. Vui lòng thử lại.'
+                'message' => 'Không thể khôi phục phiên bản. Vui lòng thử lại.'
             ]);
         }
+
         return response()->json([
             'success' => true,
-            'message' => 'Khôi phục phiên bản thành công',
+            'message' => 'Phiên bản đã khôi phục thành công.',
             'data' => $version
         ]);
     }
@@ -249,13 +265,13 @@ class DocumentVersionController extends Controller
         if (!$version) {
             return response()->json([
                 'success' => false,
-                'message' => 'Có lỗi xảy ra. Vui lòng thử lại.'
+                'message' => 'Không thể xóa phiên bản. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Khôi phục phiên bản thành công',
+            'message' => 'Phiên bản đã xóa thành công.',
             'data' => $version
         ]);
     }
@@ -289,14 +305,14 @@ class DocumentVersionController extends Controller
         if (!$versions) {
             return response()->json([
                 'success' => false,
-                'message' => 'Phiên bản không tồn tại. Vui lòng thử lại'
+                'message' => 'Không thể so sánh phiên bản. Vui lòng thử lại.'
             ]);
         }
 
         return response()->json([
             'success' => true,
             'data' => $versions,
-            'message' => 'So sanh hai phiên bản thành công'
+            'message' => 'Phiên bản đã so sánh thành công.'
         ]);
     }
 }
