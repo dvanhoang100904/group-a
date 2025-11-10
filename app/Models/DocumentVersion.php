@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DocumentVersion extends Model
 {
@@ -21,36 +23,32 @@ class DocumentVersion extends Model
 
     protected $casts = [
         'is_current_version' => 'boolean',
-        'file_size' => 'integer'
+        'file_size' => 'integer',
+        'document_id' => 'integer',
+        'user_id' => 'integer',
     ];
 
-    public function document()
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    public function user()
+    /** User */
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
-    public function previews()
+    /** Document Previews */
+    public function previews(): HasMany
     {
-        return $this->hasMany(DocumentPreview::class, 'version_id');
+        return $this->hasMany(DocumentPreview::class, 'version_id', 'version_id');
     }
 
-    public function baseComparisons()
+    /** Activities */
+    public function activities(): HasMany
     {
-        return $this->hasMany(VersionComparison::class, 'base_version_id');
-    }
-
-    public function compareComparisons()
-    {
-        return $this->hasMany(VersionComparison::class, 'compare_version_id');
-    }
-
-    public function activities()
-    {
-        return $this->hasMany(Activity::class, 'version_id');
+        return $this->hasMany(Activity::class, 'version_id', 'version_id');
     }
 }

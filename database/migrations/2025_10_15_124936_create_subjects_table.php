@@ -16,8 +16,11 @@ return new class extends Migration
             $table->string('name', 150)->unique();
             $table->string('description', 255)->nullable();
             $table->unsignedInteger('department_id');
+            $table->boolean('status')->default(true)->comment('1=active, 0=inactive');
             $table->timestamps();
-            $table->index('name');
+            $table->index('department_id', 'idx_subject_department');
+            $table->index(['department_id', 'created_at'], 'idx_subject_dept_created');
+            $table->index('status');
         });
     }
 

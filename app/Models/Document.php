@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
 {
@@ -18,52 +21,70 @@ class Document extends Model
         'subject_id'
     ];
 
-    public function user()
+    protected $casts = [
+        'status' => 'boolean',
+        'user_id' => 'integer',
+        'folder_id' => 'integer',
+        'type_id' => 'integer',
+        'subject_id' => 'integer',
+    ];
+
+    /** User */
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
-    public function folder()
+    /** Folder */
+    public function folder(): BelongsTo
     {
-        return $this->belongsTo(Folder::class, 'folder_id');
+        return $this->belongsTo(Folder::class, 'folder_id', 'folder_id');
     }
 
-    public function type()
+    /** Type */
+    public function type(): BelongsTo
     {
-        return $this->belongsTo(Type::class, 'type_id');
+        return $this->belongsTo(Type::class, 'type_id', 'type_id');
     }
 
-    public function subject()
+    /** Subject */
+    public function subject(): BelongsTo
     {
-        return $this->belongsTo(Subject::class, 'subject_id');
+        return $this->belongsTo(Subject::class, 'subject_id', 'subject_id');
     }
 
-    public function versions()
+    /** Document Versions */
+    public function versions(): HasMany
     {
-        return $this->hasMany(DocumentVersion::class, 'document_id');
+        return $this->hasMany(DocumentVersion::class, 'document_id', 'document_id');
     }
 
-    public function previews()
+    /** Document Previews */
+    public function previews(): HasMany
     {
-        return $this->hasMany(DocumentPreview::class, 'document_id');
+        return $this->hasMany(DocumentPreview::class, 'document_id', 'document_id');
     }
 
-    public function accesses()
+    /** Document Accesses */
+    public function accesses(): HasMany
     {
-        return $this->hasMany(DocumentAccess::class, 'document_id');
+        return $this->hasMany(DocumentAccess::class, 'document_id', 'document_id');
     }
 
-    public function reports()
+    /** Reports */
+    public function reports(): HasMany
     {
-        return $this->hasMany(Report::class, 'document_id');
+        return $this->hasMany(Report::class, 'document_id', 'document_id');
     }
 
-    public function activities()
+    /** Activities */
+    public function activities(): HasMany
     {
-        return $this->hasMany(Activity::class, 'document_id');
+        return $this->hasMany(Activity::class, 'document_id', 'document_id');
     }
 
-    public function tags()
+    /** Tags */
+    public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'document_tags', 'document_id', 'tag_id');
     }

@@ -1,5 +1,5 @@
-<div class="sidebar pt-4" id="sidebar">
-    <button class="sidebar-toggle d-none d-lg-block" id="sidebarToggle">
+<div class="sidebar pt-4" style="background: #f8fafd; border: none; box-shadow: none" id="sidebar">
+    <button class="sidebar-toggle d-none d-lg-block" style="background: #f8fafd; " id="sidebarToggle">
         <i class="bi bi-chevron-left"></i>
     </button>
 
@@ -13,6 +13,12 @@
                 <a class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                     <i class="bi bi-speedometer2"></i>
                     <span class="link-text">Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link " href="#!">
+                    <i class="bi bi-clock-history"></i>
+                    <span class="link-text">Hoạt động gần đây</span>
                 </a>
             </li>
 
@@ -30,7 +36,7 @@
             <li class="nav-item">
                 <a class="nav-link" href="{{ route('upload.index') }}">
                     <i class="bi bi-upload"></i>
-                    <span class="link-text">Upload tài liệu</span>
+                    <span class="link-text">Tải lên tài liệu</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -63,13 +69,15 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ Request::routeIs('monhoc.*') ? 'active' : '' }}" 
+                 href="{{ route('monhoc.index') }}">
                     <i class="bi bi-journal-bookmark"></i>
                     <span class="link-text">Môn học</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                 <a class="nav-link {{ Request::routeIs('khoa.*') ? 'active' : '' }}" 
+                 href="{{ route('khoa.index') }}">
                     <i class="bi bi-building"></i>
                     <span class="link-text">Khoa / Bộ môn</span>
                 </a>
@@ -109,8 +117,6 @@
                     <span class="link-text">Báo cáo vi phạm</span>
                 </a>
             </li>
-
-
         </ul>
     </div>
 </div>

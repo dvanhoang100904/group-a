@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentPreview extends Model
 {
@@ -16,18 +17,27 @@ class DocumentPreview extends Model
         'version_id'
     ];
 
-    public function document()
+    protected $casts = [
+        'generated_by' => 'integer',
+        'document_id' => 'integer',
+        'version_id' => 'integer'
+    ];
+
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    public function version()
+    /** Document Version */
+    public function version(): BelongsTo
     {
-        return $this->belongsTo(DocumentVersion::class, 'version_id');
+        return $this->belongsTo(DocumentVersion::class, 'version_id', 'version_id');
     }
 
+    /** User */
     public function generatedBy()
     {
-        return $this->belongsTo(User::class, 'generated_by');
+        return $this->belongsTo(User::class, 'generated_by', 'user_id');
     }
 }

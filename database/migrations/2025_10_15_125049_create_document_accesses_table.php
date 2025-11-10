@@ -22,16 +22,19 @@ return new class extends Migration
             $table->boolean('can_download')->default(0);
             $table->boolean('can_share')->default(0);
             $table->timestamp('expiration_date')->nullable();
+            $table->boolean('no_expiry')->default(0);
             $table->unsignedInteger('document_id');
             $table->unsignedInteger('granted_by');
             $table->unsignedInteger('granted_to_user_id')->nullable();
             $table->unsignedInteger('granted_to_role_id')->nullable();
             $table->timestamps();
-            $table->index('document_id');
-            $table->index('granted_by');
-            $table->index('granted_to_user_id');
-            $table->index('granted_to_role_id');
-            $table->index('expiration_date');
+
+            $table->index('granted_by', 'idx_access_granted_by');
+
+            $table->index(['document_id', 'granted_to_user_id'], 'idx_doc_user');
+            $table->index(['document_id', 'granted_to_role_id'], 'idx_doc_role');
+            $table->index(['granted_to_type', 'expiration_date'], 'idx_type_expire');
+            $table->index(['document_id', 'granted_to_type', 'expiration_date'], 'idx_doc_type_expire');
         });
     }
 

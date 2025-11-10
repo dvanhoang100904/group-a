@@ -31,19 +31,10 @@ class DatabaseSeeder extends Seeder
             TypeSeeder::class,
             FolderSeeder::class,
             TagSeeder::class,
-        ]);
-
-        // Document + Version + Preview
-        $this->call([
             DocumentSeeder::class,
             DocumentVersionSeeder::class,
             DocumentPreviewSeeder::class,
-        ]);
-
-        // Seeder khác nếu cần test logic app
-        $this->call([
             DocumentAccessSeeder::class,
-            VersionComparisonSeeder::class,
             ActivitySeeder::class,
             ReportSeeder::class,
             FolderLogSeeder::class,
