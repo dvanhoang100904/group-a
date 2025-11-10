@@ -186,6 +186,7 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 // Nhan props tu cha
 const props = defineProps({
@@ -256,6 +257,36 @@ const onFileChange = (event) => {
     }
 };
 
+// Url
+const url = `/documents`;
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+    timer,
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
+    });
+};
+
 // Xoa file da chon
 const removeFile = () => {
     selectedFile.value = null;
@@ -300,21 +331,34 @@ const submitUpload = async () => {
 
         if (res.data.success) {
             success.value = res.data.message;
+            closeModal();
+            await showSwal({
+                icon: "success",
+                title: "Tải lên thành công",
+                text: res.data.message,
+                timer: 2000,
+            });
 
             emit("uploaded", res.data.data);
-
-            setTimeout(() => {
-                closeModal();
-            }, 1500);
         } else {
-            error.value = res.data.message || "Upload thất bại";
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message,
+            });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (e) {
-        if (e.response && e.response.data && e.response.data.message) {
-            error.value = e.response.data.message;
-        } else {
-            error.value = "Có lỗi xảy ra khi tải lên";
-        }
+        console.error(e);
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Không thể kết nối đến máy chủ. Vui lòng thử lại sau.",
+        });
     } finally {
         loading.value = false;
         progress.value = 0;

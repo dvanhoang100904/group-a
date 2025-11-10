@@ -19,11 +19,11 @@ class DocumentVersionController extends Controller
      */
     public function index(int $documentId)
     {
-        $document = $this->documentVersionService->getDocumentWithRelations($documentId);
+        $document = $this->documentVersionService->getDocument($documentId);
 
         if (!$document) {
             return redirect()->route('documents.index')
-                ->with('error', 'Tài liệu này không còn tồn tại. Vui lòng thử lại.');
+                ->with('error', 'Tài liệu không tồn tại. Vui lòng thử lại.');
         }
 
         $data = [

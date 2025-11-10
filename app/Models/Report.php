@@ -3,15 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Report extends Model
 {
-    use HasFactory;
 
     protected $table = 'reports';
     protected $primaryKey = 'report_id';
-    public $timestamps = true;
 
     protected $fillable = [
         'reason',
@@ -27,14 +25,15 @@ class Report extends Model
         'user_id' => 'integer',
     ];
 
-
-    public function document()
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    public function user()
+    /** User */
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 }

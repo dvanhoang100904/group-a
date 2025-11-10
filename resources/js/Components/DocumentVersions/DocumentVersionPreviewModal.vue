@@ -62,10 +62,6 @@
                         <p class="mt-2">Đang tải preview...</p>
                     </div>
 
-                    <div v-else-if="error" class="text-center py-5 text-danger">
-                        <p>{{ error }}</p>
-                    </div>
-
                     <div v-else class="iframe-wrapper">
                         <iframe
                             ref="iframeRef"
@@ -109,8 +105,6 @@ let bsModal = null;
 
 const loading = ref(false);
 
-const error = ref(null);
-
 const previewUrl = ref(null);
 
 const zoomLevel = ref(1);
@@ -132,8 +126,37 @@ const hideModal = () => {
 const closeModal = () => {
     hideModal();
     previewUrl.value = null;
-    error.value = null;
     zoomLevel.value = 1;
+};
+
+// Url
+const url = `/documents`;
+
+// Form message
+const showSwal = ({
+    icon,
+    title,
+    text,
+    showCancelButton = false,
+    confirmButtonText = "Đồng ý",
+    confirmButtonColor = "#0d6efd",
+    cancelButtonText = "Hủy",
+    cancelButtonColor = "#6c757d",
+    timer,
+}) => {
+    return Swal.fire({
+        icon,
+        title,
+        text,
+        showCancelButton,
+        confirmButtonText,
+        confirmButtonColor,
+        cancelButtonText,
+        cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
+    });
 };
 
 const showPreviewVersion = async (versionId) => {
@@ -141,7 +164,6 @@ const showPreviewVersion = async (versionId) => {
 
     showModal();
     loading.value = true;
-    error.value = null;
     previewUrl.value = null;
 
     try {
@@ -152,20 +174,25 @@ const showPreviewVersion = async (versionId) => {
             previewUrl.value = res.data.data.preview_path;
             nextTick(() => resetZoom());
         } else {
-            hideModal();
-            await Swal.fire({
+            closeModal();
+            await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể tải preview",
+                text: res.data.message,
             });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (e) {
         console.error(e);
-        hideModal();
-        await Swal.fire({
+        closeModal();
+        await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Đã xảy ra lỗi khi tải preview. Vui lòng thử lại!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại!",
         });
     } finally {
         loading.value = false;
