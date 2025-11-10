@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Activity extends Model
 {
@@ -19,23 +20,34 @@ class Activity extends Model
         'folder_id'
     ];
 
-    public function document()
+    protected $casts = [
+        'document_id' => 'integer',
+        'user_id' => 'integer',
+        'version_id' => 'integer',
+        'folder_id' => 'integer',
+    ];
+
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $this->belongsTo(Document::class, 'document_id');
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    public function user()
+    /** User */
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
-    public function version()
+    /** Document Version */
+    public function version(): BelongsTo
     {
-        return $this->belongsTo(DocumentVersion::class, 'version_id');
+        return $this->belongsTo(DocumentVersion::class, 'version_id', 'version_id');
     }
 
-    public function folder()
+    /** Folder */
+    public function folder(): BelongsTo
     {
-        return $this->belongsTo(Folder::class, 'folder_id');
+        return $this->belongsTo(Folder::class, 'folder_id', 'folder_id');
     }
 }
