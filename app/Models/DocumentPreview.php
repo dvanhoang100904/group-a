@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentPreview extends Model
 {
@@ -16,33 +17,27 @@ class DocumentPreview extends Model
         'version_id'
     ];
 
-    /** Chi lay preview con hieu luc */
-    public function scopeActive($query)
+    protected $casts = [
+        'generated_by' => 'integer',
+        'document_id' => 'integer',
+        'version_id' => 'integer'
+    ];
+
+    /** Document */
+    public function document(): BelongsTo
     {
-        return $query->where(function ($q) {
-            $q->whereNull('expires_at')
-                ->orWhere('expires_at', '>', now());
-        });
+        return $this->belongsTo(Document::class, 'document_id', 'document_id');
     }
 
-    /** Lay moi nhat theo ngay tao */
-    public function scopeLatestCreated($query)
+    /** Document Version */
+    public function version(): BelongsTo
     {
-        return $query->orderByDesc('created_at');
+        return $this->belongsTo(DocumentVersion::class, 'version_id', 'version_id');
     }
 
-    public function document()
-    {
-        return $this->belongsTo(Document::class, 'document_id');
-    }
-
-    public function version()
-    {
-        return $this->belongsTo(DocumentVersion::class, 'version_id');
-    }
-
+    /** User */
     public function generatedBy()
     {
-        return $this->belongsTo(User::class, 'generated_by');
+        return $this->belongsTo(User::class, 'generated_by', 'user_id');
     }
 }

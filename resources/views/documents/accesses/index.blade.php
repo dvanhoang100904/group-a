@@ -12,10 +12,10 @@
                 </a>
             </li>
             <li class="breadcrumb-item">
-                {{-- <a class="text-dark text-decoration-none"
-                        href="{{ route('documents.show', ['id' => $document->document_id]) }}">
-                        </i>{{ $document->title }}
-                    </a> --}}
+                <a class="text-dark text-decoration-none"
+                    href="{{ route('documents.show', ['id' => $document->document_id]) }}">
+                    </i>{{ $document->title }}
+                </a>
             </li>
             <li class="breadcrumb-item active" aria-current="page">
                 Quyền chia sẻ tài liệu
@@ -25,20 +25,21 @@
 
     <!-- header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0 text-primary">
+        <h3 class="mb-0 fw-bold text-primary fs-5">
             <i class="bi bi-shield-lock me-2"></i>
             Quyền chia sẻ tài liệu
         </h3>
     </div>
 
     {{-- detail document --}}
+
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-body">
             @if ($document)
-                <h5 class="fw-bold mb-2">{{ $document->title }}</h5>
+                <h3 class="fw-bold mb-2">{{ $document->title }}</h3>
                 <p class="text-muted small mb-0">
-                    Môn học: <strong>{{ $document->subject->name ?? 'Chưa có' }}</strong> |
-                    Khoa: <strong>{{ $document->subject->department->name ?? 'Chưa có' }}</strong>
+                    Môn học: <strong>{{ $subject->name ?? 'Chưa có' }}</strong> |
+                    Khoa: <strong>{{ $department->name ?? 'Chưa có' }}</strong>
                 </p>
             @else
                 <p class="text-danger">Tài liệu không tồn tại</p>
