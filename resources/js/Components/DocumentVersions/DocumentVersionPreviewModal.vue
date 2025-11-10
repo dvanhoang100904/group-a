@@ -129,6 +129,9 @@ const closeModal = () => {
     zoomLevel.value = 1;
 };
 
+// Url
+const url = `/documents`;
+
 // Form message
 const showSwal = ({
     icon,
@@ -139,6 +142,7 @@ const showSwal = ({
     confirmButtonColor = "#0d6efd",
     cancelButtonText = "Hủy",
     cancelButtonColor = "#6c757d",
+    timer,
 }) => {
     return Swal.fire({
         icon,
@@ -149,6 +153,9 @@ const showSwal = ({
         confirmButtonColor,
         cancelButtonText,
         cancelButtonColor,
+        timer,
+        showConfirmButton: !timer,
+        allowOutsideClick: !timer,
     });
 };
 
@@ -167,20 +174,25 @@ const showPreviewVersion = async (versionId) => {
             previewUrl.value = res.data.data.preview_path;
             nextTick(() => resetZoom());
         } else {
-            hideModal();
+            closeModal();
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
-                text: res.data.message || "Không thể tải preview.",
+                text: res.data.message,
             });
+
+            if (res.data.message?.includes("Tài liệu không tồn tại")) {
+                window.location.href = url;
+                return;
+            }
         }
     } catch (e) {
         console.error(e);
-        hideModal();
+        closeModal();
         await showSwal({
             icon: "error",
             title: "Lỗi hệ thống",
-            text: "Đã xảy ra lỗi khi tải preview. Vui lòng thử lại!",
+            text: "Có lỗi xảy ra. Vui lòng thử lại!",
         });
     } finally {
         loading.value = false;
