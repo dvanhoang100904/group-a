@@ -15,7 +15,7 @@ class DocumentAccessController extends Controller
     }
 
     /**
-     * Hien thi trang phan quyen va chia se tai lieu
+     * Hien thi trang quyen truy cap tai lieu
      */
     public function index(int $documentId)
     {
@@ -31,7 +31,7 @@ class DocumentAccessController extends Controller
             'subject' => $document->subject,
             'department' => $document->subject->department
         ];
-        
+
         return view('documents.accesses.index', $data);
     }
 }

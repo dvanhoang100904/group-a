@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Quyền chia sẻ tài liệu')
+@section('title', 'Quyền truy cập tài liệu')
 
 @section('content')
     <!-- breadcrumb -->
@@ -18,7 +18,7 @@
                 </a>
             </li>
             <li class="breadcrumb-item active" aria-current="page">
-                Quyền chia sẻ tài liệu
+                Quyền truy cập tài liệu
             </li>
         </ol>
     </nav>
@@ -27,7 +27,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0 fw-bold text-primary fs-5">
             <i class="bi bi-shield-lock me-2"></i>
-            Quyền chia sẻ tài liệu
+            Quyền truy cập tài liệu
         </h3>
     </div>
 

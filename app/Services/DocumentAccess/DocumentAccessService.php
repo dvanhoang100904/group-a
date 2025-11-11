@@ -11,11 +11,11 @@ use Illuminate\Support\Collection;
 
 class DocumentAccessService
 {
-    // Dinh nghia so luong quyen chia se tai lieu moi trang
+    // Dinh nghia so luong quyen truy cap tai lieu moi trang
     const PER_PAGE = 8;
 
     /**
-     * Lay tai lieu hien thi trang quyen chia se tai lieu
+     * Lay tai lieu hien thi trang quyen truy cap tai lieu
      */
     public function getDocument(int $documentId): ?Document
     {
