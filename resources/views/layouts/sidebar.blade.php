@@ -83,7 +83,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ Request::routeIs('tags.*') ? 'active' : '' }}" 
+                 href="{{ route('tags.index') }}">
                     <i class="bi bi-tags"></i>
                     <span class="link-text">Thẻ</span>
                 </a>

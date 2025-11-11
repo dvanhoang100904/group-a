@@ -84,12 +84,35 @@ Route::prefix('monhoc')->group(function () {
 });
 
 // Type documents
+// Route::prefix('types')->name('types.')->group(function () {
+// 	Route::get('/', [TypeController::class, 'index'])->name('index');
+// 	Route::get('/create', [TypeController::class, 'create'])->name('create');
+// 	Route::post('/', [TypeController::class, 'store'])->name('store');
+// 	Route::get('/{type}', [TypeController::class, 'show'])->name('show');
+// 	Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
+// 	Route::put('/{type}', [TypeController::class, 'update'])->name('update');
+// 	Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
+// });
+
 Route::prefix('types')->name('types.')->group(function () {
-	Route::get('/', [TypeController::class, 'index'])->name('index');
-	Route::get('/create', [TypeController::class, 'create'])->name('create');
-	Route::post('/', [TypeController::class, 'store'])->name('store');
-	Route::get('/{type}', [TypeController::class, 'show'])->name('show');
-	Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
-	Route::put('/{type}', [TypeController::class, 'update'])->name('update');
-	Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
+    Route::get('/', [TypeController::class, 'index'])->name('index');
+    Route::get('/create', [TypeController::class, 'create'])->name('create');
+    Route::post('/', [TypeController::class, 'store'])->name('store');
+    Route::get('/{type}', [TypeController::class, 'show'])->name('show');
+    Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
+    Route::put('/{type}', [TypeController::class, 'update'])->name('update');
+    Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
+
+    // Xuất Excel
+    Route::get('/export-excel', [TypeController::class, 'exportExcel'])->name('exportExcel');
+});
+// Tags
+Route::prefix('tags')->name('tags.')->group(function () {
+    Route::get('/', [App\Http\Controllers\TagController::class, 'index'])->name('index');
+    Route::get('/create', [App\Http\Controllers\TagController::class, 'create'])->name('create');
+    Route::post('/', [App\Http\Controllers\TagController::class, 'store'])->name('store');
+    Route::get('/{tag}', [App\Http\Controllers\TagController::class, 'show'])->name('show');
+    Route::get('/{tag}/edit', [App\Http\Controllers\TagController::class, 'edit'])->name('edit');
+    Route::put('/{tag}', [App\Http\Controllers\TagController::class, 'update'])->name('update');
+    Route::delete('/{tag}', [App\Http\Controllers\TagController::class, 'destroy'])->name('destroy');
 });
