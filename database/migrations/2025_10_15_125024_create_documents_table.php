@@ -16,6 +16,10 @@ return new class extends Migration
             $table->string('title', 150);
             $table->string('description', 255)->nullable();
             $table->enum('status', ['public', 'private', 'restricted'])->default('private');
+            $table->enum('share_mode', ['public', 'private', 'custom'])->default('private');
+            $table->string('share_link', 255)->nullable()->unique();
+            $table->timestamp('expiration_date')->nullable();
+            $table->boolean('no_expiry')->default(false);
             $table->unsignedInteger('user_id');
             $table->unsignedInteger('folder_id')->nullable();
             $table->unsignedInteger('type_id');

@@ -33,7 +33,7 @@
 
     {{-- detail document --}}
 
-    <div class="card shadow-sm mb-4 border-0">
+    <div class="card shadow-sm mb-4 border-0" style="background-color: #f8fafd ">
         <div class="card-body">
             @if ($document)
                 <h5 class="fw-bold mb-2">{{ $document->title }}</h5>

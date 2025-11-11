@@ -49,6 +49,8 @@ Route::get('/documents/{documentId}/versions', [DocumentVersionController::class
 
 // Document Accesses
 Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
+Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings');
+
 
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');

@@ -54,7 +54,7 @@ Route::middleware(['api'])->group(function () {
     Route::get('/download/{version}', [UploadController::class, 'download']);
     Route::delete('/documents/{document}', [UploadController::class, 'destroy']);
 
-        Route::post('/documents/upload', [UploadController::class, 'store'])->name('api.upload.store');
+    Route::post('/documents/upload', [UploadController::class, 'store'])->name('api.upload.store');
 });
 
 // danh sách tài liệu của người dùng hiện tại 

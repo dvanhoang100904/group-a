@@ -9,7 +9,7 @@
             >
                 <div class="spinner-border text-primary" role="status"></div>
                 <div class="mt-2 text-muted">
-                    Đang tải danh sách quyền chia sẻ...
+                    Đang tải danh sách quyền truy cập...
                 </div>
             </div>
         </transition>
@@ -22,11 +22,11 @@
                 >
                     <span class="fw-bold">
                         <i class="bi bi-person-check me-2"></i> Danh sách quyền
-                        chia sẻ
+                        truy cập
                     </span>
                     <!-- Add -->
                     <button
-                        class="btn btn-sm btn-primary px-3"
+                        class="btn btn-sm btn-primary px-2"
                         @click="addAccess()"
                     >
                         <i class="bi bi-plus-circle me-1"></i> Thêm quyền
@@ -40,7 +40,7 @@
                         class="text-center text-muted py-4"
                     >
                         <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                        Chưa có quyền chia sẻ nào
+                        Chưa có quyền truy cập nào
                     </div>
                     <div v-else class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -48,14 +48,14 @@
                                 <tr>
                                     <th class="text-center">STT</th>
                                     <th class="text-center">
-                                        Đối tượng được chia sẻ
+                                        Đối tượng được truy cập
                                     </th>
                                     <th class="text-center">Xem</th>
                                     <th class="text-center">Tải lên</th>
                                     <th class="text-center">Tải xuống</th>
                                     <th class="text-center">Chỉnh sửa</th>
                                     <th class="text-center">Xóa</th>
-                                    <th class="text-center">Chia sẻ tiếp</th>
+                                    <th class="text-center">chia sẻ tiếp</th>
                                     <th class="text-center">Ngày hết hạn</th>
                                     <th class="text-center">Người cấp quyền</th>
                                     <th class="text-center">Hành động</th>
