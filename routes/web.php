@@ -11,6 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\KhoaController;
 use App\Http\Controllers\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentDetailController;
+use App\Http\Controllers\DocumentSharedController;
 use App\Http\Controllers\MonHocController;
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -50,6 +51,9 @@ Route::get('/documents/{documentId}/versions', [DocumentVersionController::class
 // Document Accesses
 Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
 Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings');
+
+// Document Shared
+Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index');
 
 
 // Profile
