@@ -11,7 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\KhoaController;
 use App\Http\Controllers\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentDetailController;
-
+use App\Http\Controllers\MonHocController;
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -42,13 +42,15 @@ Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
 
 // Documents List - Ngoc Dan
-Route::get('/my-documents', [DocumentController::class, 'index'])->name('documents.index');
+Route::get('/list-documents', [DocumentController::class, 'index'])->name('documents.index');
 
 // Document Versions
 Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
 
 // Document Accesses
 Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
+Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings');
+
 
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
@@ -71,7 +73,7 @@ Route::get('/documents/{id}', function ($id) {
 })->name('documents.show');
 
 // Môn học
-use App\Http\Controllers\MonHocController;
+
 
 Route::prefix('monhoc')->group(function () {
     Route::get('/', [MonHocController::class, 'index'])->name('monhoc.index');
