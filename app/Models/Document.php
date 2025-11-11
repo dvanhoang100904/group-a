@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
@@ -13,6 +15,10 @@ class Document extends Model
         'title',
         'description',
         'status',
+        'share_mode',
+        'share_link',
+        'expiration_date',
+        'no_expiry',
         'user_id',
         'folder_id',
         'type_id',
@@ -21,47 +27,37 @@ class Document extends Model
 
     protected $casts = [
         'status' => 'boolean',
+        'share_mode' => 'string',
+        'expiration_date' => 'datetime',
+        'no_expiry' => 'boolean',
         'user_id' => 'integer',
         'folder_id' => 'integer',
         'type_id' => 'integer',
         'subject_id' => 'integer',
     ];
 
-    /** Lay so version tiep theo */
-    public function getNextVersionNumber(): int
+    /** User */
+    public function user(): BelongsTo
     {
-        $lastVersion = $this->versions()
-            ->orderByDesc('version_number')
-            ->first();
-        return $lastVersion ? $lastVersion->version_number + 1 : 1;
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
-    /** Dat version moi la current, cac version khac false */
-    public function setCurrentVersion($version)
+    /** Folder */
+    public function folder(): BelongsTo
     {
-        $this->versions()
-            ->where('version_id', '!=', $version->version_id)
-            ->update(['is_current_version' => false]);
+        return $this->belongsTo(Folder::class, 'folder_id', 'folder_id');
     }
 
-    public function user()
+    /** Type */
+    public function type(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(Type::class, 'type_id', 'type_id');
     }
 
-    public function folder()
+    /** Subject */
+    public function subject(): BelongsTo
     {
-        return $this->belongsTo(Folder::class, 'folder_id');
-    }
-
-    public function type()
-    {
-        return $this->belongsTo(Type::class, 'type_id');
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Subject::class, 'subject_id');
+        return $this->belongsTo(Subject::class, 'subject_id', 'subject_id');
     }
 
     /** Document Versions */
@@ -70,9 +66,10 @@ class Document extends Model
         return $this->hasMany(DocumentVersion::class, 'document_id', 'document_id');
     }
 
-    public function previews()
+    /** Document Previews */
+    public function previews(): HasMany
     {
-        return $this->hasMany(DocumentPreview::class, 'document_id');
+        return $this->hasMany(DocumentPreview::class, 'document_id', 'document_id');
     }
 
     /** Document Accesses */
@@ -81,17 +78,20 @@ class Document extends Model
         return $this->hasMany(DocumentAccess::class, 'document_id', 'document_id');
     }
 
-    public function reports()
+    /** Reports */
+    public function reports(): HasMany
     {
-        return $this->hasMany(Report::class, 'document_id');
+        return $this->hasMany(Report::class, 'document_id', 'document_id');
     }
 
-    public function activities()
+    /** Activities */
+    public function activities(): HasMany
     {
-        return $this->hasMany(Activity::class, 'document_id');
+        return $this->hasMany(Activity::class, 'document_id', 'document_id');
     }
 
-    public function tags()
+    /** Tags */
+    public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'document_tags', 'document_id', 'tag_id');
     }
