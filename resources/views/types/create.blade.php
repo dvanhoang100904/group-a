@@ -15,10 +15,6 @@
     <form action="{{ route('types.store') }}" method="POST">
         @csrf
         <div class="mb-3">
-            <label>Mã loại</label>
-            <input type="text" name="code" class="form-control" value="{{ old('code') }}" required>
-        </div>
-        <div class="mb-3">
             <label>Tên loại</label>
             <input type="text" name="name" class="form-control" value="{{ old('name') }}" required>
         </div>

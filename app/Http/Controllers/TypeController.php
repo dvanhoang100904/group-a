@@ -16,24 +16,19 @@ class TypeController extends Controller
     {
         $query = Type::query();
 
-        if ($request->filled('code')) {
-            $query->where('code', 'like', '%' . $request->code . '%');
-        }
         if ($request->filled('name')) {
             $query->where('name', 'like', '%' . $request->name . '%');
         }
         if ($request->filled('search')) {
             $keyword = $request->search;
             $query->where(function ($q) use ($keyword) {
-                $q->where('code', 'like', "%{$keyword}%")
-                    ->orWhere('name', 'like', "%{$keyword}%")
+				$q->where('name', 'like', "%{$keyword}%")
                     ->orWhere('description', 'like', "%{$keyword}%");
             });
         }
 
-        // ⚡ Thêm đếm số lượng tài liệu
+		// ⚡ Thêm đếm số lượng tài liệu
         $types = $query
-            ->with('creator')
             ->withCount('documents')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -55,22 +50,18 @@ class TypeController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'code' => 'required|max:50|unique:types,code',
             'name' => 'required|max:255',
             'description' => 'nullable|string',
         ]);
 
-        $type = new Type([
-            'code' => $request->code,
+		$type = new Type([
             'name' => $request->name,
             'description' => $request->description,
-            'created_by' => Auth::id(),
-            'updated_by' => Auth::id(),
         ]);
         $type->save();
 
-        $userName = optional(Auth::user())->name ?? 'System';
-        Log::info("Tạo loại tài liệu mới: {$type->name} (Mã: {$type->code}) bởi {$userName}");
+		$userName = optional(Auth::user())->name ?? 'System';
+		Log::info("Tạo loại tài liệu mới: {$type->name} bởi {$userName}");
 
         return redirect()->route('types.index')->with('success', 'Thêm loại tài liệu thành công!');
     }
@@ -98,23 +89,19 @@ class TypeController extends Controller
     public function update(Request $request, Type $type)
     {
         $request->validate([
-            'code' => 'required|max:50|unique:types,code,' . $type->type_id . ',type_id',
             'name' => 'required|max:255',
             'description' => 'nullable|string',
         ]);
 
-        $oldName = $type->name;
-        $oldCode = $type->code;
+		$oldName = $type->name;
 
         $type->update([
-            'code' => $request->code,
             'name' => $request->name,
             'description' => $request->description,
-            'updated_by' => Auth::id(),
         ]);
 
-        $userName = optional(Auth::user())->name ?? 'System';
-        Log::info("Cập nhật loại tài liệu: {$oldName} ({$oldCode}) -> {$type->name} ({$type->code}) bởi {$userName}");
+		$userName = optional(Auth::user())->name ?? 'System';
+		Log::info("Cập nhật loại tài liệu: {$oldName} -> {$type->name} bởi {$userName}");
 
         return redirect()->route('types.index')->with('success', 'Cập nhật loại tài liệu thành công!');
     }
@@ -125,10 +112,9 @@ class TypeController extends Controller
     public function destroy(Type $type)
     {
         $typeName = $type->name ?? 'N/A';
-        $typeCode = $type->code ?? 'N/A';
         $userName = optional(Auth::user())->name ?? 'System';
 
-        Log::warning("Xóa loại tài liệu: {$typeName} (Mã: {$typeCode}) bởi {$userName}");
+		Log::warning("Xóa loại tài liệu: {$typeName} bởi {$userName}");
 
         $type->delete();
 

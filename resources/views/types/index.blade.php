@@ -9,9 +9,6 @@
     <!-- Bộ lọc -->
     <form method="GET" action="{{ route('types.index') }}" class="row g-2 mb-3">
         <div class="col-md-3">
-            <input type="text" name="code" class="form-control" placeholder="Lọc theo mã loại" value="{{ request('code') }}">
-        </div>
-        <div class="col-md-3">
             <input type="text" name="name" class="form-control" placeholder="Lọc theo tên loại" value="{{ request('name') }}">
         </div>
         <div class="col-md-3">
@@ -32,7 +29,6 @@
         <thead class="table-light">
             <tr>
                 <th>#</th>
-                <th>Mã loại tài liệu</th>
                 <th>Tên loại</th>
                 <th>Mô tả</th>
                 <th>Số lượng tài liệu</th>
@@ -44,7 +40,6 @@
             @forelse($types as $i => $type)
             <tr>
                 <td>{{ $types->firstItem() + $i }}</td>
-                <td>{{ $type->code }}</td>
                 <td>{{ $type->name }}</td>
                 <td>{{ $type->description }}</td>
                 <td class="text-center">{{ $type->documents_count ?? 0 }}</td>
