@@ -43,7 +43,7 @@ Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessCont
 // =========================
 // 👤 Users
 // =========================
-//Route::get('/users', [UserApiController::class, 'index']);
+// Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
 // 📤 Document Uploads (auth required)
