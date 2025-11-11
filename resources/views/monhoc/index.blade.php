@@ -65,16 +65,13 @@
                             <td>{{ $monhoc->department->name ?? '—' }}</td>
                             <td class="text-center">{{ $monhoc->documents_count ?? 0 }}</td>
                             <td class="text-center">
-                                <a href="{{ route('monhoc.show', $monhoc->subject_id) }}" 
-                                   class="btn btn-info btn-sm" title="Xem chi tiết">
+                                <a href="{{ route('monhoc.show', $monhoc->subject_id) }}" class="btn btn-info btn-sm" title="Xem chi tiết">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{{ route('monhoc.edit', $monhoc->subject_id) }}" 
-                                   class="btn btn-warning btn-sm" title="Chỉnh sửa">
+                                <a href="{{ route('monhoc.edit', $monhoc->subject_id) }}" class="btn btn-warning btn-sm" title="Chỉnh sửa">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('monhoc.destroy', $monhoc->subject_id) }}" method="POST" 
-                                      class="d-inline">
+                                <form action="{{ route('monhoc.destroy', $monhoc->subject_id) }}" method="POST" class="d-inline">
                                     @csrf
                                     @method('DELETE')
                                     <button class="btn btn-danger btn-sm" title="Xóa"
