@@ -32,10 +32,10 @@
         <thead class="table-light">
             <tr>
                 <th>#</th>
-                <th>Mã loại</th>
+                <th>Mã loại tài liệu</th>
                 <th>Tên loại</th>
                 <th>Mô tả</th>
-                <th>Người tạo</th>
+                <th>Số lượng tài liệu</th>
                 <th>Ngày tạo</th>
                 <th>Hành động</th>
             </tr>
@@ -47,16 +47,11 @@
                 <td>{{ $type->code }}</td>
                 <td>{{ $type->name }}</td>
                 <td>{{ $type->description }}</td>
-                <td>{{ optional($type->creator)->name ?? 'Không xác định' }}</td>
+                <td class="text-center">{{ $type->documents_count ?? 0 }}</td>
                 <td>{{ $type->created_at ? $type->created_at->format('d/m/Y H:i') : '-' }}</td>
                 <td>
-                    <!-- Link xem -->
                     <a href="{{ route('types.show', $type->type_id) }}" class="btn btn-info btn-sm">👁 Xem</a>
-
-                    <!-- Link sửa -->
                     <a href="{{ route('types.edit', $type->type_id) }}" class="btn btn-warning btn-sm">Sửa</a>
-
-                    <!-- Form xóa -->
                     <form action="{{ route('types.destroy', $type->type_id) }}" method="POST" class="d-inline"
                           onsubmit="return confirm('Bạn có chắc chắn muốn xóa loại tài liệu này không?')">
                         @csrf

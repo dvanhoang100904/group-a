@@ -31,7 +31,12 @@ class TypeController extends Controller
             });
         }
 
-        $types = $query->with('creator')->orderBy('created_at', 'desc')->paginate(10);
+        // ⚡ Thêm đếm số lượng tài liệu
+        $types = $query
+            ->with('creator')
+            ->withCount('documents')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         return view('types.index', compact('types'));
     }
@@ -49,30 +54,22 @@ class TypeController extends Controller
      */
     public function store(Request $request)
     {
-        $type = new Type($request->only(['code', 'name', 'description']));
-        $type->created_by = Auth::id();
-        $type->updated_by = Auth::id();
-        $type->save();
-
         $request->validate([
             'code' => 'required|max:50|unique:types,code',
             'name' => 'required|max:255',
             'description' => 'nullable|string',
         ]);
 
-        // nếu có user đăng nhập thì dùng id, nếu không thì đặt null hoặc 1 (tùy bạn)
-        $createdBy = Auth::id() ?? null;
-
-        $type = Type::create([
+        $type = new Type([
             'code' => $request->code,
             'name' => $request->name,
             'description' => $request->description,
-            'created_by' => $createdBy,
+            'created_by' => Auth::id(),
+            'updated_by' => Auth::id(),
         ]);
+        $type->save();
 
-        // an toàn lấy tên user (nếu không có -> "System")
         $userName = optional(Auth::user())->name ?? 'System';
-
         Log::info("Tạo loại tài liệu mới: {$type->name} (Mã: {$type->code}) bởi {$userName}");
 
         return redirect()->route('types.index')->with('success', 'Thêm loại tài liệu thành công!');
@@ -87,25 +84,21 @@ class TypeController extends Controller
     }
 
     /**
-     * show
+     * Hiển thị chi tiết
      */
     public function show(Type $type)
     {
+        $type->loadCount('documents');
         return view('types.show', compact('type'));
     }
 
-
     /**
-     * Cập nhật
+     * Cập nhật loại tài liệu
      */
     public function update(Request $request, Type $type)
     {
-        $type->update($request->only(['code', 'name', 'description']));
-        $type->updated_by = Auth::id();
-        $type->save();
-
         $request->validate([
-            'code' => 'required|max:50|unique:types,code,' . $type->id,
+            'code' => 'required|max:50|unique:types,code,' . $type->type_id . ',type_id',
             'name' => 'required|max:255',
             'description' => 'nullable|string',
         ]);
@@ -113,7 +106,12 @@ class TypeController extends Controller
         $oldName = $type->name;
         $oldCode = $type->code;
 
-        $type->update($request->only(['code', 'name', 'description']));
+        $type->update([
+            'code' => $request->code,
+            'name' => $request->name,
+            'description' => $request->description,
+            'updated_by' => Auth::id(),
+        ]);
 
         $userName = optional(Auth::user())->name ?? 'System';
         Log::info("Cập nhật loại tài liệu: {$oldName} ({$oldCode}) -> {$type->name} ({$type->code}) bởi {$userName}");
@@ -122,11 +120,10 @@ class TypeController extends Controller
     }
 
     /**
-     * Xóa
+     * Xóa loại tài liệu
      */
     public function destroy(Type $type)
     {
-        // chuỗi thông tin trước khi xóa
         $typeName = $type->name ?? 'N/A';
         $typeCode = $type->code ?? 'N/A';
         $userName = optional(Auth::user())->name ?? 'System';
