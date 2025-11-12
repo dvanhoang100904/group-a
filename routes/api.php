@@ -41,7 +41,7 @@ Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessCont
 
 // Document Shared
 Route::get('/shared', [DocumentSharedController::class, 'index']);
-
+Route::get('/shared/users', [DocumentSharedController::class, 'listUsers']);
 
 // =========================
 // 👤 Users

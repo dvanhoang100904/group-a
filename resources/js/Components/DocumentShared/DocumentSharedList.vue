@@ -18,6 +18,13 @@
         <transition name="fade">
             <div v-if="!loading" class="card shadow-sm border-0 py-1">
                 <div class="card-body">
+                    <!-- Filter search -->
+                    <DocumentSharedFilter
+                        v-model="filters"
+                        :users="users"
+                        @filter="fetchSharedDocuments(1)"
+                        @reset="resetFilters"
+                    />
                     <!-- Tables -->
                     <div
                         v-if="
@@ -62,71 +69,20 @@
                                     </td>
                                     <td>
                                         <span
-                                            v-if="
-                                                sharedDocument.permission ===
-                                                'view'
-                                            "
-                                            class="badge bg-info-subtle text-info"
-                                        >
-                                            <i class="bi bi-eye me-1"></i> Xem
-                                        </span>
-                                        <span
-                                            v-else-if="
-                                                sharedDocument.permission ===
-                                                'upload'
-                                            "
-                                            class="badge bg-primary-subtle text-primary"
-                                        >
-                                            <i class="bi bi-upload me-1"></i>
-                                            Tải lên
-                                        </span>
-                                        <span
-                                            v-else-if="
-                                                sharedDocument.permission ===
-                                                'download'
-                                            "
-                                            class="badge bg-success-subtle text-success"
-                                        >
-                                            <i class="bi bi-download me-1"></i>
-                                            Tải xuống
-                                        </span>
-                                        <span
-                                            v-else-if="
-                                                sharedDocument.permission ===
-                                                'edit'
-                                            "
-                                            class="badge bg-warning-subtle text-warning"
-                                        >
-                                            <i class="bi bi-pencil me-1"></i>
-                                            Chỉnh sửa
-                                        </span>
-                                        <span
-                                            v-else-if="
-                                                sharedDocument.permission ===
-                                                'delete'
-                                            "
-                                            class="badge bg-danger-subtle text-danger"
-                                        >
-                                            <i class="bi bi-trash me-1"></i> Xóa
-                                        </span>
-                                        <span
-                                            v-else-if="
-                                                sharedDocument.permission ===
-                                                'share'
-                                            "
-                                            class="badge bg-secondary-subtle text-secondary"
-                                        >
-                                            <i class="bi bi-share me-1"></i>
-                                            Chia sẻ tiếp
-                                        </span>
-                                        <span
-                                            v-else
-                                            class="badge bg-secondary-subtle text-secondary"
+                                            v-for="perm in sharedDocument.permissions"
+                                            :key="perm"
+                                            :class="[
+                                                'badge me-1',
+                                                permissionMap[perm].badge,
+                                            ]"
                                         >
                                             <i
-                                                class="bi bi-question-circle me-1"
+                                                :class="
+                                                    permissionMap[perm].icon
+                                                "
+                                                class="me-1"
                                             ></i>
-                                            Khác
+                                            {{ permissionMap[perm].label }}
                                         </span>
                                     </td>
 
@@ -136,15 +92,17 @@
                                         }}
                                     </td>
                                     <td>
-                                        <!-- Detail  -->
                                         <button
                                             class="btn border-0 text-primary"
-                                            title="Xem chi tiết tài liệu"
+                                            title="Xem chi tiết"
+                                            @click="
+                                                goToDetail(
+                                                    sharedDocument.document_id,
+                                                )
+                                            "
                                         >
                                             <i class="bi bi-eye"></i>
                                         </button>
-
-                                        <!-- Download -->
                                         <button
                                             v-if="
                                                 ['view', 'edit'].includes(
@@ -179,6 +137,7 @@ import { ref, onMounted } from "vue";
 import axios from "axios";
 import Swal from "sweetalert2";
 import DocumentSharedPagination from "./DocumentSharedPagination.vue";
+import DocumentSharedFilter from "./DocumentSharedFilter.vue";
 
 // shared
 const sharedDocuments = ref({
@@ -188,11 +147,54 @@ const sharedDocuments = ref({
     per_page: 5,
 });
 
+const goToDetail = (documentId) => {
+    window.location.href = `/documents/${documentId}`;
+};
+
 // Loading
 const loading = ref(false);
 
+// Filter search
+const filters = ref({ keyword: "", user_id: "", from_date: "", to_date: "" });
+// Users
+const users = ref([]);
+
 // Format date
 const formatDate = (dateStr) => new Date(dateStr).toLocaleString("vi-VN");
+
+// PermissionMap
+const permissionMap = {
+    view: {
+        badge: "bg-info-subtle text-info",
+        icon: "bi bi-eye",
+        label: "Xem",
+    },
+    upload: {
+        badge: "bg-primary-subtle text-primary",
+        icon: "bi bi-upload",
+        label: "Tải lên",
+    },
+    download: {
+        badge: "bg-success-subtle text-success",
+        icon: "bi bi-download",
+        label: "Tải xuống",
+    },
+    edit: {
+        badge: "bg-warning-subtle text-warning",
+        icon: "bi bi-pencil",
+        label: "Chỉnh sửa",
+    },
+    delete: {
+        badge: "bg-danger-subtle text-danger",
+        icon: "bi bi-trash",
+        label: "Xóa",
+    },
+    share: {
+        badge: "bg-secondary-subtle text-secondary",
+        icon: "bi bi-share",
+        label: "Chia sẻ tiếp",
+    },
+};
 
 // Form message
 const showSwal = ({
@@ -221,32 +223,67 @@ const showSwal = ({
     });
 };
 
+// Fetch users
+const fetchUsers = async () => {
+    try {
+        const res = await axios.get("/api/shared/users");
+        if (res.data.success) {
+            users.value = res.data.data;
+        } else {
+            await showSwal({
+                icon: "error",
+                title: "Lỗi",
+                text: res.data.message,
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        await showSwal({
+            icon: "error",
+            title: "Lỗi hệ thống",
+            text: "Có lỗi xảy ra. Vui lòng thử lại.",
+        });
+    }
+};
+
 // Fetch document shared
 const fetchSharedDocuments = async (page = 1) => {
     loading.value = true;
 
     try {
-        const res = await axios.get("/api/shared", { params: { page } });
+        const params = Object.fromEntries(
+            Object.entries({
+                page,
+                keyword: filters.value.keyword,
+                user_id: filters.value.user_id,
+                from_date: filters.value.from_date,
+                to_date: filters.value.to_date,
+            }).filter(([_, v]) => v !== "" && v !== undefined),
+        );
+
+        const res = await axios.get("/api/shared", { params });
 
         if (res.data.success) {
-            const mappedData = res.data.data.map((documents) => {
-                const access = documents.accesses?.[0] || null;
-
-                let permission = "other";
+            const mappedData = res.data.data.map((doc) => {
+                const access =
+                    doc.accesses?.sort((a, b) =>
+                        b.created_at.localeCompare(a.created_at),
+                    )[0] || null;
+                const permissions = [];
                 if (access) {
-                    if (access.can_view) permission = "view";
-                    else if (access.can_upload) permission = "upload";
-                    else if (access.can_download) permission = "download";
-                    else if (access.can_edit) permission = "edit";
-                    else if (access.can_delete) permission = "delete";
-                    else if (access.can_share) permission = "share";
+                    if (access.can_view) permissions.push("view");
+                    if (access.can_upload) permissions.push("upload");
+                    if (access.can_download) permissions.push("download");
+                    if (access.can_edit) permissions.push("edit");
+                    if (access.can_delete) permissions.push("delete");
+                    if (access.can_share) permissions.push("share");
                 }
 
                 return {
-                    ...documents,
-                    permission,
-                    shared_by: access?.grantedBy || null,
-                    shared_at: access?.created_at || null,
+                    ...doc,
+                    permissions,
+                    shared_by: access ? access.grantedBy?.name : null,
+                    shared_at: access ? access.created_at : null,
                 };
             });
 
@@ -282,6 +319,14 @@ const fetchSharedDocuments = async (page = 1) => {
     }
 };
 
+// Reset filter
+const resetFilters = () => {
+    filters.value = { keyword: "", user_id: "", from_date: "", to_date: "" };
+    fetchSharedDocuments(1).then(() =>
+        window.scrollTo({ top: 0, behavior: "smooth" }),
+    );
+};
+
 // Pagination
 const changePage = (page) => {
     if (page < 1 || page > sharedDocuments.value.last_page) return;
@@ -292,7 +337,7 @@ const changePage = (page) => {
 
 onMounted(async () => {
     loading.value = true;
-    await Promise.all([fetchSharedDocuments()]);
+    await Promise.all([fetchSharedDocuments(), fetchUsers()]);
     loading.value = false;
 });
 </script>
