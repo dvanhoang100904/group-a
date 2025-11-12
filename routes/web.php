@@ -15,8 +15,19 @@ use App\Http\Controllers\Api\DocumentDetailController;
 use App\Http\Controllers\DocumentSharedController;
 use App\Http\Controllers\MonHocController;
 
+// Login
+Route::get('/', [UserController::class, 'login'])->name('login')->middleware('redirectIf.auth');
+Route::post('/', [UserController::class, 'authLogin'])->name('auth.login')->middleware('redirectIf.auth');
+
+// Logout
+Route::get('logout', function () {
+	return redirect()->route('login');
+});
+Route::post('logout', [UserController::class, 'logout'])->name('logout')->middleware('require.login');
+
 // Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('require.login');
+
 
 // Nhóm route quản lý báo cáo
 Route::prefix('dashboard')->group(function () {
@@ -52,14 +63,14 @@ Route::put('/documents/{id}', [DocumentController::class, 'update'])->name('docu
 Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
 // Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index');
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login');;
 
 // Document Accesses
-Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
-Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings');
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login');;
+Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login');;
 
 // Document Shared
-Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index');
+Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index')->middleware('require.login');;
 
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
