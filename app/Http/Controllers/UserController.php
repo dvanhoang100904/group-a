@@ -2,12 +2,70 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\User\LoginRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http; // dùng để gọi API
 use App\Models\User;
+use App\Services\User\UserService;
 
 class UserController extends Controller
 {
+    protected UserService $userService;
+
+    public function __construct(UserService $userService)
+    {
+        $this->userService = $userService;
+    }
+
+    /**
+     * Hien thi form dang nhap
+     */
+    public function login()
+    {
+        return view('user.login');
+    }
+
+    /**
+     * Xu lu dang nhap
+     */
+    public function authLogin(LoginRequest $request)
+    {
+        // Lay email và password tu form
+        $credentials = $request->only([
+            'email',
+            'password'
+        ]);
+
+        // Kiem tra thong tin dang nhap
+        $login = $this->userService->login($credentials);
+
+        if (!$login) {
+            return redirect()->route('login')
+                ->with('error', 'Đăng nhập thất bại. Vui lòng thử lại.');
+        }
+
+        return redirect()->route('dashboard')
+            ->with('success', 'Đăng nhập thành công.');
+    }
+
+    /**
+     * Xu ly dang xuat
+     */
+    public function logout(Request $request)
+    {
+        // Huy session hien tai
+        $this->userService->logout($request);
+
+        // Huy session hien tai
+        $request->session()->invalidate();
+
+        // Tao lai token moi de tranh CSRF
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')
+            ->with('success', 'Đăng xuất thành công');
+    }
+
     /**
      * Hiển thị trang hồ sơ cá nhân
      */
