@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\DocumentDetailController;
 use App\Http\Controllers\Api\TypeController;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\FolderController;
-
+use App\Http\Controllers\Api\DocumentSharedController;
 
 
 
@@ -39,6 +39,9 @@ Route::post('/documents/{documentId}/accesses', [DocumentAccessController::class
 Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'update']);
 Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'destroy']);
 
+// Document Shared
+Route::get('/shared', [DocumentSharedController::class, 'index']);
+Route::get('/shared/users', [DocumentSharedController::class, 'listUsers']);
 
 // =========================
 // 👤 Users

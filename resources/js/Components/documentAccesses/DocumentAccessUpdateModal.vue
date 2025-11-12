@@ -10,7 +10,7 @@
             <div class="modal-content">
                 <!-- Header -->
                 <div class="modal-header bg-light">
-                    <h5 class="modal-title fw-bold text-primary">
+                    <h5 class="modal-title fw-bold">
                         <i class="bi bi-pencil-square me-2"></i>
                         Cập nhật quyền truy cập
                     </h5>

@@ -46,7 +46,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ Request::routeIs('shared.*') ? 'active' : '' }}"
+                    href="{{ route('shared.index') }}">
                     <i class="bi bi-share"></i>
                     <span class="link-text">Chia sẻ với tôi</span>
                 </a>
@@ -69,15 +70,14 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ Request::routeIs('monhoc.*') ? 'active' : '' }}" 
-                 href="{{ route('monhoc.index') }}">
+                <a class="nav-link {{ Request::routeIs('monhoc.*') ? 'active' : '' }}"
+                    href="{{ route('monhoc.index') }}">
                     <i class="bi bi-journal-bookmark"></i>
                     <span class="link-text">Môn học</span>
                 </a>
             </li>
             <li class="nav-item">
-                 <a class="nav-link {{ Request::routeIs('khoa.*') ? 'active' : '' }}" 
-                 href="{{ route('khoa.index') }}">
+                <a class="nav-link {{ Request::routeIs('khoa.*') ? 'active' : '' }}" href="{{ route('khoa.index') }}">
                     <i class="bi bi-building"></i>
                     <span class="link-text">Khoa / Bộ môn</span>
                 </a>
@@ -113,7 +113,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('reports') ? 'active' : '' }}" href="{{ route('reports.index') }}">
+                <a class="nav-link {{ request()->is('reports') ? 'active' : '' }}"
+                    href="{{ route('reports.index') }}">
                     <i class="bi bi-flag"></i>
                     <span class="link-text">Báo cáo vi phạm</span>
                 </a>

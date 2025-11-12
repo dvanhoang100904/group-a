@@ -24,8 +24,8 @@
     </nav>
 
     <!-- header -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0 fw-bold text-primary fs-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0 fw-bold fs-5">
             <i class="bi bi-shield-lock me-2"></i>
             Quyền truy cập tài liệu
         </h3>

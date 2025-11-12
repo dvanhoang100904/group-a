@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Model
@@ -35,6 +36,31 @@ class User extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class, 'user_id', 'user_id');
+    }
+
+    /** 
+     * Tai lieu duoc chia se cho nguoi dung nay
+     */
+    public function grantedDocuments(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Document::class,
+            'document_accesses',
+            'granted_to_user_id',
+            'document_id'
+        )
+            ->withPivot([
+                'access_id',
+                'granted_by',
+                'can_view',
+                'can_edit',
+                'can_delete',
+                'can_upload',
+                'can_download',
+                'can_share',
+                'created_at'
+            ])
+            ->withTimestamps();
     }
 
     /** Document Versions */

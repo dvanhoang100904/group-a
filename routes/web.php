@@ -12,6 +12,7 @@ use App\Http\Controllers\TypeController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\DocumentDetailController;
+use App\Http\Controllers\DocumentSharedController;
 use App\Http\Controllers\MonHocController;
 
 // Dashboard
@@ -57,6 +58,9 @@ Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index
 Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index');
 Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings');
 
+// Document Shared
+Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index');
+
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
 Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
@@ -95,24 +99,24 @@ Route::prefix('monhoc')->group(function () {
 // });
 
 Route::prefix('types')->name('types.')->group(function () {
-    Route::get('/', [TypeController::class, 'index'])->name('index');
-    Route::get('/create', [TypeController::class, 'create'])->name('create');
-    Route::post('/', [TypeController::class, 'store'])->name('store');
-    Route::get('/{type}', [TypeController::class, 'show'])->name('show');
-    Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
-    Route::put('/{type}', [TypeController::class, 'update'])->name('update');
-    Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
+	Route::get('/', [TypeController::class, 'index'])->name('index');
+	Route::get('/create', [TypeController::class, 'create'])->name('create');
+	Route::post('/', [TypeController::class, 'store'])->name('store');
+	Route::get('/{type}', [TypeController::class, 'show'])->name('show');
+	Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
+	Route::put('/{type}', [TypeController::class, 'update'])->name('update');
+	Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
 
-    // Xuất Excel
-    Route::get('/export-excel', [TypeController::class, 'exportExcel'])->name('exportExcel');
+	// Xuất Excel
+	Route::get('/export-excel', [TypeController::class, 'exportExcel'])->name('exportExcel');
 });
 // Tags
 Route::prefix('tags')->name('tags.')->group(function () {
-    Route::get('/', [App\Http\Controllers\TagController::class, 'index'])->name('index');
-    Route::get('/create', [App\Http\Controllers\TagController::class, 'create'])->name('create');
-    Route::post('/', [App\Http\Controllers\TagController::class, 'store'])->name('store');
-    Route::get('/{tag}', [App\Http\Controllers\TagController::class, 'show'])->name('show');
-    Route::get('/{tag}/edit', [App\Http\Controllers\TagController::class, 'edit'])->name('edit');
-    Route::put('/{tag}', [App\Http\Controllers\TagController::class, 'update'])->name('update');
-    Route::delete('/{tag}', [App\Http\Controllers\TagController::class, 'destroy'])->name('destroy');
+	Route::get('/', [App\Http\Controllers\TagController::class, 'index'])->name('index');
+	Route::get('/create', [App\Http\Controllers\TagController::class, 'create'])->name('create');
+	Route::post('/', [App\Http\Controllers\TagController::class, 'store'])->name('store');
+	Route::get('/{tag}', [App\Http\Controllers\TagController::class, 'show'])->name('show');
+	Route::get('/{tag}/edit', [App\Http\Controllers\TagController::class, 'edit'])->name('edit');
+	Route::put('/{tag}', [App\Http\Controllers\TagController::class, 'update'])->name('update');
+	Route::delete('/{tag}', [App\Http\Controllers\TagController::class, 'destroy'])->name('destroy');
 });
