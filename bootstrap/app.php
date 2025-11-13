@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'redirectIf.auth' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'require.login' => \App\Http\Middleware\RequireLogin::class,
+            'check.role' => \App\Http\Middleware\CheckRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
