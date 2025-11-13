@@ -26,7 +26,7 @@ Route::get('logout', function () {
 Route::post('logout', [UserController::class, 'logout'])->name('logout')->middleware('require.login');
 
 // Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('require.login');
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');
 
 
 // Nhóm route quản lý báo cáo
@@ -63,14 +63,14 @@ Route::put('/documents/{id}', [DocumentController::class, 'update'])->name('docu
 Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
 // Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login');;
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');;
 
 // Document Accesses
-Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login');;
-Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login');;
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');;
+Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');;
 
 // Document Shared
-Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index')->middleware('require.login');;
+Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');;
 
 // Profile
 Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');

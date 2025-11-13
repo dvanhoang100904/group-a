@@ -47,7 +47,7 @@
                             <thead class="table-primary">
                                 <tr>
                                     <th class="text-center">STT</th>
-                                    <th class="text-center">
+                                    <th class="text-center text-truncate">
                                         Đối tượng được truy cập
                                     </th>
                                     <th class="text-center">Xem</th>
@@ -69,7 +69,10 @@
                                     <td class="text-center">
                                         {{ index + 1 }}
                                     </td>
-                                    <td class="text-center">
+                                    <td
+                                        class="text-center text-truncate"
+                                        style="max-width: 180px"
+                                    >
                                         <span v-if="access.granted_to_user">
                                             Người dùng:
                                             {{ access.granted_to_user?.name }}

@@ -41,8 +41,18 @@
                             <thead class="table-primary">
                                 <tr class="text-center">
                                     <th>STT</th>
-                                    <th>Tiêu đề</th>
-                                    <th>Người chia sẻ</th>
+                                    <th
+                                        class="text-truncate"
+                                        style="max-width: 200px"
+                                    >
+                                        Tiêu đề
+                                    </th>
+                                    <th
+                                        class="text-truncate"
+                                        style="max-width: 150px"
+                                    >
+                                        Người chia sẻ
+                                    </th>
                                     <th>Quyền được cấp</th>
                                     <th>Ngày chia sẻ</th>
                                     <th>Hành động</th>
@@ -58,12 +68,18 @@
                                     class="text-center"
                                 >
                                     <td>{{ index + 1 }}</td>
-                                    <td>
+                                    <td
+                                        class="text-truncate"
+                                        style="max-width: 200px"
+                                    >
                                         {{ sharedDocument.title }}
                                     </td>
-                                    <td>
+                                    <td
+                                        class="text-truncate"
+                                        style="max-width: 150px"
+                                    >
                                         {{
-                                            sharedDocument.shared_by?.name ||
+                                            sharedDocument.shared_by ||
                                             "Không rõ"
                                         }}
                                     </td>
