@@ -44,7 +44,7 @@ class UserController extends Controller
                 ->with('error', 'Đăng nhập thất bại. Vui lòng thử lại.');
         }
 
-        return redirect()->route('dashboard')
+        return redirect()->route('folders.index')
             ->with('success', 'Đăng nhập thành công.');
     }
 
