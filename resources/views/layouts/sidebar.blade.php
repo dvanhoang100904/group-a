@@ -5,7 +5,6 @@
 
         <div class="sidebar-content">
             <ul class="nav nav-pills flex-column">
-
                 @if (in_array(auth()->user()->role->name, ['Giảng viên', 'Sinh viên', 'Admin']))
                     <!-- Tổng quan -->
                     <li class="nav-item">
