@@ -10,7 +10,9 @@ class Subject extends Model
 {
     protected $table = 'subjects';
     protected $primaryKey = 'subject_id';
-    protected $fillable = ['name', 'description', 'status', 'department_id'];
+
+    // ✅ Thêm 'credits' vào $fillable để cho phép lưu dữ liệu tín chỉ
+    protected $fillable = ['code', 'name', 'credits', 'description', 'status', 'department_id'];
 
     protected $casts = [
         'status' => 'boolean',

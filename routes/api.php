@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\DocumentDetailController;
 use App\Http\Controllers\Api\TypeController;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\FolderController;
-
+use App\Http\Controllers\Api\DocumentSharedController;
 
 
 
@@ -39,11 +39,14 @@ Route::post('/documents/{documentId}/accesses', [DocumentAccessController::class
 Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'update']);
 Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'destroy']);
 
+// Document Shared
+Route::get('/shared', [DocumentSharedController::class, 'index']);
+Route::get('/shared/users', [DocumentSharedController::class, 'listUsers']);
 
 // =========================
 // 👤 Users
 // =========================
-//Route::get('/users', [UserApiController::class, 'index']);
+// Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
 // 📤 Document Uploads (auth required)
@@ -54,7 +57,7 @@ Route::middleware(['api'])->group(function () {
     Route::get('/download/{version}', [UploadController::class, 'download']);
     Route::delete('/documents/{document}', [UploadController::class, 'destroy']);
 
-        Route::post('/documents/upload', [UploadController::class, 'store'])->name('api.upload.store');
+    Route::post('/documents/upload', [UploadController::class, 'store'])->name('api.upload.store');
 });
 
 // danh sách tài liệu của người dùng hiện tại 
