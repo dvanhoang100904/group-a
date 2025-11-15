@@ -18,6 +18,10 @@ class CheckRole
     {
         $user = Auth::user();
 
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Bạn cần đăng nhập để tiếp tục.');
+        }
+
         if (!in_array($user->role->name, $roles)) {
             $redirectTo = url()->previous() ?: route('dashboard');
             return redirect($redirectTo)->with('error', 'Bạn không có quyền truy cập.');

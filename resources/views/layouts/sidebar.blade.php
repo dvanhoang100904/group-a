@@ -3,35 +3,29 @@
             <i class="bi bi-chevron-left"></i>
         </button>
 
-    <div class="sidebar-content">
-        <ul class="nav nav-pills flex-column">
-            <!-- Tổng quan -->
-            <li class="nav-item">
-                <span class="sidebar-section-title">Tổng quan</span>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-                    <i class="bi bi-speedometer2"></i>
-                    <span class="link-text">Dashboard</span>
-                </a>
-            </li>
-            
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('folders.index') }}">
-                    <i class="bi bi-folder2-open"></i>
-                    <span class="link-text">Home</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link " href="#!">
-                    <i class="bi bi-clock-history"></i>
-                    <span class="link-text">Hoạt động gần đây</span>
-                </a>
-            </li>          
-
-                <!-- Tài liệu -->
+        <div class="sidebar-content">
+            <ul class="nav nav-pills flex-column">
                 @if (in_array(auth()->user()->role->name, ['Giảng viên', 'Sinh viên', 'Admin']))
+                    <!-- Tổng quan -->
+                    <li class="nav-item">
+                        <span class="sidebar-section-title">Tổng quan</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('folders') ? 'active' : '' }}"
+                            href="{{ route('folders.index') }}">
+                            <i class="bi bi-house"></i>
+                            <span class="link-text">Trang chủ</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link " href="#!">
+                            <i class="bi bi-clock-history"></i>
+                            <span class="link-text">Hoạt động gần đây</span>
+                        </a>
+                    </li>
+
+                    <!-- Tài liệu -->
                     <li class="nav-item">
                         <span class="sidebar-section-title">Tài liệu</span>
                     </li>
@@ -59,12 +53,6 @@
                             href="{{ route('shared.index') }}">
                             <i class="bi bi-share"></i>
                             <span class="link-text">Chia sẻ với tôi</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('folders.index') }}">
-                            <i class="bi bi-folder2-open"></i>
-                            <span class="link-text">Quản lý thư mục</span>
                         </a>
                     </li>
 
@@ -106,6 +94,13 @@
                 @if (auth()->user()->role->name == 'Admin')
                     <li class="nav-item">
                         <span class="sidebar-section-title">Quản trị</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}"
+                            href="{{ route('dashboard') }}">
+                            <i class="bi bi-speedometer2"></i>
+                            <span class="link-text">Dashboard</span>
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">

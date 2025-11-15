@@ -11,8 +11,6 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TypeController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\Api\DocumentDetailController;
-
 use App\Http\Controllers\DocumentSharedController;
 use App\Http\Controllers\MonHocController;
 
@@ -30,15 +28,8 @@ Route::post('logout', [UserController::class, 'logout'])->name('logout')->middle
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');
 
 
-// Nhóm route quản lý báo cáo
-Route::prefix('dashboard')->group(function () {
-	Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-	Route::get('/reports/{id}', [ReportController::class, 'show'])->name('reports.show');
-	Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
-});
-
 // Folder
-Route::prefix('folders')->name('folders.')->group(function () {
+Route::prefix('folders')->name('folders.')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên')->group(function () {
 	Route::get('/test-create', function () {
 		return view('folders.test-create');
 	})->name('test-create');
@@ -51,6 +42,15 @@ Route::prefix('folders')->name('folders.')->group(function () {
 	Route::put('/{folder}', [FolderController::class, 'update'])->name('update');
 	Route::delete('/{folder}', [FolderController::class, 'destroy'])->name('destroy');
 });
+
+// Nhóm route quản lý báo cáo
+Route::prefix('dashboard')->group(function () {
+	Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+	Route::get('/reports/{id}', [ReportController::class, 'show'])->name('reports.show');
+	Route::put('/reports/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
+});
+
+
 
 // Uploads
 Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
