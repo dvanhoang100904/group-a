@@ -12,11 +12,6 @@ use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\FolderController;
 use App\Http\Controllers\Api\DocumentSharedController;
 
-
-
-
-
-
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');

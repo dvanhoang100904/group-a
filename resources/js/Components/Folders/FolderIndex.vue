@@ -118,7 +118,7 @@
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             ]">
       <i class="fas fa-clock mr-2"></i>
-      {{ autoReloadEnabled ? 'Tự động: Bật' : 'Tự động: Tắt' }}
+      {{ autoReloadEnabled ? 'Tự động load sau 30s: Bật' : 'Tự động load sau 30s: Tắt' }}
     </button>
     
     <!-- Last update time -->
@@ -647,6 +647,26 @@ export default {
       }
     },
 
+    showSuccessMessage(message) {
+        this.successMessage = message;
+        this.errorMessage = '';
+        
+        // Tự động ẩn sau 5 giây
+        setTimeout(() => {
+            this.successMessage = '';
+        }, 5000);
+    },
+
+    showErrorMessage(message) {
+        this.errorMessage = message;
+        this.successMessage = '';
+        
+        // Tự động ẩn sau 8 giây
+        setTimeout(() => {
+            this.errorMessage = '';
+        }, 8000);
+    },
+
 // Trong methods của FolderIndex.vue
       async deleteFolder(folder) {
     if (!confirm(`Bạn có chắc muốn xóa thư mục "${folder.name}"?`)) {
@@ -654,23 +674,25 @@ export default {
     }
 
     try {
-        // Sử dụng hàm API chuyên dụng
-        const result = await this.deleteFolderAPI(folder.id);
+        console.log('🗑️ Deleting folder:', folder);
         
-        // Hiển thị thông báo thành công
+        const result = await this.deleteFolderAPI(folder.folder_id);
+        
         this.showSuccessMessage(result.message || 'Thư mục đã được xóa thành công!');
         
-        // Reload danh sách thư mục
+        // QUAN TRỌNG: Reset currentFolder nếu đang xóa folder hiện tại
+        if (this.currentFolder && this.currentFolder.folder_id === folder.folder_id) {
+            this.currentFolder = null;
+        }
+        
         await this.loadFolders();
         
     } catch (error) {
         console.error('Delete folder error:', error);
         
-        // Hiển thị thông báo lỗi cụ thể
         if (error.response?.data?.message) {
             this.showErrorMessage(error.response.data.message);
         } else if (error.response?.data?.errors) {
-            // Hiển thị lỗi validation
             const errorMessages = Object.values(error.response.data.errors).flat().join(', ');
             this.showErrorMessage('Lỗi validation: ' + errorMessages);
         } else {
@@ -678,26 +700,26 @@ export default {
         }
     }
 },
-async deleteFolderAPI(id) {
-  try {
-    console.log('🗑️ Deleting folder with ID:', id);
-    
-    const response = await axios.delete(`/api/folders/${id}`);
-    
-    console.log('✅ Delete response:', response.data);
-    return response.data;
-    
-  } catch (error) {
-    console.error('❌ Delete API error details:');
-    console.error('Status:', error.response?.status);
-    console.error('Data:', error.response?.data);
-    console.error('Headers:', error.response?.headers);
-    
-    // Re-throw error để xử lý ở trên
-    throw error;
-  }
-},
+      async deleteFolderAPI(id) {
+        try {
+            console.log('🗑️ Deleting folder with ID:', id);
+            
+            const response = await axios.delete(`/api/folders/${id}`);
+            
+            console.log('✅ Delete response:', response.data);
+            return response.data;
+            
+        } catch (error) {
+            console.error('❌ Delete API error details:');
+            console.error('Status:', error.response?.status);
+            console.error('Data:', error.response?.data);
+            console.error('Headers:', error.response?.headers);
+            
+            throw error;
+        }
+    },
 
+ 
     // ==================== UI METHODS ====================
     toggleNewDropdown() {
       this.showNewDropdown = !this.showNewDropdown;
