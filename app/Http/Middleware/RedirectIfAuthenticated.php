@@ -19,7 +19,8 @@ class RedirectIfAuthenticated
         $user = Auth::user();
 
         if ($user) {
-            return redirect()->route('dashboard')->with('info', 'Bạn đã đăng nhập rồi.');
+            $redirectTo = url()->previous() ?: route('dashboard');
+            return redirect($redirectTo)->with('info', 'Bạn đã đăng nhập rồi.');
         }
 
         return $next($request);
