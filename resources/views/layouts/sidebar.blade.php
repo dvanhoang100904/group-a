@@ -15,6 +15,14 @@
                     <span class="link-text">Dashboard</span>
                 </a>
             </li>
+            
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('folders.index') }}">
+                    <i class="bi bi-folder2-open"></i>
+                    <span class="link-text">Home</span>
+                </a>
+            </li>
+
             <li class="nav-item">
                 <a class="nav-link " href="#!">
                     <i class="bi bi-clock-history"></i>
@@ -49,12 +57,6 @@
                 <a class="nav-link" href="#">
                     <i class="bi bi-share"></i>
                     <span class="link-text">Chia sẻ với tôi</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('folders.index') }}">
-                    <i class="bi bi-folder2-open"></i>
-                    <span class="link-text">Quản lý thư mục</span>
                 </a>
             </li>
 

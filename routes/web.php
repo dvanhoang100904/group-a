@@ -11,6 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\KhoaController;
 use App\Http\Controllers\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentDetailController;
+use App\Http\Controllers\MonHocController;
 
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -71,8 +72,6 @@ Route::get('/documents/{id}', function ($id) {
 })->name('documents.show');
 
 // Môn học
-use App\Http\Controllers\MonHocController;
-
 Route::prefix('monhoc')->group(function () {
     Route::get('/', [MonHocController::class, 'index'])->name('monhoc.index');
     Route::get('/create', [MonHocController::class, 'create'])->name('monhoc.create');

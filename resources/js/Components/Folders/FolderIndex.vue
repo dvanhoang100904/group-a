@@ -2,18 +2,48 @@
   <div class="container mx-auto px-4 py-8">
     <!-- Tiêu đề -->
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Quản Lý Thư Mục</h1>
+      <h1 class="text-2xl font-bold text-gray-800">Home</h1>
     </div>
 
     <!-- Header với Button và Search cùng dòng -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
       <!-- Button thêm folder -->
-      <div class="flex-shrink-0">
-        <a :href="createFolderUrl" 
-           class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center w-fit no-underline transition-colors duration-200">
+      <!-- Button thêm mới với dropdown -->
+      <div class="flex-shrink-0 relative">
+        <button 
+          @click="toggleNewDropdown"
+          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center w-fit transition-colors duration-200"
+        >
           <i class="fas fa-plus mr-2"></i>
-          Tạo Thư Mục Mới
-        </a>
+          Mới
+          <i class="fas fa-chevron-down ml-2 text-xs"></i>
+        </button>
+        
+        <!-- Dropdown menu -->
+        <div 
+          v-if="showNewDropdown"
+          class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30"
+        >
+          <!-- Tạo thư mục -->
+          <a 
+            :href="createFolderUrl" 
+            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 no-underline"
+            @click="closeNewDropdown"
+          >
+            <i class="fas fa-folder-plus text-blue-500 mr-3"></i>
+            Tạo thư mục
+          </a>
+          
+          <!-- Tải file lên -->
+          <a 
+            :href="uploadFileUrl" 
+            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 no-underline"
+            @click="closeNewDropdown"
+          >
+            <i class="fas fa-file-upload text-green-500 mr-3"></i>
+            Tải file lên
+          </a>
+        </div>
       </div>
 
       <!-- Tìm kiếm & lọc -->
@@ -423,7 +453,9 @@ export default {
         y: 0,
         folder: null,
         rowElement: null
-      }
+      },
+      // New dropdown state
+      showNewDropdown: false
     }
   },
   computed: {
@@ -433,6 +465,10 @@ export default {
     createFolderUrl() {
       const parentId = this.currentFolder ? this.currentFolder.folder_id : null;
       return `/folders/create?parent_id=${parentId}`;
+    },
+    uploadFileUrl() {
+      const parentId = this.currentFolder ? this.currentFolder.folder_id : null;
+      return `/documents/upload?folder_id=${parentId}`;
     },
     pages() {
       const pages = [];
@@ -497,7 +533,7 @@ export default {
     },
   },
   mounted() {
-    // Đóng menu khi click ra ngoài
+        // Đóng menu khi click ra ngoài
     document.addEventListener('click', this.closeMenu);
     // Đóng menu khi nhấn Escape
     document.addEventListener('keydown', this.handleKeydown);
@@ -507,6 +543,8 @@ export default {
     document.addEventListener('scroll', this.hideContextMenu);
     // Đóng context menu khi resize
     window.addEventListener('resize', this.hideContextMenu);
+    // Đóng new dropdown khi click ra ngoài
+    document.addEventListener('click', this.closeNewDropdownOutside);
   },
   beforeUnmount() {
     document.removeEventListener('click', this.closeMenu);
@@ -514,8 +552,32 @@ export default {
     document.removeEventListener('click', this.handleDocumentClick);
     document.removeEventListener('scroll', this.hideContextMenu);
     window.removeEventListener('resize', this.hideContextMenu);
+    document.removeEventListener('click', this.closeNewDropdownOutside);
   },
   methods: {
+    /**
+     * Toggle dropdown menu "Mới"
+     */
+    toggleNewDropdown() {
+      this.showNewDropdown = !this.showNewDropdown;
+    },
+    
+    /**
+     * Đóng dropdown menu "Mới"
+     */
+    closeNewDropdown() {
+      this.showNewDropdown = false;
+    },
+    
+    /**
+     * Đóng dropdown khi click ra ngoài
+     */
+    closeNewDropdownOutside(event) {
+      const dropdown = this.$el.querySelector('.relative');
+      if (dropdown && !dropdown.contains(event.target)) {
+        this.showNewDropdown = false;
+      }
+    },
     /**
      * Hiển thị context menu khi click chuột phải
      */
@@ -892,6 +954,22 @@ tbody tr.context-menu-highlight {
   .sm\:w-48,
   .sm\:w-40 {
     width: 100% !important;
+  }
+}
+
+/* Animation cho dropdown mới */
+.absolute {
+  animation: dropdownFadeIn 0.2s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>
