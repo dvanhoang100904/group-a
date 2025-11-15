@@ -27,8 +27,9 @@ Route::get('logout', function () {
 Route::post('logout', [UserController::class, 'logout'])->name('logout')->middleware('require.login');
 
 // Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');
-
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->name('dashboard')
+    ->middleware(['require.login', 'check.role:Admin']);
 
 // Nhóm route quản lý báo cáo
 Route::prefix('dashboard')->group(function () {

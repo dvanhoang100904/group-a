@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // alert message
-    const alerts = document.querySelectorAll(".alert");
+    const alertsli = document.querySelectorAll(".alert");
     alerts.forEach((alert) => {
         setTimeout(() => {
             if (typeof bootstrap !== "undefined") {
