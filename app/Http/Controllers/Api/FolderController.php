@@ -8,6 +8,7 @@ use App\Http\Requests\Folder\StoreFolderRequest;
 use App\Http\Requests\Folder\UpdateFolderRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class FolderController extends Controller
 {
@@ -29,10 +30,18 @@ class FolderController extends Controller
                 'name' => 'nullable|string|max:255',
                 'date' => 'nullable|date',
                 'status' => 'nullable|in:public,private',
-                'parent_id' => 'nullable|exists:folders,folder_id',
+                'parent_id' => 'nullable|integer',
                 'per_page' => 'nullable|integer|min:1|max:100',
                 'page' => 'nullable|integer|min:1'
             ]);
+            // Kiểm tra parent_id có tồn tại không (nếu có)
+            if (isset($validatedData['parent_id'])) {
+                $parentFolder = \App\Models\Folder::find($validatedData['parent_id']);
+                if (!$parentFolder) {
+                    // Nếu parent_id không tồn tại, xóa khỏi params
+                    unset($validatedData['parent_id']);
+                }
+            }
 
             $result = $this->folderService->getFoldersWithFilters($validatedData);
 
@@ -130,21 +139,35 @@ class FolderController extends Controller
     /**
      * Xóa folder (API)
      */
-    public function destroy($folder): JsonResponse
+    public function destroy(Request $request, $folder): JsonResponse
     {
         try {
+            Log::info('API Delete Folder Request:', [
+                'folder_id' => $folder,
+                'user_id' => auth()->id(),
+                'time' => now()
+            ]);
+
             $folderName = $this->folderService->deleteFolder($folder);
+
+            Log::info('API Delete Folder Success:', ['folder_name' => $folderName]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Thư mục "' . $folderName . '" đã được xóa thành công!'
             ]);
         } catch (\Exception $e) {
-            \Log::error('API Folder Destroy Error: ' . $e->getMessage());
+            Log::error('API Delete Folder Error:', [
+                'error' => $e->getMessage(),
+                'folder_id' => $folder
+            ]);
+
+            $statusCode = $e->getMessage() === 'Thư mục không tồn tại' ? 404 : 500;
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
-            ], 500);
+            ], $statusCode);
         }
     }
 

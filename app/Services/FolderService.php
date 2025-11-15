@@ -306,27 +306,31 @@ class FolderService
     /**
      * Xóa thư mục
      */
-    public function deleteFolder(string $folderId): string
+    public function deleteFolder($folderId)
     {
-        return DB::transaction(function () use ($folderId) {
-            try {
-                $folder = Folder::withCount(['childFolders', 'documents'])->findOrFail($folderId);
+        try {
+            $folder = Folder::find($folderId);
 
-                if ($folder->child_folders_count > 0) {
-                    throw new \Exception('Không thể xóa thư mục có chứa thư mục con!');
-                }
-
-                if ($folder->documents_count > 0) {
-                    throw new \Exception('Không thể xóa thư mục có chứa tài liệu!');
-                }
-
-                $folderName = $folder->name;
-                $folder->delete();
-
-                return $folderName;
-            } catch (ModelNotFoundException $e) {
+            if (!$folder) {
                 throw new \Exception('Thư mục không tồn tại');
             }
-        });
+
+            // Kiểm tra điều kiện xóa
+            if ($folder->documents()->count() > 0) {
+                throw new \Exception('Không thể xóa thư mục có chứa file');
+            }
+
+            if ($folder->childFolders()->count() > 0) {
+                throw new \Exception('Không thể xóa thư mục có chứa thư mục con');
+            }
+
+            $folderName = $folder->name;
+            $folder->delete();
+
+            return $folderName;
+        } catch (\Exception $e) {
+            \Log::error('Delete folder error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 }
