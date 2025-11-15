@@ -468,7 +468,7 @@ export default {
     },
     uploadFileUrl() {
       const parentId = this.currentFolder ? this.currentFolder.folder_id : null;
-      return `/documents/upload?folder_id=${parentId}`;
+      return `/upload?folder_id=${parentId}`;
     },
     pages() {
       const pages = [];
