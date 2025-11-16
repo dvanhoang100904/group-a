@@ -12,12 +12,15 @@ class DocumentAccessSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_RECORD = 50;
+    const MAX_RECORD = 1000;
+
     public function run(): void
     {
         $documents = DB::table('documents')->pluck('document_id')->toArray();
         $users = DB::table('users')->pluck('user_id')->toArray();
         $roles = DB::table('roles')->pluck('role_id')->toArray();
+
+        $accesses = [];
 
         for ($i = 1; $i <= self::MAX_RECORD; $i++) {
             $documentId = $documents[array_rand($documents)];
@@ -29,7 +32,10 @@ class DocumentAccessSeeder extends Seeder
 
             $roleId = $roles[array_rand($roles)];
 
-            DB::table('document_accesses')->insert([
+            $noExpiry = rand(0, 1);
+            $expirationDate = $noExpiry ? null : (rand(0, 9) < 7 ? now()->addDays(rand(1, 30)) : null);
+
+            $accesses[] = [
                 'share_link' => null,
                 'granted_to_type' => 'user',
                 'can_view' => rand(0, 1),
@@ -38,15 +44,20 @@ class DocumentAccessSeeder extends Seeder
                 'can_upload' => rand(0, 1),
                 'can_download' => rand(0, 1),
                 'can_share' => rand(0, 1),
-                'no_expiry' =>  rand(0, 1),
-                'expiration_date' => rand(0, 9) < 7 ? now()->addDays(rand(1, 30)) : null,
+                'no_expiry' => $noExpiry,
+                'expiration_date' => $expirationDate,
                 'document_id' => $documentId,
                 'granted_by' => $grantedBy,
                 'granted_to_user_id' => $grantedToUser,
                 'granted_to_role_id' => $roleId,
                 'created_at' => now(),
                 'updated_at' => now()
-            ]);
+            ];
+        }
+
+        // Bulk insert theo chunk 500 record/lần để tránh lỗi max_allowed_packet
+        foreach (array_chunk($accesses, 500) as $chunk) {
+            DB::table('document_accesses')->insert($chunk);
         }
     }
 }

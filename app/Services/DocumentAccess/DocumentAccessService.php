@@ -6,16 +6,19 @@ use App\Models\Document;
 use App\Models\DocumentAccess;
 use App\Models\Role;
 use App\Models\User;
+use Exception;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DocumentAccessService
 {
-    // Dinh nghia so luong quyen chia se tai lieu moi trang
+    // Dinh nghia so luong quyen truy cap tai lieu moi trang
     const PER_PAGE = 8;
 
     /**
-     * Lay tai lieu hien thi trang quyen chia se tai lieu
+     * Lay tai lieu hien thi trang quyen truy cap tai lieu
      */
     public function getDocument(int $documentId): ?Document
     {
@@ -23,7 +26,11 @@ class DocumentAccessService
             ->select([
                 'document_id',
                 'title',
-                'subject_id'
+                'subject_id',
+                'share_mode',
+                'share_link',
+                'no_expiry',
+                'expiration_date',
             ])
             ->with([
                 'subject:subject_id,name,department_id',
@@ -128,5 +135,39 @@ class DocumentAccessService
             })
             ->orderBy('name')
             ->get();
+    }
+
+    /**
+     * Cap nhat quyen truy cap tai lieu
+     */
+    public function updateSettingAccess(int $documentId, array $data): ?Document
+    {
+        $document = Document::find($documentId);
+
+        if (!$document) {
+            return null;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $allowedModes = ['public', 'private', 'custom'];
+            $shareMode = $data['share_mode'] ?? 'private';
+            $document->share_mode = in_array($shareMode, $allowedModes) ? $shareMode : 'private';
+
+            $document->share_link = $data['share_link'] ?? null;
+
+            $document->no_expiry = !empty($data['no_expiry']);
+            $document->expiration_date = $document->no_expiry ? null : ($data['expiration_date'] ?? null);
+
+            $document->save();
+
+            DB::commit();
+            return $document;
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi cập nhật quyền truy cập tài liệu: ' . $e->getMessage());
+            return null;
+        }
     }
 }

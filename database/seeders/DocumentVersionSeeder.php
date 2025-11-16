@@ -14,7 +14,7 @@ class DocumentVersionSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_VERSION_PER_DOCUMENT = 20; // Số version tối đa mỗi document
+    const MAX_VERSION_PER_DOCUMENT = 5; // Giảm để seed nhanh
 
     public function run(): void
     {
@@ -23,23 +23,20 @@ class DocumentVersionSeeder extends Seeder
 
         if (empty($documents) || empty($users)) return;
 
+        $versions = [];
+
         foreach ($documents as $documentId) {
             $numVersions = rand(1, self::MAX_VERSION_PER_DOCUMENT);
 
             for ($v = 1; $v <= $numVersions; $v++) {
                 $userId = $users[array_rand($users)];
-                $versionNumber = $v; // dùng số nguyên
 
-                // Tạo file PDF thực tế
-                $pdfContent = Pdf::loadHTML("<h1>Document #$documentId</h1><p>Version: v$versionNumber</p>")->output();
                 $filePath = "documents/$documentId/version_$v.pdf";
-                Storage::disk('public')->put($filePath, $pdfContent);
 
-                // Insert version
-                DB::table('document_versions')->insert([
-                    'version_number' => $versionNumber, // số nguyên
+                $versions[] = [
+                    'version_number' => $v,
                     'file_path' => $filePath,
-                    'file_size' => Storage::disk('public')->size($filePath),
+                    'file_size' => 1024, // giả lập
                     'mime_type' => 'application/pdf',
                     'is_current_version' => $v === $numVersions ? 1 : 0,
                     'change_note' => $v === 1 ? 'Initial version' : 'Updated version',
@@ -47,8 +44,13 @@ class DocumentVersionSeeder extends Seeder
                     'user_id' => $userId,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
             }
+        }
+
+        // Bulk insert
+        foreach (array_chunk($versions, 500) as $chunk) {
+            DB::table('document_versions')->insert($chunk);
         }
     }
 }
