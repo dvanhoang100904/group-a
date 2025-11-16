@@ -9,10 +9,10 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <!-- Header -->
-                <div class="modal-header text-primary bg-light">
+                <div class="modal-header bg-light">
                     <h5 class="modal-title fw-bold">
-                        <i class="bi bi-person-plus me-2"></i> Thêm quyền chia
-                        sẻ
+                        <i class="bi bi-person-plus me-2"></i> Thêm quyền truy
+                        cập
                     </h5>
                     <button
                         type="button"
@@ -69,7 +69,7 @@
                         <!-- share type -->
                         <div class="col-12">
                             <label class="form-label small fw-semibold">
-                                Chia sẻ cho
+                                Truy cập cho
                             </label>
                             <div class="d-flex gap-3">
                                 <div class="form-check">

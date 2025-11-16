@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('subjects', function (Blueprint $table) {
             $table->increments('subject_id');
+            $table->string('code', 50)->unique()->nullable();
             $table->string('name', 150)->unique();
+            $table->unsignedTinyInteger('credits')->default(3);
             $table->string('description', 255)->nullable();
             $table->unsignedInteger('department_id');
             $table->boolean('status')->default(true)->comment('1=active, 0=inactive');
