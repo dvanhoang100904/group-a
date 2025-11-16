@@ -15,6 +15,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
             $table->foreign('folder_id')->references('folder_id')->on('folders')->nullOnDelete();
             $table->foreign('subject_id')->references('subject_id')->on('subjects')->onDelete('cascade');
+            $table->foreign('type_id')->references('type_id')->on('types')->onDelete('cascade');
         });
     }
 
@@ -27,6 +28,7 @@ return new class extends Migration
             $table->dropForeign(['user_id']);
             $table->dropForeign(['folder_id']);
             $table->dropForeign(['subject_id']);
+            $table->dropForeign(['type_id']);
         });
     }
 };

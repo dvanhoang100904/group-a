@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        // Các seeder cơ bản
         $this->call([
             RoleSeeder::class,
             UserSeeder::class,

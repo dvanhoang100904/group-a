@@ -21,6 +21,7 @@ class Activity extends Model
     ];
 
     protected $casts = [
+        'action_detail' => 'array',
         'document_id' => 'integer',
         'user_id' => 'integer',
         'version_id' => 'integer',

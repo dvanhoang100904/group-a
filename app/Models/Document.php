@@ -26,7 +26,7 @@ class Document extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'status' => 'string',
         'share_mode' => 'string',
         'expiration_date' => 'datetime',
         'no_expiry' => 'boolean',

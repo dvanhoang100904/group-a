@@ -19,18 +19,19 @@ return new class extends Migration
             $table->enum('share_mode', ['public', 'private', 'custom'])->default('private');
             $table->string('share_link', 255)->nullable()->unique();
             $table->timestamp('expiration_date')->nullable();
-            $table->boolean('no_expiry')->default(false);
+            $table->boolean('no_expiry')->default(0);
             $table->unsignedInteger('user_id');
             $table->unsignedInteger('folder_id')->nullable();
             $table->unsignedInteger('type_id');
             $table->unsignedInteger('subject_id');
             $table->timestamps();
 
+            $table->index('status', 'idx_status');
+
             $table->index(['user_id', 'status', 'created_at'], 'idx_user_status_created');
             $table->index(['subject_id', 'type_id'], 'idx_subject_type');
             $table->index(['folder_id', 'created_at'], 'idx_folder_created');
 
-            $table->index('status', 'idx_status');
             $table->fullText(['title', 'description'], 'ft_title_description');
         });
     }

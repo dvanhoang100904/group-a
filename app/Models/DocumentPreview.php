@@ -18,9 +18,10 @@ class DocumentPreview extends Model
     ];
 
     protected $casts = [
+        'expires_at' => 'datetime',
         'generated_by' => 'integer',
         'document_id' => 'integer',
-        'version_id' => 'integer'
+        'version_id' => 'integer',
     ];
 
     /** Document */

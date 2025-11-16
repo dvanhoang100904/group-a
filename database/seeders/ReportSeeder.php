@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +19,7 @@ class ReportSeeder extends Seeder
         $documents = DB::table('documents')->pluck('document_id')->toArray();
         $users = DB::table('users')->pluck('user_id')->toArray();
         $reasons = ['Sai thông tin', 'Lỗi nội dung', 'Không đầy đủ', 'Cần cập nhật'];
-        $statuses = ['new', 'resolved'];
+        $statuses = ['new', 'processing', 'resolved'];
 
         $reportCount = 0;
         $reports = [];
@@ -31,7 +32,7 @@ class ReportSeeder extends Seeder
             $assignedUsers = [];
 
             for ($i = 0; $i < $numReports && $reportCount < self::MAX_RECORD; $i++) {
-                // Chọn user khác nhau
+                // Chọn user khác nhau cho document
                 do {
                     $userId = $users[array_rand($users)];
                 } while (in_array($userId, $assignedUsers));
@@ -39,19 +40,32 @@ class ReportSeeder extends Seeder
                 $assignedUsers[] = $userId;
 
                 $status = $statuses[array_rand($statuses)];
-                $resolvedAt = $status === 'resolved' ? now()->subDays(rand(0, 10)) : null;
 
-                $reports[] = [
-                    'reason' => $reasons[array_rand($reasons)],
-                    'status' => $status,
+                // Random created_at trong 60 ngày gần đây
+                $createdAt = Carbon::now()->subDays(rand(0, 60))->subMinutes(rand(0, 1440));
+                $resolvedAt = null;
+                if ($status === 'resolved') {
+                    // resolved_at phải sau created_at
+                    $resolvedAt = (clone $createdAt)->addDays(rand(0, 10))->addMinutes(rand(0, 1440));
+                }
+
+                // Kiểm tra trùng document + user trước khi insert
+                if (!DB::table('reports')->where([
                     'document_id' => $documentId,
-                    'user_id' => $userId,
-                    'resolved_at' => $resolvedAt,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ];
+                    'user_id' => $userId
+                ])->exists()) {
+                    $reports[] = [
+                        'reason' => $reasons[array_rand($reasons)],
+                        'status' => $status,
+                        'document_id' => $documentId,
+                        'user_id' => $userId,
+                        'resolved_at' => $resolvedAt,
+                        'created_at' => $createdAt,
+                        'updated_at' => Carbon::now()
+                    ];
 
-                $reportCount++;
+                    $reportCount++;
+                }
             }
         }
 
