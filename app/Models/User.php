@@ -2,22 +2,42 @@
 
 namespace App\Models;
 
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class User extends Model
+class User extends Authenticatable
 {
     protected $table = 'users';
     protected $primaryKey = 'user_id';
 
     protected $fillable = [
         'name',
-        'status'
+        'email',
+        'password',
+        'status',
+        'role_id'
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
 
     protected $casts = [
+        'password' => 'hashed',
         'status' => 'boolean',
+        'role_id' => 'integer',
+
     ];
+
+    /** Role */
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id', 'role_id');
+    }
 
     /** Folders */
     public function folders(): HasMany
@@ -35,6 +55,31 @@ class User extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class, 'user_id', 'user_id');
+    }
+
+    /** 
+     * Tai lieu duoc chia se cho nguoi dung nay
+     */
+    public function grantedDocuments(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Document::class,
+            'document_accesses',
+            'granted_to_user_id',
+            'document_id'
+        )
+            ->withPivot([
+                'access_id',
+                'granted_by',
+                'can_view',
+                'can_edit',
+                'can_delete',
+                'can_upload',
+                'can_download',
+                'can_share',
+                'created_at'
+            ])
+            ->withTimestamps();
     }
 
     /** Document Versions */

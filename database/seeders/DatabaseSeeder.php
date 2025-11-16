@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\VersionComparison;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -24,8 +23,8 @@ class DatabaseSeeder extends Seeder
 
         // Các seeder cơ bản
         $this->call([
-            UserSeeder::class,
             RoleSeeder::class,
+            UserSeeder::class,
             DepartmentSeeder::class,
             SubjectSeeder::class,
             TypeSeeder::class,

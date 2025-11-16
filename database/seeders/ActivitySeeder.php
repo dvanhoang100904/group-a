@@ -24,8 +24,12 @@ class ActivitySeeder extends Seeder
         $versions = DB::table('document_versions')->pluck('version_id')->toArray();
         $folders = DB::table('folders')->pluck('folder_id')->toArray();
 
-        for ($i = 1; $i <= self::MAX_RECORD; $i++) {
-            DB::table('activities')->insert([
+        if (empty($documents) || empty($users) || empty($versions) || empty($folders)) return;
+
+        $allActivities = [];
+
+        for ($i = 0; $i < self::MAX_RECORD; $i++) {
+            $allActivities[] = [
                 'action' => $actions[array_rand($actions)],
                 'action_detail' => json_encode(['page' => rand(1, 10)]),
                 'ip_address' => '127.0.0.' . rand(1, 50),
@@ -35,8 +39,13 @@ class ActivitySeeder extends Seeder
                 'version_id' => $versions[array_rand($versions)],
                 'folder_id' => $folders[array_rand($folders)],
                 'created_at' => now(),
-                'updated_at' => now()
-            ]);
+                'updated_at' => now(),
+            ];
+        }
+
+        // Bulk insert theo chunk 500
+        foreach (array_chunk($allActivities, 500) as $chunk) {
+            DB::table('activities')->insert($chunk);
         }
     }
 }

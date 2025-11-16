@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Report;
 use Illuminate\Support\Facades\DB;
 
 class ReportSeeder extends Seeder
@@ -22,15 +21,13 @@ class ReportSeeder extends Seeder
         $statuses = ['new', 'resolved'];
 
         $reportCount = 0;
+        $reports = [];
 
         shuffle($documents); // random thứ tự document
         foreach ($documents as $documentId) {
-            if ($reportCount >= self::MAX_RECORD) {
-                break;
-            }
+            if ($reportCount >= self::MAX_RECORD) break;
 
             $numReports = rand(1, min(self::MAX_REPORT_PER_DOC, count($users)));
-
             $assignedUsers = [];
 
             for ($i = 0; $i < $numReports && $reportCount < self::MAX_RECORD; $i++) {
@@ -44,7 +41,7 @@ class ReportSeeder extends Seeder
                 $status = $statuses[array_rand($statuses)];
                 $resolvedAt = $status === 'resolved' ? now()->subDays(rand(0, 10)) : null;
 
-                DB::table('reports')->insert([
+                $reports[] = [
                     'reason' => $reasons[array_rand($reasons)],
                     'status' => $status,
                     'document_id' => $documentId,
@@ -52,10 +49,15 @@ class ReportSeeder extends Seeder
                     'resolved_at' => $resolvedAt,
                     'created_at' => now(),
                     'updated_at' => now()
-                ]);
+                ];
 
                 $reportCount++;
             }
+        }
+
+        // Bulk insert theo chunk
+        foreach (array_chunk($reports, 50) as $chunk) {
+            DB::table('reports')->insert($chunk);
         }
     }
 }
