@@ -14,10 +14,15 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->increments('user_id');
             $table->string('name', 150);
+            $table->string('email', 100)->unique();
+            $table->string('password');
+            $table->unsignedInteger('role_id');
             $table->boolean('status')->default(true)->comment('1=active, 0=inactive');
             $table->timestamps();
 
-            $table->index('name');
+            $table->index('name', 'idx_users_name');
+            $table->index('email', 'idx_users_email');
+            $table->index('role_id', 'idx_users_role');
         });
     }
 

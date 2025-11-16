@@ -2,23 +2,42 @@
 
 namespace App\Models;
 
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class User extends Model
+class User extends Authenticatable
 {
     protected $table = 'users';
     protected $primaryKey = 'user_id';
 
     protected $fillable = [
         'name',
-        'status'
+        'email',
+        'password',
+        'status',
+        'role_id'
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
 
     protected $casts = [
+        'password' => 'hashed',
         'status' => 'boolean',
+        'role_id' => 'integer',
+
     ];
+
+    /** Role */
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id', 'role_id');
+    }
 
     /** Folders */
     public function folders(): HasMany
