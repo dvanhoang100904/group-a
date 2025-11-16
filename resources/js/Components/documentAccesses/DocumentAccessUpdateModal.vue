@@ -10,9 +10,9 @@
             <div class="modal-content">
                 <!-- Header -->
                 <div class="modal-header bg-light">
-                    <h5 class="modal-title fw-bold text-primary">
+                    <h5 class="modal-title fw-bold">
                         <i class="bi bi-pencil-square me-2"></i>
-                        Cập nhật quyền chia sẻ
+                        Cập nhật quyền truy cập
                     </h5>
                     <button
                         type="button"
@@ -27,7 +27,7 @@
                         <!-- Doi tuong duoc chia se -->
                         <div class="col-12">
                             <label class="form-label small fw-semibold">
-                                Đối tượng được chia sẻ
+                                Đối tượng được truy cập
                             </label>
                             <input
                                 type="text"
@@ -170,7 +170,7 @@ const permissions = [
     { key: "can_edit", label: "Chỉnh sửa" },
     { key: "can_delete", label: "Xóa" },
     { key: "can_upload", label: "Tải lên" },
-    { key: "can_share", label: "Chia sẻ tiếp" },
+    { key: "can_share", label: "chia sẻ tiếp" },
 ];
 
 // Hien thi ten doi tuong chia se

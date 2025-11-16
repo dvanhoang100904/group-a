@@ -15,6 +15,10 @@ class Document extends Model
         'title',
         'description',
         'status',
+        'share_mode',
+        'share_link',
+        'expiration_date',
+        'no_expiry',
         'user_id',
         'folder_id',
         'type_id',
@@ -23,6 +27,9 @@ class Document extends Model
 
     protected $casts = [
         'status' => 'boolean',
+        'share_mode' => 'string',
+        'expiration_date' => 'datetime',
+        'no_expiry' => 'boolean',
         'user_id' => 'integer',
         'folder_id' => 'integer',
         'type_id' => 'integer',
