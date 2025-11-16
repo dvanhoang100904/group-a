@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-  // Hiển thị danh sách báo cáo có phân trang
+    // Hiển thị danh sách báo cáo có phân trang
     public function index(Request $request)
     {
         $query = Report::with(['document', 'user'])->orderByDesc('created_at');

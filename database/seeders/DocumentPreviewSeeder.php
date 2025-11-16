@@ -20,18 +20,22 @@ class DocumentPreviewSeeder extends Seeder
 
         if ($versions->isEmpty()) return;
 
+        $previews = [];
+
         foreach ($versions as $version) {
             // Tạo đường dẫn preview cố định
             $previewFilePath = "documents/{$version->document_id}/preview_{$version->version_number}.pdf";
 
-            // Copy file PDF gốc sang path preview
-            Storage::disk('public')->put(
-                $previewFilePath,
-                file_get_contents(storage_path("app/public/{$version->file_path}"))
-            );
+            // Copy file PDF gốc sang path preview (chỉ khi file gốc tồn tại)
+            $originalFilePath = storage_path("app/public/{$version->file_path}");
+            if (file_exists($originalFilePath)) {
+                Storage::disk('public')->put(
+                    $previewFilePath,
+                    file_get_contents($originalFilePath)
+                );
+            }
 
-            // Lưu thông tin preview vào database
-            DB::table('document_previews')->insert([
+            $previews[] = [
                 'preview_path' => $previewFilePath,
                 'expires_at' => now()->addDays(30),
                 'generated_by' => $version->user_id,
@@ -39,7 +43,13 @@ class DocumentPreviewSeeder extends Seeder
                 'version_id' => $version->version_id,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
+        }
+
+        // Bulk insert preview records, chia chunks 500 để tránh lỗi
+        $chunks = array_chunk($previews, 500);
+        foreach ($chunks as $chunk) {
+            DB::table('document_previews')->insert($chunk);
         }
     }
 }

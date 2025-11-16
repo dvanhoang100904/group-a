@@ -28,7 +28,7 @@ class DocumentAccessController extends Controller
     }
 
     /**
-     * Hien thi danh sach chia se quyen co phan trang
+     * Hien thi danh sach truy cap quyen co phan trang
      */
     public function index(int $documentId): JsonResponse
     {
@@ -45,7 +45,7 @@ class DocumentAccessController extends Controller
         if ($document->uploaded_by !== $currentUserId && !auth()->user()->is_admin) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn không có quyền chia sẻ tài liệu này. Vui lòng thử lại.'
+                'message' => 'Bạn không có quyền truy cập tài liệu này. Vui lòng thử lại.'
             ]);
         }
 
@@ -60,7 +60,7 @@ class DocumentAccessController extends Controller
                 'current_page' => $data->currentPage(),
                 'last_page' => $data->lastPage(),
             ],
-            'message' => $data->isEmpty() ? 'Chưa có quyền chia sẻ nào. Vui lòng thử lại.' : 'Danh sách quyền chia sẻ tải thành công.',
+            'message' => $data->isEmpty() ? 'Chưa có quyền truy cập nào. Vui lòng thử lại.' : 'Danh sách quyền truy cập tải thành công.',
         ]);
     }
 
@@ -119,7 +119,7 @@ class DocumentAccessController extends Controller
     }
 
     /**
-     * Them moi quyen chia se tai lieu 
+     * Them moi quyen truy cap tai lieu 
      */
     public function store(DocumentAccessAddRequest $request, int $documentId): JsonResponse
     {
@@ -151,19 +151,19 @@ class DocumentAccessController extends Controller
         if (!$access) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không thể thêm quyền chia sẻ. Vui lòng thử lại.',
+                'message' => 'Không thể thêm quyền truy cập. Vui lòng thử lại.',
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Quyền chia sẻ đã được thêm.',
+            'message' => 'Quyền truy cập đã được thêm.',
             'data' => $access
         ]);
     }
 
     /**
-     * Cap nhat quyen chia se tai lieu
+     * Cap nhat quyen truy cap tai lieu
      */
     public function update(DocumentAccessUpdateRequest $request, int $documentId, int $accessId): JsonResponse
     {
@@ -196,19 +196,19 @@ class DocumentAccessController extends Controller
         if (!$access) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không thể cập nhật quyền chia sẻ. Vui lòng thử lại.',
+                'message' => 'Không thể cập nhật quyền truy cập. Vui lòng thử lại.',
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Quyền chia sẻ đã cập nhật thành công.',
+            'message' => 'Quyền truy cập đã cập nhật thành công.',
             'data' => $access
         ]);
     }
 
     /** 
-     * Xoa quyen chia se tai lieu
+     * Xoa quyen truy cap tai lieu
      */
     public function destroy(int $documentId, int $accessId): JsonResponse
     {
@@ -226,13 +226,13 @@ class DocumentAccessController extends Controller
         if (!$access) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không thể xóa quyền chia sẻ. Vui lòng thử lại.',
+                'message' => 'Không thể xóa quyền truy cập. Vui lòng thử lại.',
             ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Quyền chia sẻ đã xóa thành công.',
+            'message' => 'Quyền truy cập đã xóa thành công.',
             'data' => $access,
         ]);
     }
