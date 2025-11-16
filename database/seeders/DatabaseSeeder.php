@@ -23,8 +23,8 @@ class DatabaseSeeder extends Seeder
 
         // Các seeder cơ bản
         $this->call([
-            UserSeeder::class,
             RoleSeeder::class,
+            UserSeeder::class,
             DepartmentSeeder::class,
             SubjectSeeder::class,
             TypeSeeder::class,

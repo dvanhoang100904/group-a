@@ -19,6 +19,12 @@ class Role extends Model
         'status' => 'boolean',
     ];
 
+    /** Users */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class, 'role_id', 'role_id');
+    }
+
     /** Document Accesses */
     public function documentAccesses(): HasMany
     {
