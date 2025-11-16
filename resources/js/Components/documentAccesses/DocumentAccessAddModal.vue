@@ -9,7 +9,7 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <!-- Header -->
-                <div class="modal-header text-primary bg-light">
+                <div class="modal-header bg-light">
                     <h5 class="modal-title fw-bold">
                         <i class="bi bi-person-plus me-2"></i> Thêm quyền truy
                         cập

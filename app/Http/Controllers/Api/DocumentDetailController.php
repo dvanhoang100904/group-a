@@ -9,6 +9,7 @@ class DocumentDetailController extends Controller
 {
     public function show($id)
     {
+        // sẽ sữa 
         $document = Document::with(['user', 'type', 'subject', 'versions', 'tags'])
             ->findOrFail($id);
 

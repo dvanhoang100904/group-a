@@ -3,18 +3,20 @@
     <div class="max-w-2xl mx-auto">
       <!-- Header -->
       <div class="flex items-center mb-6">
-        <a :href="route('folders.index')" class="text-blue-500 hover:text-blue-700 mr-4">
+        <button @click="goBack" class="text-blue-500 hover:text-blue-700 mr-4">
           <i class="fas fa-arrow-left"></i>
-        </a>
+        </button>
         <h1 class="text-2xl font-bold text-gray-800">Tạo Thư Mục Mới</h1>
       </div>
 
-      <!-- Form -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <form method="post" :action="route('folders.store')" @submit.prevent="submitForm">
-          <input type="hidden" name="_token" :value="csrfToken">
-          <input type="hidden" name="parent_folder_id" :value="parentFolderId">
+      <!-- Loading -->
+      <div v-if="loading" class="flex justify-center items-center py-8">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
 
+      <!-- Form -->
+      <div v-else class="bg-white rounded-lg shadow p-6">
+        <form @submit.prevent="submitForm">
           <!-- Tên thư mục -->
           <div class="mb-4">
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
@@ -23,7 +25,6 @@
             <input type="text" 
                    id="name" 
                    v-model="form.name"
-                   name="name"
                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                    :class="{ 'border-red-500': errors.name }"
                    placeholder="Nhập tên thư mục"
@@ -38,7 +39,6 @@
             </label>
             <select id="status" 
                     v-model="form.status"
-                    name="status" 
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     :class="{ 'border-red-500': errors.status }"
                     required>
@@ -61,15 +61,16 @@
 
           <!-- Buttons -->
           <div class="flex justify-end space-x-3">
-            <a :href="route('folders.index')" 
-               class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <button type="button" 
+                    @click="goBack"
+                    class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
               Hủy
-            </a>
+            </button>
             <button type="submit" 
-                    :disabled="loading"
+                    :disabled="submitting"
                     class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
               <i class="fas fa-folder-plus mr-2"></i>
-              {{ loading ? 'Đang tạo...' : 'Tạo Thư Mục' }}
+              {{ submitting ? 'Đang tạo...' : 'Tạo Thư Mục' }}
             </button>
           </div>
         </form>
@@ -95,92 +96,121 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'FolderCreate',
-  props: {
-    parentFolderId: {
-      type: [String, Number],
-      default: null
-    },
-    parentFolderName: {
-      type: String,
-      default: 'Danh sách hiện tại'
-    },
-    breadcrumbs: {
-      type: Array,
-      default: () => []
-    },
-    initialErrors: {
-      type: Object,
-      default: () => ({})
-    },
-    initialOld: {
-      type: Object,
-      default: () => ({})
-    },
-    success: {
-      type: String,
-      default: null
-    },
-    error: {
-      type: String,
-      default: null
-    }
-  },
   data() {
     return {
+      // Form data
       form: {
-        name: this.initialOld.name || '',
-        status: this.initialOld.status || '',
-        parent_folder_id: this.parentFolderId
+        name: '',
+        status: '',
+        parent_folder_id: null
       },
-      errors: this.initialErrors,
+      
+      // UI State
       loading: false,
-      successMessage: this.success,
-      errorMessage: this.error
+      submitting: false,
+      errors: {},
+      successMessage: '',
+      errorMessage: '',
+      
+      // Location info
+      parentFolderName: 'Danh sách hiện tại (Thư mục gốc)'
     }
   },
   computed: {
-    csrfToken() {
-      return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    },
     locationText() {
-      return this.parentFolderName || 'Danh sách hiện tại (Thư mục gốc)';
+      return this.parentFolderName;
     }
   },
+  mounted() {
+    this.getLocationInfo();
+  },
   methods: {
-    route(name, params = null) {
-      const baseUrl = window.location.origin;
-      const routes = {
-        'folders.index': '/folders',
-        'folders.store': '/folders'
-      };
-
-      if (typeof routes[name] === 'function') {
-        return baseUrl + routes[name](params);
+    // ==================== API CALLS ====================
+    async getLocationInfo() {
+      try {
+        // Lấy parent_id từ URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const parentId = urlParams.get('parent_id');
+        
+        if (parentId) {
+          this.form.parent_folder_id = parentId;
+          
+          // Lấy thông tin thư mục cha để hiển thị
+          const response = await axios.get(`/api/folders/${parentId}`);
+          if (response.data.success) {
+            this.parentFolderName = response.data.data.folder.name;
+          }
+        }
+      } catch (error) {
+        console.error('Error getting location info:', error);
+        // Không hiển thị lỗi vì đây chỉ là thông tin phụ
       }
-      return baseUrl + routes[name];
     },
+
     async submitForm() {
-      this.loading = true;
+      this.submitting = true;
       this.errors = {};
       this.successMessage = '';
       this.errorMessage = '';
 
       try {
-        // Submit form truyền thống
-        const form = this.$el.querySelector('form');
-        if (form) {
-          form.submit();
+        const response = await axios.post('/api/folders', this.form);
+
+        if (response.data.success) {
+          this.successMessage = response.data.message;
+          
+          // Redirect sau 1.5 giây
+          setTimeout(() => {
+            const parentId = response.data.data.parent_folder_id;
+            const redirectUrl = parentId 
+              ? `/folders?parent_id=${parentId}`
+              : '/folders';
+            window.location.href = redirectUrl;
+          }, 1500);
+        } else {
+          this.errorMessage = response.data.message || 'Lỗi khi tạo thư mục';
         }
       } catch (error) {
-        this.errorMessage = 'Đã có lỗi xảy ra khi tạo thư mục. Vui lòng thử lại.';
-        this.loading = false;
+        if (error.response && error.response.status === 422) {
+          this.errors = error.response.data.errors || {};
+          this.errorMessage = 'Vui lòng kiểm tra lại thông tin đã nhập.';
+        } else if (error.response && error.response.data.message) {
+          this.errorMessage = error.response.data.message;
+        } else {
+          this.errorMessage = 'Đã có lỗi xảy ra khi tạo thư mục. Vui lòng thử lại.';
+        }
+      } finally {
+        this.submitting = false;
       }
+    },
+
+    // ==================== UI METHODS ====================
+    goBack() {
+      const parentId = this.form.parent_folder_id;
+      const backUrl = parentId 
+        ? `/folders?parent_id=${parentId}`
+        : '/folders';
+      window.location.href = backUrl;
     }
-  },
-  mounted() {
-    console.log('FolderCreate component mounted');
   }
 }
 </script>
+
+<style scoped>
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>

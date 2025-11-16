@@ -10,11 +10,7 @@ use App\Http\Controllers\Api\DocumentDetailController;
 use App\Http\Controllers\Api\TypeController;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\FolderController;
-
-
-
-
-
+use App\Http\Controllers\Api\DocumentSharedController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -39,11 +35,14 @@ Route::post('/documents/{documentId}/accesses', [DocumentAccessController::class
 Route::put('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'update']);
 Route::delete('/documents/{documentId}/accesses/{accessId}', [DocumentAccessController::class, 'destroy']);
 
+// Document Shared
+Route::get('/shared', [DocumentSharedController::class, 'index']);
+Route::get('/shared/users', [DocumentSharedController::class, 'listUsers']);
 
 // =========================
 // 👤 Users
 // =========================
-//Route::get('/users', [UserApiController::class, 'index']);
+// Route::get('/users', [UserApiController::class, 'index']);
 
 // =========================
 // 📤 Document Uploads (auth required)
@@ -69,3 +68,14 @@ Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
 Route::get('/types', [TypeController::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
 Route::get('/folders', [FolderController::class, 'index']);
+
+
+// =========================
+// 📁 Folder API Routes
+// =========================
+Route::get('/folders', [FolderController::class, 'index']);
+Route::get('/folders/{folder}', [FolderController::class, 'show']);
+Route::post('/folders', [FolderController::class, 'store']);
+Route::put('/folders/{folder}', [FolderController::class, 'update']);
+Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
+Route::get('/folders/search', [FolderController::class, 'search']);
