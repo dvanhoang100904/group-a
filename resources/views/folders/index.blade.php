@@ -2,12 +2,7 @@
 
 @section('content')
 <div id="app">
-    <folder-index 
-        :initial-folders='@json($folders)'
-        :current-folder='@json($currentFolder)'
-        :breadcrumbs='@json($breadcrumbs)'
-        :search-params='@json(request()->all())'
-    ></folder-index>
+    <folder-index></folder-index>
 </div>
 @endsection
 

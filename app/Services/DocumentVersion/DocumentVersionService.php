@@ -231,7 +231,8 @@ class DocumentVersionService
 
             // Neu la phien ban hien tai thi bo qua cap nhat
             if ($version->is_current_version) {
-                return $version;
+                return null;
+                DB::rollBack();
             }
 
             // Cap nhat chi khi co thay doi bo current cu, set current moi

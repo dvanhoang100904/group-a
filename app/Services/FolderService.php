@@ -217,23 +217,27 @@ class FolderService
             // FIX: Lấy all descendant IDs để prevent cycle
             $descendantIds = $this->getDescendantIds($folderId);
 
-            // FIX: Lấy all possible parent folders (không phải current hoặc descendants), với indented name cho hierarchy
+            // FIX: Lấy all possible parent folders (không phải current hoặc descendants)
             $allFolders = Folder::where('folder_id', '!=', $folderId)
                 ->whereNotIn('folder_id', $descendantIds)
                 ->get();
 
-            $parentFolders = $this->buildHierarchicalFolders($allFolders);  // FIX: Build with indent
+            // FIX: Sửa lỗi buildHierarchicalFolders - chỉ truyền folders collection
+            $parentFolders = $this->buildHierarchicalFolders($allFolders);
 
             $breadcrumbs = $this->getBreadcrumbs($folder);
 
             return [
                 'folder' => $folder,
                 'parentFolders' => $parentFolders,
-                'descendantIds' => $descendantIds,  // FIX: Pass to Vue for disable
+                'descendantIds' => $descendantIds,
                 'breadcrumbs' => $breadcrumbs
             ];
         } catch (ModelNotFoundException $e) {
             throw new \Exception('Thư mục không tồn tại');
+        } catch (\Exception $e) {
+            \Log::error('FolderService getFolderForEdit Error: ' . $e->getMessage());
+            throw new \Exception('Lỗi khi tải thông tin thư mục: ' . $e->getMessage());
         }
     }
     private function getDescendantIds(string $folderId): array
@@ -252,23 +256,20 @@ class FolderService
     /**
      * FIX: Build hierarchical list with indented names (e.g., "Root > Child")
      */
-    private function buildHierarchicalFolders($folders, $parentId = null, $level = 0, $path = ''): array
+    private function buildHierarchicalFolders($folders, $parentId = null, $level = 0): array
     {
         $hierarchical = [];
 
         $children = $folders->where('parent_folder_id', $parentId);
 
         foreach ($children as $folder) {
-            $indentedName = str_repeat('─ ', $level) . $folder->name;
-            if ($path) {
-                $indentedName = $path . ' > ' . $indentedName;
-            }
-            $folder->indented_name = $indentedName;  // Add attribute
+            $indentedName = str_repeat('-- ', $level) . $folder->name;
+            $folder->indented_name = $indentedName;
 
             $hierarchical[] = $folder;
 
             // Recursive for sub-children
-            $sub = $this->buildHierarchicalFolders($folders, $folder->folder_id, $level + 1, $indentedName);
+            $sub = $this->buildHierarchicalFolders($folders, $folder->folder_id, $level + 1);
             $hierarchical = array_merge($hierarchical, $sub);
         }
 
@@ -305,27 +306,31 @@ class FolderService
     /**
      * Xóa thư mục
      */
-    public function deleteFolder(string $folderId): string
+    public function deleteFolder($folderId)
     {
-        return DB::transaction(function () use ($folderId) {
-            try {
-                $folder = Folder::withCount(['childFolders', 'documents'])->findOrFail($folderId);
+        try {
+            $folder = Folder::find($folderId);
 
-                if ($folder->child_folders_count > 0) {
-                    throw new \Exception('Không thể xóa thư mục có chứa thư mục con!');
-                }
-
-                if ($folder->documents_count > 0) {
-                    throw new \Exception('Không thể xóa thư mục có chứa tài liệu!');
-                }
-
-                $folderName = $folder->name;
-                $folder->delete();
-
-                return $folderName;
-            } catch (ModelNotFoundException $e) {
+            if (!$folder) {
                 throw new \Exception('Thư mục không tồn tại');
             }
-        });
+
+            // Kiểm tra điều kiện xóa
+            if ($folder->documents()->count() > 0) {
+                throw new \Exception('Không thể xóa thư mục có chứa file');
+            }
+
+            if ($folder->childFolders()->count() > 0) {
+                throw new \Exception('Không thể xóa thư mục có chứa thư mục con');
+            }
+
+            $folderName = $folder->name;
+            $folder->delete();
+
+            return $folderName;
+        } catch (\Exception $e) {
+            \Log::error('Delete folder error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 }

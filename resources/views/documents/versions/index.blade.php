@@ -24,8 +24,8 @@
     </nav>
 
     <!-- header -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0 fw-bold text-primary fs-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0 fw-bold fs-5">
             <i class="bi bi-clock-history me-2"></i>
             Phiên bản tài liệu
         </h3>
@@ -33,7 +33,7 @@
 
     {{-- detail document --}}
 
-    <div class="card shadow-sm mb-4 border-0">
+    <div class="card shadow-sm mb-4 border-0" style="background-color: #f8fafd ">
         <div class="card-body">
             @if ($document)
                 <h5 class="fw-bold mb-2">{{ $document->title }}</h5>
