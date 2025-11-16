@@ -19,6 +19,7 @@ class Folder extends Model
     ];
 
     protected $casts = [
+        'status' => 'string',
         'parent_folder_id' => 'integer',
         'user_id' => 'integer',
     ];

@@ -23,6 +23,7 @@ class Report extends Model
         'status' => 'boolean',
         'document_id' => 'integer',
         'user_id' => 'integer',
+        'resolved_at' => 'datetime',
     ];
 
     /** Document */

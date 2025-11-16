@@ -31,7 +31,7 @@ class ActivitySeeder extends Seeder
         for ($i = 0; $i < self::MAX_RECORD; $i++) {
             $allActivities[] = [
                 'action' => $actions[array_rand($actions)],
-                'action_detail' => json_encode(['page' => rand(1, 10)]),
+                'action_detail' => json_encode(['page' => rand(1, 10)], JSON_UNESCAPED_UNICODE),
                 'ip_address' => '127.0.0.' . rand(1, 50),
                 'user_agent' => $userAgents[array_rand($userAgents)],
                 'document_id' => $documents[array_rand($documents)],

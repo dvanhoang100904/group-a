@@ -20,24 +20,41 @@ class DocumentAccessSeeder extends Seeder
         $users = DB::table('users')->pluck('user_id')->toArray();
         $roles = DB::table('roles')->pluck('role_id')->toArray();
 
+        if (empty($documents) || empty($users) || empty($roles)) {
+            return; // Tránh lỗi nếu table rỗng
+        }
+
         $accesses = [];
+
+        $grantedToTypes = ['user', 'role', 'link'];
 
         for ($i = 1; $i <= self::MAX_RECORD; $i++) {
             $documentId = $documents[array_rand($documents)];
             $grantedBy = $users[array_rand($users)];
 
-            do {
-                $grantedToUser = $users[array_rand($users)];
-            } while ($grantedToUser == $grantedBy);
+            $grantedToType = $grantedToTypes[array_rand($grantedToTypes)];
 
-            $roleId = $roles[array_rand($roles)];
+            $grantedToUser = null;
+            $grantedToRole = null;
+            $shareLink = null;
+
+            if ($grantedToType === 'user') {
+                // Tránh cấp quyền cho chính mình
+                do {
+                    $grantedToUser = $users[array_rand($users)];
+                } while ($grantedToUser === $grantedBy);
+            } elseif ($grantedToType === 'role') {
+                $grantedToRole = $roles[array_rand($roles)];
+            } elseif ($grantedToType === 'link') {
+                $shareLink = "https://share.test/$i";
+            }
 
             $noExpiry = rand(0, 1);
             $expirationDate = $noExpiry ? null : (rand(0, 9) < 7 ? now()->addDays(rand(1, 30)) : null);
 
             $accesses[] = [
-                'share_link' => null,
-                'granted_to_type' => 'user',
+                'share_link' => $shareLink,
+                'granted_to_type' => $grantedToType,
                 'can_view' => rand(0, 1),
                 'can_edit' => rand(0, 1),
                 'can_delete' => rand(0, 1),
@@ -49,13 +66,13 @@ class DocumentAccessSeeder extends Seeder
                 'document_id' => $documentId,
                 'granted_by' => $grantedBy,
                 'granted_to_user_id' => $grantedToUser,
-                'granted_to_role_id' => $roleId,
+                'granted_to_role_id' => $grantedToRole,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ];
         }
 
-        // Bulk insert theo chunk 500 record/lần để tránh lỗi max_allowed_packet
+        // Bulk insert theo chunk 500 record/lần
         foreach (array_chunk($accesses, 500) as $chunk) {
             DB::table('document_accesses')->insert($chunk);
         }

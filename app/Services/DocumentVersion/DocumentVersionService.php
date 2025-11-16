@@ -188,9 +188,10 @@ class DocumentVersionService
                 $activity = new Activity([
                     'action' => 'download',
                     'user_id' => auth()->id() ?? 1,
-                    'action_detail' => json_encode([
+                    'action_detail' => [
                         'message' => "Tải xuống phiên bản #{$version->version_number}."
-                    ]),
+                    ],
+
                 ]);
                 $version->document?->activities()->save($activity);
 
@@ -253,9 +254,9 @@ class DocumentVersionService
                 $activity = new Activity([
                     'action' => 'restore',
                     'user_id' => auth()->id() ?? 1,
-                    'action_detail' => json_encode([
+                    'action_detail' => [
                         'message' => "Khôi phục phiên bản #{$version->version_number} làm phiên bản hiện tại."
-                    ], JSON_UNESCAPED_UNICODE),
+                    ],
                 ]);
                 $version->document?->activities()->save($activity);
             } catch (Exception $e) {
@@ -316,9 +317,9 @@ class DocumentVersionService
                 $activity = new Activity([
                     'action' => 'delete',
                     'user_id' => auth()->id() ?? 1,
-                    'action_detail' => json_encode([
-                        'message' => "Đã xóa phiên bản #{$version->version_number}.",
-                    ], JSON_UNESCAPED_UNICODE),
+                    'action_detail' => [
+                        'message' => "Đã xóa phiên bản #{$version->version_number}."
+                    ],
                 ]);
                 $version->document?->activities()->save($activity);
             } catch (Exception $e) {
