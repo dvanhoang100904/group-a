@@ -341,6 +341,7 @@ const submitUpload = async () => {
 
             emit("uploaded", res.data.data);
         } else {
+            closeModal();
             await showSwal({
                 icon: "error",
                 title: "Lỗi",
@@ -353,6 +354,7 @@ const submitUpload = async () => {
             }
         }
     } catch (e) {
+        closeModal();
         console.error(e);
         await showSwal({
             icon: "error",
