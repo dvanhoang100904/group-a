@@ -28,7 +28,6 @@ return new class extends Migration
             $table->index('version_id', 'idx_version');
             $table->index('folder_id', 'idx_folder');
 
-
             $table->index(['document_id', 'user_id', 'created_at'], 'idx_doc_user_created');
         });
     }

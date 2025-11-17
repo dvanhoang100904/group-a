@@ -22,6 +22,7 @@ class DocumentVersion extends Model
     ];
 
     protected $casts = [
+        'version_number' => 'integer',
         'is_current_version' => 'boolean',
         'file_size' => 'integer',
         'document_id' => 'integer',

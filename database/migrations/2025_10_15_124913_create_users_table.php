@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email', 100)->unique();
             $table->string('password');
             $table->unsignedInteger('role_id');
-            $table->boolean('status')->default(true)->comment('1=active, 0=inactive');
+            $table->boolean('status')->default(0);
             $table->timestamps();
 
             $table->index('name', 'idx_users_name');

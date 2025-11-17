@@ -33,6 +33,7 @@ class DocumentAccess extends Model
         'can_upload' => 'boolean',
         'can_download' => 'boolean',
         'can_share' => 'boolean',
+        'expiration_date' => 'datetime',
         'no_expiry' => 'boolean',
         'document_id' => 'integer',
         'granted_by' => 'integer',

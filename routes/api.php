@@ -12,10 +12,6 @@ use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\FolderController;
 use App\Http\Controllers\Api\DocumentSharedController;
 
-
-
-
-
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -72,3 +68,14 @@ Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
 Route::get('/types', [TypeController::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
 Route::get('/folders', [FolderController::class, 'index']);
+
+
+// =========================
+// 📁 Folder API Routes
+// =========================
+Route::get('/folders', [FolderController::class, 'index']);
+Route::get('/folders/{folder}', [FolderController::class, 'show']);
+Route::post('/folders', [FolderController::class, 'store']);
+Route::put('/folders/{folder}', [FolderController::class, 'update']);
+Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
+Route::get('/folders/search', [FolderController::class, 'search']);

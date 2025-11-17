@@ -8,7 +8,6 @@
     <!-- Header với Button và Search cùng dòng -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
       <!-- Button thêm folder -->
-      <!-- Button thêm mới với dropdown -->
       <div class="flex-shrink-0 relative">
         <button 
           @click="toggleNewDropdown"
@@ -25,20 +24,18 @@
           class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-30"
         >
           <!-- Tạo thư mục -->
-          <a 
-            :href="createFolderUrl" 
-            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 no-underline"
-            @click="closeNewDropdown"
+          <button 
+            @click="openCreateFolder"
+            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 no-underline w-full text-left"
           >
             <i class="fas fa-folder-plus text-blue-500 mr-3"></i>
             Tạo thư mục
-          </a>
+          </button>
           
           <!-- Tải file lên -->
           <a 
             :href="uploadFileUrl" 
             class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 no-underline"
-            @click="closeNewDropdown"
           >
             <i class="fas fa-file-upload text-green-500 mr-3"></i>
             Tải file lên
@@ -48,7 +45,7 @@
 
       <!-- Tìm kiếm & lọc -->
       <div class="flex-1 min-w-0">
-        <form @submit.prevent="handleSearch" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
           <!-- Input hidden cho parent_id -->
           <input v-if="currentFolder" type="hidden" name="parent_id" :value="currentFolder.folder_id">
           
@@ -81,7 +78,7 @@
           </div>
           
           <!-- Nút tìm kiếm -->
-          <button type="submit" 
+          <button @click="handleSearch" 
                   class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors duration-200 flex-1 sm:flex-none">
             <i class="fas fa-search mr-2"></i>
             Tìm kiếm
@@ -90,14 +87,46 @@
           <!-- Nút reset -->
           <button v-if="hasActiveFilters" 
                   @click="resetFilters"
-                  type="button"
                   class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors duration-200 flex-1 sm:flex-none">
             <i class="fas fa-times mr-2"></i>
             Reset
           </button>
-        </form>
+        </div>
       </div>
     </div>
+    <!-- Thêm vào sau breadcrumbs trong FolderIndex.vue -->
+<div class="flex items-center justify-between mb-4">
+  <!-- Breadcrumbs (giữ nguyên) -->
+  <nav v-if="breadcrumbs.length > 0" class="flex items-center">
+    <!-- ... breadcrumbs code ... -->
+  </nav>
+  
+  <!-- Auto-reload controls -->
+  <div class="flex items-center space-x-2">
+    <button @click="manualReload" 
+            :disabled="loading"
+            class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 flex items-center disabled:opacity-50">
+      <i class="fas fa-sync-alt mr-2" :class="{ 'animate-spin': loading }"></i>
+      Làm mới
+    </button>
+    
+    <button @click="toggleAutoReload"
+            :class="[
+              'px-3 py-1 rounded-lg text-sm flex items-center',
+              autoReloadEnabled 
+                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]">
+      <i class="fas fa-clock mr-2"></i>
+      {{ autoReloadEnabled ? 'Tự động load sau 30s: Bật' : 'Tự động load sau 30s: Tắt' }}
+    </button>
+    
+    <!-- Last update time -->
+    <span v-if="lastUpdate" class="text-xs text-gray-500">
+      Cập nhật: {{ formatTime(lastUpdate) }}
+    </span>
+  </div>
+</div>
 
     <!-- Breadcrumbs và nút back -->
     <div class="mb-6">
@@ -106,17 +135,17 @@
         <div class="flex items-center">
           <ol class="flex items-center space-x-2 text-sm">
             <li>
-              <a :href="route('folders.index')" class="text-blue-500 hover:text-blue-700 flex items-center">
+              <button @click="goToRoot" class="text-blue-500 hover:text-blue-700 flex items-center">
                 <i class="fas fa-home mr-1"></i> Root
-              </a>
+              </button>
             </li>
             <li v-for="(crumb, index) in breadcrumbs" :key="crumb.folder_id" class="flex items-center">
               <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-              <a v-if="index < breadcrumbs.length - 1" 
-                 :href="route('folders.show', crumb.folder_id)" 
-                 class="text-blue-500 hover:text-blue-700">
+              <button v-if="index < breadcrumbs.length - 1" 
+                     @click="goToFolder(crumb.folder_id)" 
+                     class="text-blue-500 hover:text-blue-700">
                 {{ crumb.name }}
-              </a>
+              </button>
               <span v-else class="text-gray-600 font-medium">{{ crumb.name }}</span>
             </li>
           </ol>
@@ -138,8 +167,13 @@
       </nav>
     </div>
 
+    <!-- Loading -->
+    <div v-if="loading" class="flex justify-center items-center py-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    </div>
+
     <!-- Thông báo kết quả tìm kiếm -->
-    <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+    <div v-else-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
       <div class="flex items-center justify-between">
         <div class="flex items-center">
           <i class="fas fa-info-circle text-blue-500 mr-2"></i>
@@ -179,162 +213,167 @@
     </div>
 
     <!-- Table -->
-<div class="bg-white rounded-lg shadow overflow-hidden mb-6">
-    <table class="min-w-full">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Tên thư mục
-          </th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Chỉ số
-          </th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Ngày tạo
-          </th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Kích cỡ tập tin
-          </th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Thao tác
-          </th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <tr v-for="folder in folders.data" 
-            :key="folder.folder_id" 
-            class="hover:bg-gray-50 relative context-menu-row transition-colors duration-150"
-            :class="{ 
-              'context-menu-highlight': contextMenu.folder?.folder_id === folder.folder_id
-            }"
-            @contextmenu.prevent="showContextMenu($event, folder)"
-            @click="goToFolder(folder.folder_id)">
-          <td class="px-6 py-4 whitespace-nowrap cursor-pointer">
-            <div class="flex items-center">
-              <i class="fas fa-folder text-yellow-500 mr-3 text-lg"></i>
-              <div>
-                <div class="text-sm font-medium text-gray-900" v-html="highlightText(folder.name)"></div>
-                <div v-if="folder.child_folders_count > 0" class="text-xs text-gray-500 flex items-center">
-                  <i class="fas fa-folder-open mr-1"></i>
-                  {{ folder.child_folders_count }} thư mục con
-                </div>
-              </div>
-            </div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap cursor-pointer">
-            <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', 
-                         folder.status == 'public' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800']">
-              <i :class="['fas mr-1', folder.status == 'public' ? 'fa-globe' : 'fa-lock']"></i>
-              {{ folder.status == 'public' ? 'Công khai' : 'Riêng tư' }}
-            </span>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer">
-            {{ formatDateTime(folder.created_at) }}
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer">
-            {{ folder.documents_count }} files
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium align-middle">
-           <div class="relative inline-block text-left">
-                <button type="button" 
-                        class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        @click.stop="toggleMenu(folder.folder_id)">
-                  <i class="fas fa-ellipsis-v text-gray-500"></i>
-                </button>
-                
-                <!-- Dropdown panel -->
-                <div v-if="activeMenu === folder.folder_id"
-                    class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-20"
-                    style="z-index: 20;">
-                  <div class="py-1" role="none">
-                    <!-- Edit -->
-                    <a :href="route('folders.edit', folder.folder_id)" 
-                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
-                      <i class="fas fa-edit mr-3 text-blue-500"></i>
-                      Chỉnh sửa
-                    </a>
-                    
-                    <!-- Delete -->
-                    <form :action="route('folders.destroy', folder.folder_id)" method="POST" class="inline">
-                      <input type="hidden" name="_token" :value="csrfToken">
-                      <input type="hidden" name="_method" value="DELETE">
-                      <button type="submit" 
-                              class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                              @click="confirmDelete(folder)">
-                        <i class="fas fa-trash mr-3 text-red-500"></i>
-                        Xóa
-                      </button>
-                    </form>
+    <div v-if="!loading" class="bg-white rounded-lg shadow overflow-hidden mb-6">
+      <table class="min-w-full">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Tên thư mục
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Chỉ số
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Ngày tạo
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Kích cỡ tập tin
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Thao tác
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr v-for="folder in folders.data" 
+              :key="folder.folder_id" 
+              class="hover:bg-gray-50 relative context-menu-row transition-colors duration-150"
+              :class="{ 
+                'context-menu-highlight': contextMenu.folder?.folder_id === folder.folder_id
+              }"
+              @contextmenu.prevent="showContextMenu($event, folder)"
+              @click="goToFolder(folder.folder_id)">
+            <td class="px-6 py-4 whitespace-nowrap cursor-pointer">
+              <div class="flex items-center">
+                <i class="fas fa-folder text-yellow-500 mr-3 text-lg"></i>
+                <div>
+                  <div class="text-sm font-medium text-gray-900" v-html="highlightText(folder.name)"></div>
+                  <div v-if="folder.child_folders_count > 0" class="text-xs text-gray-500 flex items-center">
+                    <i class="fas fa-folder-open mr-1"></i>
+                    {{ folder.child_folders_count }} thư mục con
                   </div>
                 </div>
               </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap cursor-pointer">
+              <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', 
+                           folder.status == 'public' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800']">
+                <i :class="['fas mr-1', folder.status == 'public' ? 'fa-globe' : 'fa-lock']"></i>
+                {{ folder.status == 'public' ? 'Công khai' : 'Riêng tư' }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer">
+              {{ formatDateTime(folder.created_at) }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer">
+              {{ folder.documents_count }} files
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium align-middle">
+             <div class="relative inline-block text-left">
+                  <button type="button" 
+                          class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          @click.stop="toggleMenu(folder.folder_id)">
+                    <i class="fas fa-ellipsis-v text-gray-500"></i>
+                  </button>
+                  
+                  <!-- Dropdown panel -->
+                  <div v-if="activeMenu === folder.folder_id"
+                      class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-20"
+                      style="z-index: 20;">
+                    <div class="py-1" role="none">
+                      <!-- Edit -->
+                      <button @click="editFolder(folder.folder_id)"
+                        class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left">
+                        <i class="fas fa-edit mr-3 text-blue-500"></i>
+                        Chỉnh sửa
+                      </button>
+                      
+                      <!-- Delete -->
+                      <button @click="deleteFolder(folder)"
+                              class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 text-left">
+                        <i class="fas fa-trash mr-3 text-red-500"></i>
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                </div>
+            </td>
+          </tr>
 
-  <!-- Context Menu -->
-  <div v-if="contextMenu.visible && contextMenu.folder" 
-       class="context-menu"
-       :style="contextMenuStyle">
-    <!-- Header với tên folder -->
-    <div class="context-menu-header">
-      <div class="flex items-center">
-        <i class="fas fa-folder text-yellow-500 me-2"></i>
-        <span class="font-medium text-dark text-sm truncate" :title="contextMenu.folder.name">
-          {{ contextMenu.folder.name }}
-        </span>
-      </div>
-      <div class="text-gray-500 mt-1 text-xs">
-        {{ contextMenu.folder.status === 'public' ? 'Công khai' : 'Riêng tư' }} • 
-        {{ formatDateTime(contextMenu.folder.created_at) }}
-      </div>
+          <!-- Empty state -->
+          <tr v-if="folders.data.length === 0">
+            <td colspan="5" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center justify-center">
+                <i class="fas fa-folder-open text-gray-400 text-4xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Không có thư mục nào</h3>
+                <p class="text-gray-500 mb-4">Hãy tạo thư mục đầu tiên của bạn</p>
+                <button @click="openCreateFolder" 
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                  <i class="fas fa-plus mr-2"></i>
+                  Tạo thư mục
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <!-- Menu items -->
-    <div class="py-2">
-      <!-- Open -->
-      <button type="button"
-              class="context-menu-item"
-              @click="openContextFolder">
-        <i class="fas fa-folder-open text-blue-500 me-3" style="width: 16px;"></i>
-        Mở thư mục
-      </button>
-      
-      <!-- Edit -->
-      <a :href="route('folders.edit', contextMenu.folder.folder_id)" 
-         class="context-menu-item"
-         @click="hideContextMenu">
-        <i class="fas fa-edit text-green-500 me-3" style="width: 16px;"></i>
-        Chỉnh sửa
-      </a>
-      
-      <!-- Divider -->
-      <div class="context-menu-divider"></div>
-      
-      <!-- Delete -->
-      <form :action="route('folders.destroy', contextMenu.folder.folder_id)" method="POST" class="w-100">
-        <input type="hidden" name="_token" :value="csrfToken">
-        <input type="hidden" name="_method" value="DELETE">
-        <button type="submit" 
-                class="context-menu-item context-menu-item-danger w-full text-start"
-                @click="confirmDeleteContext">
+    <!-- Context Menu -->
+    <div v-if="contextMenu.visible && contextMenu.folder" 
+         class="context-menu"
+         :style="contextMenuStyle">
+      <!-- Header với tên folder -->
+      <div class="context-menu-header">
+        <div class="flex items-center">
+          <i class="fas fa-folder text-yellow-500 me-2"></i>
+          <span class="font-medium text-dark text-sm truncate" :title="contextMenu.folder.name">
+            {{ contextMenu.folder.name }}
+          </span>
+        </div>
+        <div class="text-gray-500 mt-1 text-xs">
+          {{ contextMenu.folder.status === 'public' ? 'Công khai' : 'Riêng tư' }} • 
+          {{ formatDateTime(contextMenu.folder.created_at) }}
+        </div>
+      </div>
+
+      <!-- Menu items -->
+      <div class="py-2">
+        <!-- Open -->
+        <button type="button"
+                class="context-menu-item"
+                @click="openContextFolder">
+          <i class="fas fa-folder-open text-blue-500 me-3" style="width: 16px;"></i>
+          Mở thư mục
+        </button>
+        
+        <!-- Edit -->
+        <button @click="editContextFolder"
+                class="context-menu-item">
+          <i class="fas fa-edit text-green-500 me-3" style="width: 16px;"></i>
+          Chỉnh sửa
+        </button>
+        
+        <!-- Divider -->
+        <div class="context-menu-divider"></div>
+        
+        <!-- Delete -->
+        <button @click="deleteContextFolder"
+                class="context-menu-item context-menu-item-danger w-full text-start">
           <i class="fas fa-trash text-red-500 me-3" style="width: 16px;"></i>
           Xóa thư mục
         </button>
-      </form>
+      </div>
     </div>
-  </div>
 
-<!-- Overlay để đóng context menu khi click ra ngoài -->
-<div v-if="contextMenu.visible" 
-     class="context-menu-overlay"
-     @click="hideContextMenu"></div>
-     
+    <!-- Overlay để đóng context menu khi click ra ngoài -->
+    <div v-if="contextMenu.visible" 
+         class="context-menu-overlay"
+         @click="hideContextMenu"></div>
+         
 
     <!-- Phân trang và điều khiển hiển thị -->
-    <div class="flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow border-t border-gray-200">
+    <div v-if="!loading && folders.data.length > 0" class="flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow border-t border-gray-200">
       <!-- Thông tin số lượng -->
       <div class="flex items-center text-sm text-gray-700">
         <span>
@@ -401,52 +440,37 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'FolderIndex',
-  props: {
-    initialFolders: {
-      type: Object,
-      required: true
-    },
-    currentFolder: {
-      type: Object,
-      default: null
-    },
-    breadcrumbs: {
-      type: Array,
-      default: () => []
-    },
-    success: {
-      type: String,
-      default: null
-    },
-    error: {
-      type: String,
-      default: null
-    },
-    searchParams: {
-      type: Object,
-      default: () => ({
-        name: '',
-        date: '',
-        status: '',
-        per_page: 10
-      })
-    }
-  },
   data() {
     return {
-      folders: this.initialFolders,
-      activeMenu: null,
-      perPage: this.searchParams.per_page || 10,
-      successMessage: this.success,
-      errorMessage: this.error,
-      localSearchParams: {
-        name: this.searchParams.name || '',
-        date: this.searchParams.date || '',
-        status: this.searchParams.status || ''
+      // Data từ API
+      folders: {
+        data: [],
+        current_page: 1,
+        last_page: 1,
+        from: 0,
+        to: 0,
+        total: 0
       },
-      // Context Menu Data
+      currentFolder: null,
+      breadcrumbs: [],
+      
+      // UI State
+      loading: true,
+      activeMenu: null,
+      perPage: 10,
+      successMessage: '',
+      errorMessage: '',
+      localSearchParams: {
+        name: '',
+        date: '',
+        status: ''
+      },
+      
+      // Context Menu
       contextMenu: {
         visible: false,
         x: 0,
@@ -454,17 +478,17 @@ export default {
         folder: null,
         rowElement: null
       },
+      
       // New dropdown state
-      showNewDropdown: false
+      showNewDropdown: false,
+      autoReloadInterval: null,
+      autoReloadEnabled: true,
+      lastUpdate: null  
     }
   },
   computed: {
     hasActiveFilters() {
       return this.localSearchParams.name || this.localSearchParams.date || this.localSearchParams.status;
-    },
-    createFolderUrl() {
-      const parentId = this.currentFolder ? this.currentFolder.folder_id : null;
-      return `/folders/create?parent_id=${parentId}`;
     },
     uploadFileUrl() {
       const parentId = this.currentFolder ? this.currentFolder.folder_id : null;
@@ -494,9 +518,6 @@ export default {
 
       return pages;
     },
-    csrfToken() {
-      return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    },
     contextMenuStyle() {
       if (!this.contextMenu.visible) {
         return {};
@@ -512,17 +533,14 @@ export default {
       let x = this.contextMenu.x;
       let y = this.contextMenu.y;
       
-      // Nếu không đủ chỗ bên phải, hiển thị bên trái con trỏ
       if (x + menuWidth > viewportWidth) {
         x = x - menuWidth;
       }
       
-      // Nếu không đủ chỗ bên dưới, hiển thị phía trên con trỏ
       if (y + menuHeight > viewportHeight) {
         y = y - menuHeight;
       }
       
-      // Đảm bảo không vượt ra ngoài viewport
       x = Math.max(padding, Math.min(x, viewportWidth - menuWidth - padding));
       y = Math.max(padding, Math.min(y, viewportHeight - menuHeight - padding));
       
@@ -533,20 +551,17 @@ export default {
     },
   },
   mounted() {
-        // Đóng menu khi click ra ngoài
+    this.loadFolders();
+    this.startAutoReload();
     document.addEventListener('click', this.closeMenu);
-    // Đóng menu khi nhấn Escape
     document.addEventListener('keydown', this.handleKeydown);
-    // Đóng context menu khi click ra ngoài
     document.addEventListener('click', this.handleDocumentClick);
-    // Đóng context menu khi scroll
     document.addEventListener('scroll', this.hideContextMenu);
-    // Đóng context menu khi resize
     window.addEventListener('resize', this.hideContextMenu);
-    // Đóng new dropdown khi click ra ngoài
     document.addEventListener('click', this.closeNewDropdownOutside);
   },
   beforeUnmount() {
+    this.stopAutoReload();
     document.removeEventListener('click', this.closeMenu);
     document.removeEventListener('keydown', this.handleKeydown);
     document.removeEventListener('click', this.handleDocumentClick);
@@ -555,40 +570,182 @@ export default {
     document.removeEventListener('click', this.closeNewDropdownOutside);
   },
   methods: {
-    /**
-     * Toggle dropdown menu "Mới"
-     */
+    // ==================== API CALLS ====================
+    async loadFolders() {
+  this.loading = true;
+  this.errorMessage = '';
+  
+  try {
+    // Tạo params an toàn, loại bỏ các giá trị undefined/null
+    const params = {
+      name: this.localSearchParams.name || '',
+      date: this.localSearchParams.date || '',
+      status: this.localSearchParams.status || '',
+      per_page: this.perPage || 10,
+      page: this.folders.current_page || 1
+    };
+
+    // Thêm parent_id nếu có currentFolder và hợp lệ
+    if (this.currentFolder && this.currentFolder.folder_id) {
+      params.parent_id = this.currentFolder.folder_id;
+    }
+
+    // Loại bỏ các tham số rỗng
+    Object.keys(params).forEach(key => {
+      if (params[key] === '' || params[key] === null || params[key] === undefined) {
+        delete params[key];
+      }
+    });
+
+    console.log('📡 Loading folders with params:', params);
+
+    const response = await axios.get('/api/folders', { params });
+    
+    if (response.data.success) {
+      const data = response.data.data;
+      this.folders = data.folders;
+      this.currentFolder = data.currentFolder;
+      this.breadcrumbs = data.breadcrumbs;
+      
+      console.log('✅ Load folders success:', data.folders?.data?.length || 0, 'folders loaded');
+    } else {
+      this.errorMessage = response.data.message || 'Lỗi khi tải dữ liệu';
+    }
+  } catch (error) {
+    console.error('❌ API Error details:');
+    console.error('Status:', error.response?.status);
+    console.error('Data:', error.response?.data);
+    console.error('URL:', error.config?.url);
+    
+    this.errorMessage = error.response?.data?.message || 'Lỗi kết nối đến server';
+    
+    // Hiển thị chi tiết lỗi validation nếu có
+    if (error.response?.data?.errors) {
+      const validationErrors = Object.values(error.response.data.errors).flat().join(', ');
+      this.errorMessage += ` (${validationErrors})`;
+    }
+  } finally {
+    this.loading = false;
+  }
+},
+
+    async createFolder(folderData) {
+      try {
+        const response = await axios.post('/api/folders', folderData);
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    async updateFolder(id, folderData) {
+      try {
+        const response = await axios.put(`/api/folders/${id}`, folderData);
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+
+    showSuccessMessage(message) {
+        this.successMessage = message;
+        this.errorMessage = '';
+        
+        // Tự động ẩn sau 5 giây
+        setTimeout(() => {
+            this.successMessage = '';
+        }, 5000);
+    },
+
+    showErrorMessage(message) {
+        this.errorMessage = message;
+        this.successMessage = '';
+        
+        // Tự động ẩn sau 8 giây
+        setTimeout(() => {
+            this.errorMessage = '';
+        }, 8000);
+    },
+
+// Trong methods của FolderIndex.vue
+      async deleteFolder(folder) {
+    if (!confirm(`Bạn có chắc muốn xóa thư mục "${folder.name}"?`)) {
+        return;
+    }
+
+    try {
+        console.log('🗑️ Deleting folder:', folder);
+        
+        const result = await this.deleteFolderAPI(folder.folder_id);
+        
+        this.showSuccessMessage(result.message || 'Thư mục đã được xóa thành công!');
+        
+        // QUAN TRỌNG: Reset currentFolder nếu đang xóa folder hiện tại
+        if (this.currentFolder && this.currentFolder.folder_id === folder.folder_id) {
+            this.currentFolder = null;
+        }
+        
+        await this.loadFolders();
+        
+    } catch (error) {
+        console.error('Delete folder error:', error);
+        
+        if (error.response?.data?.message) {
+            this.showErrorMessage(error.response.data.message);
+        } else if (error.response?.data?.errors) {
+            const errorMessages = Object.values(error.response.data.errors).flat().join(', ');
+            this.showErrorMessage('Lỗi validation: ' + errorMessages);
+        } else {
+            this.showErrorMessage('Lỗi khi xóa thư mục. Vui lòng thử lại.');
+        }
+    }
+},
+      async deleteFolderAPI(id) {
+        try {
+            console.log('🗑️ Deleting folder with ID:', id);
+            
+            const response = await axios.delete(`/api/folders/${id}`);
+            
+            console.log('✅ Delete response:', response.data);
+            return response.data;
+            
+        } catch (error) {
+            console.error('❌ Delete API error details:');
+            console.error('Status:', error.response?.status);
+            console.error('Data:', error.response?.data);
+            console.error('Headers:', error.response?.headers);
+            
+            throw error;
+        }
+    },
+
+ 
+    // ==================== UI METHODS ====================
     toggleNewDropdown() {
       this.showNewDropdown = !this.showNewDropdown;
     },
     
-    /**
-     * Đóng dropdown menu "Mới"
-     */
     closeNewDropdown() {
       this.showNewDropdown = false;
     },
     
-    /**
-     * Đóng dropdown khi click ra ngoài
-     */
     closeNewDropdownOutside(event) {
       const dropdown = this.$el.querySelector('.relative');
       if (dropdown && !dropdown.contains(event.target)) {
         this.showNewDropdown = false;
       }
     },
-    /**
-     * Hiển thị context menu khi click chuột phải
-     */
+
+    openCreateFolder() {
+      const parentId = this.currentFolder ? this.currentFolder.folder_id : null;
+      window.location.href = `/folders/create?parent_id=${parentId}`;
+    },
+
     showContextMenu(event, folder) {
       event.preventDefault();
       event.stopPropagation();
       
-      // Lấy element của dòng được click
       const rowElement = event.currentTarget;
-      
-      // Xóa highlight cũ và thêm highlight mới
       this.removeContextRowHighlight();
       rowElement.classList.add('context-menu-highlight');
       
@@ -600,13 +757,9 @@ export default {
         rowElement: rowElement
       };
       
-      // Đóng dropdown menu nếu đang mở
       this.activeMenu = null;
     },
     
-    /**
-     * Ẩn context menu và bỏ highlight
-     */
     hideContextMenu() {
       this.removeContextRowHighlight();
       this.contextMenu = {
@@ -618,33 +771,30 @@ export default {
       };
     },
 
-    /**
-     * Bỏ highlight tất cả các dòng
-     */
-      removeContextRowHighlight() {
+    removeContextRowHighlight() {
       const highlightedRows = document.querySelectorAll('.context-menu-highlight');
       highlightedRows.forEach(row => {
         row.classList.remove('context-menu-highlight');
       });
     },
     
-    /**
-     * Mở thư mục từ context menu
-     */
     openContextFolder() {
       if (this.contextMenu.folder) {
         this.goToFolder(this.contextMenu.folder.folder_id);
       }
       this.hideContextMenu();
     },
-    
-    /**
-     * Xác nhận xóa từ context menu
-     */
-    confirmDeleteContext(event) {
-      if (this.contextMenu.folder && !confirm(`Bạn có chắc chắn muốn xóa thư mục "${this.contextMenu.folder.name}"?`)) {
-        event.preventDefault();
-        event.stopPropagation();
+
+    editContextFolder() {
+      if (this.contextMenu.folder) {
+        this.editFolder(this.contextMenu.folder.folder_id);
+      }
+      this.hideContextMenu();
+    },
+
+    async deleteContextFolder() {
+      if (this.contextMenu.folder) {
+        await this.deleteFolder(this.contextMenu.folder);
       }
       this.hideContextMenu();
     },
@@ -667,88 +817,49 @@ export default {
       }
     },
     
-    confirmDelete(folder) {
-      if (!confirm(`Bạn có chắc chắn muốn xóa thư mục ${folder.name}?`)) {
-        event.preventDefault();
-      }
-    },
-    
     goToFolder(folderId) {
-      window.location.href = this.route('folders.show', folderId);
-    },
-    
-    route(name, params = null) {
-      const baseUrl = window.location.origin;
-      const routes = {
-        'folders.index': '/folders',
-        'folders.create': '/folders/create',
-        'folders.show': (id) => `/folders/${id}`,
-        'folders.edit': (id) => `/folders/${id}/edit`,
-        'folders.destroy': (id) => `/folders/${id}`
-      };
-
-      if (typeof routes[name] === 'function') {
-        return baseUrl + routes[name](params);
-      }
-      return baseUrl + routes[name];
+      this.currentFolder = { folder_id: folderId };
+      this.folders.current_page = 1;
+      this.loadFolders();
     },
     
     goToParent() {
       if (this.currentFolder && this.currentFolder.parent_folder_id) {
-        window.location.href = this.route('folders.show', this.currentFolder.parent_folder_id);
+        this.goToFolder(this.currentFolder.parent_folder_id);
       }
     },
     
     goToRoot() {
-      window.location.href = this.route('folders.index');
+      this.currentFolder = null;
+      this.folders.current_page = 1;
+      this.loadFolders();
+    },
+
+    editFolder(folderId) {
+      window.location.href = `/folders/${folderId}/edit`;
     },
     
     handleSearch() {
-      this.updateUrl();
+      this.folders.current_page = 1;
+      this.loadFolders();
     },
     
     resetFilters() {
       this.localSearchParams = { name: '', date: '', status: '' };
       this.perPage = 10;
-      this.updateUrl();
+      this.folders.current_page = 1;
+      this.loadFolders();
     },
     
     changePerPage() {
-      this.updateUrl();
+      this.folders.current_page = 1;
+      this.loadFolders();
     },
     
     changePage(page) {
       if (page === '...') return;
-      const url = new URL(window.location.href);
-      url.searchParams.set('page', page);
-      window.location.href = url.toString();
-    },
-    
-    updateUrl() {
-      const url = new URL(window.location.href);
-      
-      if (this.localSearchParams.name) {
-        url.searchParams.set('name', this.localSearchParams.name);
-      } else {
-        url.searchParams.delete('name');
-      }
-      
-      if (this.localSearchParams.date) {
-        url.searchParams.set('date', this.localSearchParams.date);
-      } else {
-        url.searchParams.delete('date');
-      }
-      
-      if (this.localSearchParams.status) {
-        url.searchParams.set('status', this.localSearchParams.status);
-      } else {
-        url.searchParams.delete('status');
-      }
-      
-      url.searchParams.set('per_page', this.perPage);
-      url.searchParams.delete('page');
-
-      window.location.href = url.toString();
+      this.folders.current_page = page;
+      this.loadFolders();
     },
     
     formatDate(dateString) {
@@ -776,13 +887,8 @@ export default {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     },
 
-    /**
-     * Xử lý click document để đóng context menu
-     */
     handleDocumentClick(event) {
-      // Thêm timeout để tránh đóng menu ngay khi vừa mở
       setTimeout(() => {
-        // Chỉ xử lý click chuột trái
         if (event.button === 0) {
           const contextMenuElement = document.querySelector('.context-menu');
           const isClickInsideMenu = contextMenuElement && contextMenuElement.contains(event.target);
@@ -793,11 +899,52 @@ export default {
           }
         }
       }, 50);
+    },
+     startAutoReload() {
+    // Auto reload mỗi 30 giây
+    this.autoReloadInterval = setInterval(() => {
+      if (this.autoReloadEnabled && !this.loading) {
+        console.log('🔄 Auto-reloading folders...');
+        this.loadFolders();
+      }
+    }, 30000); // 30 giây
+  },
+  
+  stopAutoReload() {
+    if (this.autoReloadInterval) {
+      clearInterval(this.autoReloadInterval);
+      this.autoReloadInterval = null;
     }
+  },
+  
+  toggleAutoReload() {
+    this.autoReloadEnabled = !this.autoReloadEnabled;
+    if (this.autoReloadEnabled) {
+      this.startAutoReload();
+    } else {
+      this.stopAutoReload();
+    }
+  },
+  
+  manualReload() {
+    this.loadFolders();
+  },
+
+    formatTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('vi-VN', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  },
   }
 }
 </script>
+
 <style scoped>
+/* Giữ nguyên toàn bộ style từ component cũ */
 .highlight {
   background-color: #ffeb3b;
   padding: 0 2px;
@@ -815,7 +962,6 @@ tbody tr {
   position: relative;
 }
 
-/* Context Menu Styles */
 .context-menu {
   position: fixed;
   z-index: 9999;
@@ -889,27 +1035,23 @@ tbody tr {
   margin: 6px 8px;
 }
 
-/* FIXED: Highlight cho dòng được click chuột phải */
 .context-menu-highlight {
   background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 50%, #eff6ff 100%) !important;
   position: relative;
   border-left: 4px solid #3b82f6 !important;
 }
 
-/* Đảm bảo không bị ghi đè bởi các class khác */
 tbody tr.context-menu-highlight {
   background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 50%, #eff6ff 100%) !important;
   border-left: 4px solid #3b82f6 !important;
 }
 
-/* Loại bỏ các style conflict */
 .context-menu-row {
   user-select: none;
   -webkit-user-select: none;
   border-left: 0px solid transparent !important;
 }
 
-/* Đảm bảo hover không gây conflict */
 .context-menu-row:hover {
   background-color: #f9fafb !important;
   border-left: 0px solid transparent !important;
@@ -931,37 +1073,6 @@ tbody tr.context-menu-highlight {
   }
 }
 
-/* Responsive cho header */
-@media (max-width: 1024px) {
-  .flex-col.lg\:flex-row {
-    flex-direction: column;
-  }
-  
-  .flex-1.min-w-0 {
-    min-width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .flex-col.sm\:flex-row {
-    flex-direction: column;
-  }
-  
-  .sm\:flex-none {
-    flex: 1;
-  }
-  
-  .sm\:w-48,
-  .sm\:w-40 {
-    width: 100% !important;
-  }
-}
-
-/* Animation cho dropdown mới */
-.absolute {
-  animation: dropdownFadeIn 0.2s ease-out;
-}
-
 @keyframes dropdownFadeIn {
   from {
     opacity: 0;
@@ -970,6 +1081,20 @@ tbody tr.context-menu-highlight {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Loading spinner */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

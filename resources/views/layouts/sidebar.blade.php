@@ -1,17 +1,23 @@
-    <div class="sidebar pt-4" style="background: #f8fafd; border: none; box-shadow: none" id="sidebar">
-        <button class="sidebar-toggle d-none d-lg-block" style="background: #f8fafd; " id="sidebarToggle">
-            <i class="bi bi-chevron-left"></i>
-        </button>
+<div class="sidebar pt-4" style="background: #f8fafd; border: none; box-shadow: none" id="sidebar">
+    <button class="sidebar-toggle d-none d-lg-block" style="background: #f8fafd; " id="sidebarToggle">
+        <i class="bi bi-chevron-left"></i>
+    </button>
 
-        <div class="sidebar-content">
-            <ul class="nav nav-pills flex-column">
-                @if (in_array(auth()->user()->role->name, ['Giảng viên', 'Sinh viên', 'Admin']))
+    <div class="sidebar-content">
+        <ul class="nav nav-pills flex-column">
+            @auth
+                @php
+                    $user = auth()->user();
+                    $roleName = $user && $user->role ? $user->role->name : null;
+                @endphp
+                
+                @if (in_array($roleName, ['Giảng viên', 'Sinh viên', 'Admin']))
                     <!-- Tổng quan -->
                     <li class="nav-item">
                         <span class="sidebar-section-title">Tổng quan</span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ Request::routeIs('folders') ? 'active' : '' }}"
+                        <a class="nav-link {{ Request::routeIs('folders.*') ? 'active' : '' }}"
                             href="{{ route('folders.index') }}">
                             <i class="bi bi-house"></i>
                             <span class="link-text">Trang chủ</span>
@@ -91,7 +97,7 @@
                 @endif
 
                 <!-- Quản trị -->
-                @if (auth()->user()->role->name == 'Admin')
+                @if ($roleName == 'Admin')
                     <li class="nav-item">
                         <span class="sidebar-section-title">Quản trị</span>
                     </li>
@@ -128,6 +134,15 @@
                         </a>
                     </li>
                 @endif
-            </ul>
-        </div>
+            @else
+                <!-- Menu cho guest (không đăng nhập) -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('login') }}">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span class="link-text">Đăng nhập</span>
+                    </a>
+                </li>
+            @endauth
+        </ul>
     </div>
+</div>

@@ -19,8 +19,8 @@ return new class extends Migration
             $table->unsignedInteger('document_id');
             $table->unsignedInteger('version_id')->nullable();
             $table->timestamps();
-            $table->index('generated_by', 'idx_preview_generated_by');
 
+            $table->index('generated_by', 'idx_preview_generated_by');
             $table->index(['document_id', 'version_id', 'expires_at'], 'idx_doc_ver_expires');
         });
     }

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedInteger('tag_id');
             $table->timestamps();
             $table->unique(['document_id', 'tag_id']);
+
             $table->index('document_id');
             $table->index('tag_id');
         });
