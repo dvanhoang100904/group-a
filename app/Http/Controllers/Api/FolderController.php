@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\FolderService;
 use App\Http\Requests\Folder\StoreFolderRequest;
 use App\Http\Requests\Folder\UpdateFolderRequest;
+use App\Models\Folder;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -64,7 +65,10 @@ class FolderController extends Controller
             ], 500);
         }
     }
-
+    public function getFolder()
+    {
+        return response()->json(Folder::all());
+    }
     /**
      * Lấy chi tiết folder (API)
      */

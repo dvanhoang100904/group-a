@@ -13,6 +13,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentSharedController;
 use App\Http\Controllers\MonHocController;
+use App\Http\Controllers\AccessLogController;
 
 // Login
 Route::get('/', [UserController::class, 'login'])->name('login')->middleware('redirectIf.auth');
@@ -129,4 +130,16 @@ Route::prefix('tags')->name('tags.')->group(function () {
 	Route::get('/{tag}/edit', [App\Http\Controllers\TagController::class, 'edit'])->name('edit');
 	Route::put('/{tag}', [App\Http\Controllers\TagController::class, 'update'])->name('update');
 	Route::delete('/{tag}', [App\Http\Controllers\TagController::class, 'destroy'])->name('destroy');
+});
+
+
+Route::prefix('access-logs')->name('access.logs.')->middleware(['web', 'require.login', 'check.role:Admin,Giảng viên'])->group(function () {
+	Route::get('/', [AccessLogController::class, 'index'])->name('index');
+	Route::get('/{id}', [AccessLogController::class, 'show'])->name('show');
+
+	// ✅ Thêm route thống kê
+	Route::get('/statistics', [AccessLogController::class, 'statistics'])->name('statistics');
+
+	// Route cho nhật ký cá nhân nếu cần
+	Route::get('/my', [AccessLogController::class, 'myLogs'])->name('my');
 });

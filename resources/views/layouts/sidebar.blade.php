@@ -10,7 +10,7 @@
                     $user = auth()->user();
                     $roleName = $user && $user->role ? $user->role->name : null;
                 @endphp
-                
+
                 @if (in_array($roleName, ['Giảng viên', 'Sinh viên', 'Admin']))
                     <!-- Tổng quan -->
                     <li class="nav-item">
@@ -67,8 +67,7 @@
                         <span class="sidebar-section-title">Danh mục</span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ Request::routeIs('types.*') ? 'active' : '' }}"
-                            href="{{ route('types.index') }}">
+                        <a class="nav-link {{ Request::routeIs('types.*') ? 'active' : '' }}" href="{{ route('types.index') }}">
                             <i class="bi bi-collection"></i>
                             <span class="link-text">Loại tài liệu</span>
                         </a>
@@ -81,15 +80,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ Request::routeIs('khoa.*') ? 'active' : '' }}"
-                            href="{{ route('khoa.index') }}">
+                        <a class="nav-link {{ Request::routeIs('khoa.*') ? 'active' : '' }}" href="{{ route('khoa.index') }}">
                             <i class="bi bi-building"></i>
                             <span class="link-text">Khoa / Bộ môn</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ Request::routeIs('tags.*') ? 'active' : '' }}"
-                            href="{{ route('tags.index') }}">
+                        <a class="nav-link {{ Request::routeIs('tags.*') ? 'active' : '' }}" href="{{ route('tags.index') }}">
                             <i class="bi bi-tags"></i>
                             <span class="link-text">Thẻ</span>
                         </a>
@@ -102,14 +99,14 @@
                         <span class="sidebar-section-title">Quản trị</span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}"
-                            href="{{ route('dashboard') }}">
+                        <a class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                             <i class="bi bi-speedometer2"></i>
                             <span class="link-text">Dashboard</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link {{ Request::routeIs('access.logs.*') ? 'active' : '' }}"
+                            href="{{ route('access.logs.index') }}">
                             <i class="bi bi-journal-text"></i>
                             <span class="link-text">Nhật ký truy cập</span>
                         </a>
@@ -127,8 +124,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->is('reports') ? 'active' : '' }}"
-                            href="{{ route('reports.index') }}">
+                        <a class="nav-link {{ request()->is('reports') ? 'active' : '' }}" href="{{ route('reports.index') }}">
                             <i class="bi bi-flag"></i>
                             <span class="link-text">Báo cáo vi phạm</span>
                         </a>
