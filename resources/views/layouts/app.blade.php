@@ -31,7 +31,14 @@
 
     <!-- My CSS -->
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
-
+@auth
+<meta name="user-info" content="{{ json_encode([
+    'id' => auth()->id(),
+    'name' => auth()->user()->name,
+    'email' => auth()->user()->email,
+    'role' => auth()->user()->role->name ?? 'User'
+]) }}">
+@endauth
 </head>
 
 <body>
