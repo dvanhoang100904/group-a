@@ -10,6 +10,11 @@ use App\Exports\TypesExport;
 
 class TypeController extends Controller
 {
+       //Đừng xóa của dân nha!!!
+    public function getType()
+    {
+        return response()->json(Type::all());
+    }
     // Hiển thị danh sách loại tài liệu
     public function index(Request $request)
     {
@@ -99,19 +104,19 @@ class TypeController extends Controller
         $documents = $type->documents()->with('user')->paginate(10);
 
         $total = $type->documents()->count();
-        $public = $type->documents()->where('status','public')->count();
-        $private = $type->documents()->where('status','private')->count();
-        $publicPercent = $total ? round($public/$total*100,2) : 0;
-        $privatePercent = $total ? round($private/$total*100,2) : 0;
+        $public = $type->documents()->where('status', 'public')->count();
+        $private = $type->documents()->where('status', 'private')->count();
+        $publicPercent = $total ? round($public / $total * 100, 2) : 0;
+        $privatePercent = $total ? round($private / $total * 100, 2) : 0;
         $violations = $type->documents()->whereHas('reports')->count();
 
-        $activities = \App\Models\Activity::where('subject_type','App\Models\Type')
-                        ->where('subject_id',$type->type_id)
-                        ->latest()
-                        ->take(10)
-                        ->get();
+        $activities = \App\Models\Activity::where('subject_type', 'App\Models\Type')
+            ->where('subject_id', $type->type_id)
+            ->latest()
+            ->take(10)
+            ->get();
 
-        return view('types.show', compact('type','documents','publicPercent','privatePercent','violations','activities'));
+        return view('types.show', compact('type', 'documents', 'publicPercent', 'privatePercent', 'violations', 'activities'));
     }
 
     // Form chỉnh sửa
@@ -144,7 +149,7 @@ class TypeController extends Controller
     public function destroy(Type $type)
     {
         if ($type->documents()->count() > 0) {
-            return redirect()->route('types.index')->with('error','Loại này đang được tài liệu sử dụng, không thể xóa!');
+            return redirect()->route('types.index')->with('error', 'Loại này đang được tài liệu sử dụng, không thể xóa!');
         }
 
         $type->delete();
@@ -153,7 +158,7 @@ class TypeController extends Controller
             ->performedOn($type)
             ->log('delete_document_category');
 
-        return redirect()->route('types.index')->with('success','Xóa loại tài liệu thành công.');
+        return redirect()->route('types.index')->with('success', 'Xóa loại tài liệu thành công.');
     }
 
     // Xuất Excel

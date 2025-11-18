@@ -43,7 +43,7 @@ class TypeController extends Controller
     {
         return view('types.create');
     }
-
+    
     /**
      * Lưu loại mới
      */
