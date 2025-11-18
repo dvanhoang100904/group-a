@@ -7,14 +7,10 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\Api\DocumentVersionController;
 use App\Http\Controllers\Api\DocumentAccessController;
 use App\Http\Controllers\Api\DocumentDetailController;
-use App\Http\Controllers\Api\TypeController;
+use App\Http\Controllers\Api\TypeControllers;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\FolderController;
 use App\Http\Controllers\Api\DocumentSharedController;
-
-
-
-
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -61,7 +57,7 @@ Route::middleware(['api'])->group(function () {
 });
 
 // danh sách tài liệu của người dùng hiện tại 
-Route::get('/list-documents', [DocumentController::class, 'index']);
+Route::get('/documents', [DocumentController::class, 'index']);
 Route::get('/documents', [DocumentController::class, 'getDocuments']);
 
 // chi tiết tài liệu
@@ -69,6 +65,19 @@ Route::get('/documents/{id}', [DocumentDetailController::class, 'show']);
 Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
 
 // danh sách loại tài liệu và môn học
-Route::get('/types', [TypeController::class, 'index']);
+Route::get('/types', [TypeControllers::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
-Route::get('/folders', [FolderController::class, 'index']);
+Route::get('/folders', [FolderController::class, 'getFolder']);
+
+
+// =========================
+// 📁 Folder API Routes
+// =========================
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/folders', [FolderController::class, 'index']);
+    Route::get('/folders/{folder}', [FolderController::class, 'show']);
+    Route::post('/folders', [FolderController::class, 'store']);
+    Route::put('/folders/{folder}', [FolderController::class, 'update']);
+    Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
+    Route::get('/folders/search', [FolderController::class, 'search']);
+});
