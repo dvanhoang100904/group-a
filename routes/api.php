@@ -73,9 +73,11 @@ Route::get('/folders', [FolderController::class, 'index']);
 // =========================
 // 📁 Folder API Routes
 // =========================
-Route::get('/folders', [FolderController::class, 'index']);
-Route::get('/folders/{folder}', [FolderController::class, 'show']);
-Route::post('/folders', [FolderController::class, 'store']);
-Route::put('/folders/{folder}', [FolderController::class, 'update']);
-Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
-Route::get('/folders/search', [FolderController::class, 'search']);
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/folders', [FolderController::class, 'index']);
+    Route::get('/folders/{folder}', [FolderController::class, 'show']);
+    Route::post('/folders', [FolderController::class, 'store']);
+    Route::put('/folders/{folder}', [FolderController::class, 'update']);
+    Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
+    Route::get('/folders/search', [FolderController::class, 'search']);
+});

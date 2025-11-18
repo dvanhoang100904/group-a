@@ -3,7 +3,12 @@
     <!-- Tiêu đề -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-800">Home</h1>
+      <p class="text-gray-600 mt-1" v-if="userInfo">
+        👋 Xin chào, <strong>{{ userInfo.name }}</strong> 
+        <span class="text-sm text-gray-500">({{ userInfo.role }})</span>
+      </p>
     </div>
+    
 
     <!-- Header với Button và Search cùng dòng -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -457,6 +462,7 @@ export default {
       },
       currentFolder: null,
       breadcrumbs: [],
+            userInfo: null,
       
       // UI State
       loading: true,
@@ -551,6 +557,7 @@ export default {
     },
   },
   mounted() {
+    this.loadUserInfo();
     this.loadFolders();
     this.startAutoReload();
     document.addEventListener('click', this.closeMenu);
@@ -571,63 +578,88 @@ export default {
   },
   methods: {
     // ==================== API CALLS ====================
-    async loadFolders() {
-  this.loading = true;
-  this.errorMessage = '';
-  
-  try {
-    // Tạo params an toàn, loại bỏ các giá trị undefined/null
-    const params = {
-      name: this.localSearchParams.name || '',
-      date: this.localSearchParams.date || '',
-      status: this.localSearchParams.status || '',
-      per_page: this.perPage || 10,
-      page: this.folders.current_page || 1
-    };
-
-    // Thêm parent_id nếu có currentFolder và hợp lệ
-    if (this.currentFolder && this.currentFolder.folder_id) {
-      params.parent_id = this.currentFolder.folder_id;
-    }
-
-    // Loại bỏ các tham số rỗng
-    Object.keys(params).forEach(key => {
-      if (params[key] === '' || params[key] === null || params[key] === undefined) {
-        delete params[key];
-      }
-    });
-
-    console.log('📡 Loading folders with params:', params);
-
-    const response = await axios.get('/api/folders', { params });
-    
-    if (response.data.success) {
-      const data = response.data.data;
-      this.folders = data.folders;
-      this.currentFolder = data.currentFolder;
-      this.breadcrumbs = data.breadcrumbs;
+   async loadFolders() {
+      this.loading = true;
+      this.errorMessage = '';
       
-      console.log('✅ Load folders success:', data.folders?.data?.length || 0, 'folders loaded');
-    } else {
-      this.errorMessage = response.data.message || 'Lỗi khi tải dữ liệu';
-    }
-  } catch (error) {
-    console.error('❌ API Error details:');
-    console.error('Status:', error.response?.status);
-    console.error('Data:', error.response?.data);
-    console.error('URL:', error.config?.url);
-    
-    this.errorMessage = error.response?.data?.message || 'Lỗi kết nối đến server';
-    
-    // Hiển thị chi tiết lỗi validation nếu có
-    if (error.response?.data?.errors) {
-      const validationErrors = Object.values(error.response.data.errors).flat().join(', ');
-      this.errorMessage += ` (${validationErrors})`;
-    }
-  } finally {
-    this.loading = false;
-  }
-},
+      try {
+        // Tạo params an toàn
+        const params = {
+          name: this.localSearchParams.name || '',
+          date: this.localSearchParams.date || '',
+          status: this.localSearchParams.status || '',
+          per_page: this.perPage || 10,
+          page: this.folders.current_page || 1
+        };
+
+        // Thêm parent_id nếu có currentFolder và hợp lệ
+        if (this.currentFolder && this.currentFolder.folder_id) {
+          params.parent_id = this.currentFolder.folder_id;
+        }
+
+        // Loại bỏ các tham số rỗng
+        Object.keys(params).forEach(key => {
+          if (params[key] === '' || params[key] === null || params[key] === undefined) {
+            delete params[key];
+          }
+        });
+
+        console.log('📡 Loading folders with params:', params);
+
+        const response = await axios.get('/api/folders', { params });
+        
+        if (response.data.success) {
+          const data = response.data.data;
+          this.folders = data.folders;
+          this.currentFolder = data.currentFolder;
+          this.breadcrumbs = data.breadcrumbs;
+          
+          console.log('✅ Load folders success:', data.folders?.data?.length || 0, 'folders loaded');
+          
+          // Cập nhật thời gian last update
+          this.lastUpdate = new Date().toISOString();
+        } else {
+          this.errorMessage = response.data.message || 'Lỗi khi tải dữ liệu';
+        }
+      } catch (error) {
+        console.error('❌ API Error details:');
+        console.error('Status:', error.response?.status);
+        console.error('Data:', error.response?.data);
+        console.error('URL:', error.config?.url);
+        
+        // Xử lý lỗi unauthorized
+        if (error.response?.status === 401) {
+          this.errorMessage = 'Bạn cần đăng nhập để xem folders';
+          // Có thể redirect đến login page
+          // window.location.href = '/login';
+        } else {
+          this.errorMessage = error.response?.data?.message || 'Lỗi kết nối đến server';
+        }
+        
+        // Hiển thị chi tiết lỗi validation nếu có
+        if (error.response?.data?.errors) {
+          const validationErrors = Object.values(error.response.data.errors).flat().join(', ');
+          this.errorMessage += ` (${validationErrors})`;
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+ async loadUserInfo() {
+      try {
+        // Lấy thông tin user từ meta tags hoặc API
+        const userMeta = document.querySelector('meta[name="user-info"]');
+        if (userMeta) {
+          this.userInfo = JSON.parse(userMeta.getAttribute('content'));
+        } else {
+          // Fallback: gọi API để lấy thông tin user
+          const response = await axios.get('/api/user');
+          this.userInfo = response.data;
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      }
+    },
 
     async createFolder(folderData) {
       try {
