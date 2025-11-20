@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Services\FolderService;
 use App\Http\Requests\Folder\StoreFolderRequest;
 use App\Http\Requests\Folder\UpdateFolderRequest;
+use App\Models\Folder;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class FolderController extends Controller
 {
@@ -20,13 +22,21 @@ class FolderController extends Controller
     }
 
     /**
-     * Lấy danh sách folders với filter (API)
+     * Lấy danh sách folders của user đăng nhập
      */
     public function index(Request $request): JsonResponse
     {
         try {
+            // Kiểm tra user đã đăng nhập chưa
+            if (!Auth::check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
             // Validate parameters
-            $validatedData = $request->validate([
+            $validator = \Validator::make($request->all(), [
                 'name' => 'nullable|string|max:255',
                 'date' => 'nullable|date',
                 'status' => 'nullable|in:public,private',
@@ -34,28 +44,23 @@ class FolderController extends Controller
                 'per_page' => 'nullable|integer|min:1|max:100',
                 'page' => 'nullable|integer|min:1'
             ]);
-            // Kiểm tra parent_id có tồn tại không (nếu có)
-            if (isset($validatedData['parent_id'])) {
-                $parentFolder = \App\Models\Folder::find($validatedData['parent_id']);
-                if (!$parentFolder) {
-                    // Nếu parent_id không tồn tại, xóa khỏi params
-                    unset($validatedData['parent_id']);
-                }
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
             }
+
+            $validatedData = $validator->validated();
 
             $result = $this->folderService->getFoldersWithFilters($validatedData);
 
             return response()->json([
                 'success' => true,
-                'data' => $result,
-                'searchParams' => $validatedData
+                'data' => $result
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             \Log::error('API Folder Index Error: ' . $e->getMessage());
             return response()->json([
@@ -64,7 +69,10 @@ class FolderController extends Controller
             ], 500);
         }
     }
-
+    public function getFolder()
+    {
+        return response()->json(Folder::all());
+    }
     /**
      * Lấy chi tiết folder (API)
      */

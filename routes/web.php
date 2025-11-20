@@ -13,6 +13,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentSharedController;
 use App\Http\Controllers\MonHocController;
+use App\Http\Controllers\AccessLogController;
 
 // Login
 Route::get('/', [UserController::class, 'login'])->name('login')->middleware('redirectIf.auth');
@@ -28,7 +29,7 @@ Route::post('logout', [UserController::class, 'logout'])->name('logout')->middle
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('require.login', 'check.role:Admin');
 
 // Folder
-Route::prefix('folders')->name('folders.')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên')->group(function () {
+Route::prefix('folders')->name('folders.')->group(function () {
 	Route::get('/test-create', function () {
 		return view('folders.test-create');
 	})->name('test-create');
@@ -43,7 +44,7 @@ Route::prefix('folders')->name('folders.')->middleware('require.login', 'check.r
 });
 
 // Reports
-Route::prefix('reports')->middleware('require.login', 'check.role:Admin')->group(function () {
+Route::prefix('reports')->group(function () {
 	Route::get('/', [ReportController::class, 'index'])->name('reports.index');
 	Route::get('/{id}', [ReportController::class, 'show'])->name('reports.show');
 	Route::put('/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
@@ -54,7 +55,7 @@ Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
 
 // Documents
-Route::get('/my-documents', [DocumentController::class, 'index'])->name('documents.index');
+Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
 Route::get('/documents/{id}', [DocumentController::class, 'show'])->name('documents.show');
 Route::get('/documents/{id}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
 Route::put('/documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
@@ -129,4 +130,16 @@ Route::prefix('tags')->name('tags.')->group(function () {
 	Route::get('/{tag}/edit', [App\Http\Controllers\TagController::class, 'edit'])->name('edit');
 	Route::put('/{tag}', [App\Http\Controllers\TagController::class, 'update'])->name('update');
 	Route::delete('/{tag}', [App\Http\Controllers\TagController::class, 'destroy'])->name('destroy');
+});
+
+
+Route::prefix('access-logs')->name('access.logs.')->middleware(['web', 'require.login', 'check.role:Admin,Giảng viên'])->group(function () {
+	Route::get('/', [AccessLogController::class, 'index'])->name('index');
+	Route::get('/{id}', [AccessLogController::class, 'show'])->name('show');
+
+	// ✅ Thêm route thống kê
+	Route::get('/statistics', [AccessLogController::class, 'statistics'])->name('statistics');
+
+	// Route cho nhật ký cá nhân nếu cần
+	Route::get('/my', [AccessLogController::class, 'myLogs'])->name('my');
 });
