@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Type;
+use App\Models\Document; // Nếu cần truy vấn tài liệu
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -84,7 +85,14 @@ class TypeController extends Controller
     public function show(Type $type)
     {
         $type->loadCount('documents');
-        return view('types.show', compact('type'));
+
+        // Lấy tất cả tài liệu thuộc loại này
+        $documents = $type->documents()->orderBy('created_at', 'desc')->get();
+
+        // Nếu chưa có ActivityLog, tạo collection rỗng
+        $logs = collect();
+
+        return view('types.show', compact('type', 'documents', 'logs'));
     }
 
     public function update(Request $request, Type $type)
