@@ -10,20 +10,49 @@ class Type extends Model
     use HasFactory;
 
     protected $table = 'types';
-    protected $primaryKey = 'type_id';
-    protected $fillable = ['name', 'description', 'status'];
 
-    protected $casts = [
-        'status' => 'boolean',
+    /**
+     * Khóa chính của bảng.
+     */
+    protected $primaryKey = 'type_id';
+
+    /**
+     * Tự động tăng khóa chính.
+     */
+    public $incrementing = true;
+
+    /**
+     * Loại khóa chính (int).
+     */
+    protected $keyType = 'int';
+
+    /**
+     * Các cột cho phép fill mass-assignment.
+     */
+    protected $fillable = [
+        'name',
+        'description',
+        'status',
+        'created_by',
+        'updated_by'
     ];
 
     /**
-     * Tự động thêm thuộc tính ảo 'code' khi chuyển model sang mảng hoặc JSON.
+     * Ép kiểu dữ liệu.
+     */
+    protected $casts = [
+        'status' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    /**
+     * Gắn thêm thuộc tính ảo khi convert sang JSON/array.
      */
     protected $appends = ['code'];
 
     /**
-     * Quan hệ: Mỗi loại tài liệu có nhiều tài liệu.
+     * Quan hệ: 1 loại có nhiều tài liệu.
      */
     public function documents()
     {
@@ -31,7 +60,7 @@ class Type extends Model
     }
 
     /**
-     * Xác định khóa route dùng 'type_id' thay vì 'id'.
+     * Cho phép Route Model Binding dùng `type_id` thay vì mặc định `id`.
      */
     public function getRouteKeyName()
     {
@@ -39,13 +68,11 @@ class Type extends Model
     }
 
     /**
-     * Accessor: Sinh mã loại tài liệu (VD: TL001, TL015, TL120).
-     * 
-     * @return string
+     * Accessor: Trả về mã định danh loại tài liệu (VD: TL001)
      */
     public function getCodeAttribute()
     {
-        $prefix = 'TL'; // Tiền tố cho mã loại tài liệu (TL = Tài Liệu)
+        $prefix = 'TL';
         $number = str_pad($this->type_id, 3, '0', STR_PAD_LEFT);
         return $prefix . $number;
     }
