@@ -55,17 +55,34 @@ class FolderController extends Controller
 
             $validatedData = $validator->validated();
 
-            $result = $this->folderService->getFoldersWithFilters($validatedData);
+            // ✅ FIX: Sử dụng service method đúng
+            $result = $this->folderService->getFoldersAndDocuments($validatedData);
+            $items = $result['items'] ?? [];
+            if ($items && method_exists($items, 'getCollection')) {
+                $filteredCollection = $items->getCollection()->filter(function ($item) {
+                    return $item !== null;
+                });
+                $items->setCollection($filteredCollection);
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $result
+                'data' => [
+                    'items' => $result['items'] ?? [],
+                    'currentFolder' => $result['currentFolder'] ?? null,
+                    'breadcrumbs' => $result['breadcrumbs'] ?? [],
+                    'current_page' => $request->input('page', 1),
+                    'last_page' => $result['items']->lastPage() ?? 1,
+                    'from' => $result['items']->firstItem() ?? 0,
+                    'to' => $result['items']->lastItem() ?? 0,
+                    'total' => $result['items']->total() ?? 0
+                ]
             ]);
         } catch (\Exception $e) {
             \Log::error('API Folder Index Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error loading folders'
+                'message' => 'Error loading folders: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -209,6 +226,53 @@ class FolderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error searching folders'
+            ], 500);
+        }
+    }
+    /**
+     * API: Xóa document
+     */
+    public function deleteDocument($id)
+    {
+        try {
+            $document = \App\Models\Document::findOrFail($id);
+
+            // Kiểm tra quyền
+            if ($document->user_id !== Auth::id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa tài liệu này'
+                ], 403);
+            }
+
+            // Xóa các versions liên quan
+            $versions = \App\Models\DocumentVersion::where('document_id', $id)->get();
+            foreach ($versions as $version) {
+                if ($version->file_name) {
+                    $filePath = base_path('app/Public_UploadFile/' . $version->file_name);
+                    if (file_exists($filePath)) {
+                        @unlink($filePath); // @ để tránh warning nếu file không xóa được
+                    }
+                }
+                $version->delete();
+            }
+
+            $document->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa tài liệu thành công!'
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tài liệu không tồn tại'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Delete document error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xóa tài liệu: ' . $e->getMessage()
             ], 500);
         }
     }
