@@ -14,22 +14,35 @@ class DocumentController extends Controller
     }
 
     // API trả JSON toàn bộ danh sách documents
-    public function getDocuments()
+    public function getDocuments(Request $request)
     {
-        $documents = Document::with(['user', 'type', 'subject'])
-            ->orderByDesc('created_at')
-            ->get();
+        // Lấy số lượng mỗi trang (mặc định 20)
+        $perPage = $request->input('per_page', 20);
 
-        // Thêm size file nếu có
+        // Query documents kèm quan hệ
+        $query = Document::with(['user', 'type', 'subject'])
+            ->orderByDesc('created_at');
+
+        // Thực hiện phân trang
+        $documents = $query->paginate($perPage);
+
+        // Thêm size và file_path
         foreach ($documents as $doc) {
             $path = base_path('app/Public_UploadFile/' . ($doc->file_name ?? ''));
+
             $doc->size = file_exists($path) ? filesize($path) : null;
-            $doc->file_path = file_exists($path) ? asset('app/Public_UploadFile/' . $doc->file_name) : null;
+            $doc->file_path = file_exists($path)
+                ? asset('app/Public_UploadFile/' . $doc->file_name)
+                : null;
         }
 
         return response()->json([
             'success' => true,
-            'data' => $documents,
+            'data' => $documents->items(),         // 20 tài liệu của trang hiện tại
+            'current_page' => $documents->currentPage(),
+            'last_page' => $documents->lastPage(),
+            'total' => $documents->total(),
+            'per_page' => $documents->perPage(),
         ]);
     }
 }
