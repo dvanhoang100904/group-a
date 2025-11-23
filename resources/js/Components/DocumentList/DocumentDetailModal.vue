@@ -36,43 +36,14 @@
                 <i class="fas fa-edit"></i> Chỉnh sửa
               </button>
 
+              <!-- Versions -->
+              <a :href="`/documents/${document.document_id}/versions`" class="btn btn-info btn-block">
+                <i class="fas fa-history me-1"></i> Phiên bản
+              </a>
+
               <a href="/documents" class="btn btn-secondary btn-block">
                 <i class="fas fa-arrow-left"></i> Quay lại
               </a>
-            </div>
-
-            <!-- Version History -->
-            <div v-if="document.versions && document.versions.length > 1" class="version-history">
-              <h5 class="history-title">Lịch sử phiên bản</h5>
-              <div class="version-list">
-                <div
-                  v-for="version in sortedVersions"
-                  :key="version.version_id"
-                  :class="['version-item', { current: version.is_current_version }]"
-                >
-                  <div class="version-header">
-                    <span class="version-number">
-                      v{{ version.version_number }}
-                      <span v-if="version.is_current_version" class="badge badge-success">Hiện tại</span>
-                    </span>
-                    <span class="version-date">{{ formatDate(version.created_at) }}</span>
-                  </div>
-
-                  <p v-if="version.change_note" class="version-note">{{ version.change_note }}</p>
-
-                  <div class="version-meta">
-                    <small>{{ version.user?.name }}</small>
-                    <small>{{ formatSize(version.size) }}</small>
-                  </div>
-
-                  <a
-                    :href="`/documents/versions/${version.version_id}/download`"
-                    class="btn btn-sm btn-outline-primary"
-                  >
-                    <i class="fas fa-download"></i>
-                  </a>
-                </div>
-              </div>
             </div>
           </div>
         </div>
