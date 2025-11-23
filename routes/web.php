@@ -8,7 +8,7 @@ use App\Http\Controllers\DocumentVersionController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\KhoaController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\TypeController;
+use App\Http\Controllers\TypesController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DocumentSharedController;
@@ -98,6 +98,8 @@ Route::prefix('monhoc')->group(function () {
 });
 
 // Type documents
+
+
 // Route::prefix('types')->name('types.')->group(function () {
 // 	Route::get('/', [TypeController::class, 'index'])->name('index');
 // 	Route::get('/create', [TypeController::class, 'create'])->name('create');
@@ -106,20 +108,24 @@ Route::prefix('monhoc')->group(function () {
 // 	Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
 // 	Route::put('/{type}', [TypeController::class, 'update'])->name('update');
 // 	Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
+
+// 	// Xuất Excel
+// 	Route::get('/export-excel', [TypeController::class, 'exportExcel'])->name('exportExcel');
 // });
 
 Route::prefix('types')->name('types.')->group(function () {
-	Route::get('/', [TypeController::class, 'index'])->name('index');
-	Route::get('/create', [TypeController::class, 'create'])->name('create');
-	Route::post('/', [TypeController::class, 'store'])->name('store');
-	Route::get('/{type}', [TypeController::class, 'show'])->name('show');
-	Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
-	Route::put('/{type}', [TypeController::class, 'update'])->name('update');
-	Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
+    Route::get('/export-excel', [TypesController::class, 'exportExcel'])->name('exportExcel');
 
-	// Xuất Excel
-	Route::get('/export-excel', [TypeController::class, 'exportExcel'])->name('exportExcel');
+    Route::get('/', [TypesController::class, 'index'])->name('index');
+    Route::get('/create', [TypesController::class, 'create'])->name('create');
+    Route::post('/', [TypesController::class, 'store'])->name('store');
+    Route::get('/{type}', [TypesController::class, 'show'])->name('show');
+    Route::get('/{type}/edit', [TypesController::class, 'edit'])->name('edit');
+    Route::put('/{type}', [TypesController::class, 'update'])->name('update');
+    Route::delete('/{type}', [TypesController::class, 'destroy'])->name('destroy');
 });
+
+
 
 // Tags
 Route::prefix('tags')->name('tags.')->group(function () {
@@ -143,3 +149,8 @@ Route::prefix('access-logs')->name('access.logs.')->middleware(['web', 'require.
 	// Route cho nhật ký cá nhân nếu cần
 	Route::get('/my', [AccessLogController::class, 'myLogs'])->name('my');
 });
+
+// Trang chi tiết tài liệu (Blade)
+Route::get('/documents/{id}', function($id) {
+    return view('documents.See_Document_Details.Document_Detail', compact('id'));
+})->name('documents.show');

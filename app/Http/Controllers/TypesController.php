@@ -3,22 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Type;
-use App\Models\Document; // Nếu cần truy vấn tài liệu
+use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\TypesExport;
 
-class TypeController extends Controller
+class TypesController extends Controller
 {
+    /**
+     * Hiển thị danh sách loại tài liệu với filter, sort, tổng số.
+     */
     public function index(Request $request)
     {
         $query = Type::query();
 
+        // Filter theo tên
         if ($request->filled('name')) {
             $query->where('name', 'like', '%' . $request->name . '%');
         }
 
+        // Tìm kiếm chung
         if ($request->filled('search')) {
             $keyword = $request->search;
             $query->where(function ($q) use ($keyword) {
@@ -27,6 +34,7 @@ class TypeController extends Controller
             });
         }
 
+        // Filter có/không có tài liệu
         if ($request->filled('has_documents')) {
             if ($request->has_documents == '1') {
                 $query->has('documents');
@@ -35,6 +43,7 @@ class TypeController extends Controller
             }
         }
 
+        // Sắp xếp
         if ($request->filled('sort_by')) {
             $sort = $request->sort_by;
             if (in_array($sort, ['name', 'documents_count', 'created_at'])) {
@@ -46,14 +55,24 @@ class TypeController extends Controller
 
         $types = $query->paginate(10);
 
-        return view('types.index', compact('types'));
+        // Tổng số loại & tổng số tài liệu
+        $totalTypes = Type::count();
+        $totalDocuments = Document::count();
+
+        return view('types.index', compact('types', 'totalTypes', 'totalDocuments'));
     }
 
+    /**
+     * Trang tạo loại mới.
+     */
     public function create()
     {
         return view('types.create');
     }
 
+    /**
+     * Lưu loại tài liệu mới.
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -77,24 +96,17 @@ class TypeController extends Controller
         return redirect()->route('types.index')->with('success', 'Thêm loại tài liệu thành công!');
     }
 
+    /**
+     * Trang sửa loại tài liệu.
+     */
     public function edit(Type $type)
     {
         return view('types.edit', compact('type'));
     }
 
-    public function show(Type $type)
-    {
-        $type->loadCount('documents');
-
-        // Lấy tất cả tài liệu thuộc loại này
-        $documents = $type->documents()->orderBy('created_at', 'desc')->get();
-
-        // Nếu chưa có ActivityLog, tạo collection rỗng
-        $logs = collect();
-
-        return view('types.show', compact('type', 'documents', 'logs'));
-    }
-
+    /**
+     * Cập nhật loại tài liệu.
+     */
     public function update(Request $request, Type $type)
     {
         $request->validate([
@@ -122,6 +134,25 @@ class TypeController extends Controller
         return redirect()->route('types.index')->with('success', 'Cập nhật loại tài liệu thành công!');
     }
 
+    /**
+     * Hiển thị chi tiết loại tài liệu.
+     */
+    public function show(Type $type)
+    {
+        $type->loadCount('documents');
+
+        // Lấy tất cả tài liệu thuộc loại
+        $documents = $type->documents()->orderBy('created_at', 'desc')->get();
+
+        // Placeholder logs
+        $logs = collect();
+
+        return view('types.show', compact('type', 'documents', 'logs'));
+    }
+
+    /**
+     * Xóa loại tài liệu (nếu không có tài liệu liên quan)
+     */
     public function destroy(Type $type)
     {
         $typeName = $type->name ?? 'N/A';
@@ -139,5 +170,13 @@ class TypeController extends Controller
         Log::info("Xóa loại tài liệu: {$typeName} bởi {$userName}");
 
         return redirect()->route('types.index')->with('success', 'Đã xóa loại tài liệu!');
+    }
+
+    /**
+     * Xuất Excel danh sách loại tài liệu.
+     */
+    public function exportExcel()
+    {
+        return Excel::download(new TypesExport, 'types.xlsx');
     }
 }
