@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Folder;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Document;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
@@ -382,38 +383,146 @@ class FolderService
 
         return $this->buildBreadcrumbs($currentFolder);
     }
-
     /**
-     * Áp dụng các bộ lọc tìm kiếm
+     * Lấy danh sách folders + documents (cho Home page)
      */
-    private function applyFilters($query, $name, $date, $status): void
-    {
-        if ($name) {
-            $query->where('name', 'like', '%' . $name . '%');
-        }
-
-        if ($date) {
-            $query->whereDate('created_at', $date);
-        }
-
-        if ($status && in_array($status, ['public', 'private'])) {
-            $query->where('status', $status);
-        }
-    }
-
     /**
-     * Lấy thư mục hiện tại
+     * Lấy danh sách folders + documents (cho Home page)
      */
-    private function getCurrentFolder(?string $parentFolderId): ?Folder
+    public function getFoldersAndDocuments(array $params)
     {
-        if (!$parentFolderId) {
-            return null;
+        $user = Auth::user();
+        $perPage = $params['per_page'] ?? 20;
+        $currentFolderId = $params['parent_id'] ?? null;
+
+        // Convert "null" string to null
+        if ($currentFolderId === 'null' || $currentFolderId === '') {
+            $currentFolderId = null;
         }
 
-        try {
-            return Folder::with(['parentFolder'])->findOrFail($parentFolderId);
-        } catch (ModelNotFoundException $e) {
-            throw new \Exception('Thư mục không tồn tại');
+        $searchName = $params['name'] ?? '';
+        $searchDate = $params['date'] ?? '';
+        $searchStatus = $params['status'] ?? '';
+
+        // ==================== LẤY FOLDERS ====================
+        $foldersQuery = Folder::where('user_id', $user->user_id)
+            ->where('parent_folder_id', $currentFolderId);
+
+        if ($searchName) {
+            $foldersQuery->where('name', 'like', "%{$searchName}%");
         }
+        if ($searchDate) {
+            $foldersQuery->whereDate('created_at', $searchDate);
+        }
+        if ($searchStatus) {
+            $foldersQuery->where('status', $searchStatus);
+        }
+
+        $folders = $foldersQuery->withCount(['childFolders', 'documents'])->get();
+
+        // ==================== LẤY DOCUMENTS ====================
+        $documentsQuery = Document::with(['type', 'subject', 'tags'])
+            ->where('user_id', $user->user_id)
+            ->where('folder_id', $currentFolderId);
+
+        if ($searchName) {
+            $documentsQuery->where('title', 'like', "%{$searchName}%");
+        }
+        if ($searchDate) {
+            $documentsQuery->whereDate('created_at', $searchDate);
+        }
+        if ($searchStatus) {
+            $documentsQuery->where('status', $searchStatus);
+        }
+
+        $documents = $documentsQuery->orderByDesc('created_at')->get();
+
+        // Lấy thông tin file
+        foreach ($documents as $doc) {
+            $latestVersion = \App\Models\DocumentVersion::where('document_id', $doc->document_id)
+                ->orderByDesc('version_number')
+                ->first();
+
+            if ($latestVersion) {
+                $filePath = base_path('app/Public_UploadFile/' . $latestVersion->file_name);
+                $doc->size = file_exists($filePath) ? filesize($filePath) : 0;
+                $doc->file_name = $latestVersion->file_name;
+                $doc->file_path = file_exists($filePath)
+                    ? asset('app/Public_UploadFile/' . $latestVersion->file_name)
+                    : null;
+            } else {
+                $doc->size = 0;
+                $doc->file_name = null;
+                $doc->file_path = null;
+            }
+
+            $doc->type_name = $doc->type->name ?? 'Unknown';
+            $doc->item_type = 'document';
+        }
+
+        // ==================== GỘP FOLDERS + DOCUMENTS ====================
+        $items = collect($folders)->map(function ($folder) {
+            return [
+                'id' => $folder->folder_id,
+                'name' => $folder->name,
+                'created_at' => $folder->created_at,
+                'updated_at' => $folder->updated_at,
+                'status' => $folder->status,
+                'item_type' => 'folder',
+                'child_folders_count' => $folder->child_folders_count ?? 0,
+                'documents_count' => $folder->documents_count ?? 0,
+                'size' => null,
+                'type_name' => 'Thư mục',
+            ];
+        })->concat(
+            collect($documents)->map(function ($doc) {
+                return [
+                    'id' => $doc->document_id,
+                    'name' => $doc->title,
+                    'created_at' => $doc->created_at,
+                    'updated_at' => $doc->updated_at,
+                    'status' => $doc->status,
+                    'item_type' => 'document',
+                    'size' => $doc->size,
+                    'file_path' => $doc->file_path,
+                    'file_name' => $doc->file_name,
+                    'type_name' => $doc->type_name,
+                    'description' => $doc->description,
+                ];
+            })
+        );
+
+        // ==================== PHÂN TRANG ====================
+        $page = $params['page'] ?? 1; // Sửa: lấy page từ params thay vì request()
+        $offset = ($page - 1) * $perPage;
+        $total = $items->count();
+        $lastPage = ceil($total / $perPage);
+
+        $paginatedItems = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items->slice($offset, $perPage)->values(),
+            $total,
+            $perPage,
+            $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $params] // Sửa: sử dụng params thay vì request()->query()
+        );
+
+        // ==================== BREADCRUMBS ====================
+        $breadcrumbs = [];
+        $currentFolder = null;
+
+        if ($currentFolderId) {
+            $currentFolder = Folder::with('parentFolder')->find($currentFolderId);
+
+            if ($currentFolder) {
+                $breadcrumbs = $this->buildBreadcrumbs($currentFolder);
+            }
+        }
+
+        // ✅ FIX: Trả về $paginatedItems thay vì $combinedItems
+        return [
+            'items' => $paginatedItems, // SỬA: $paginatedItems thay vì $combinedItems
+            'currentFolder' => $currentFolder,
+            'breadcrumbs' => $breadcrumbs,
+        ];
     }
 }
