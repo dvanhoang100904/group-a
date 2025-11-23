@@ -262,6 +262,12 @@
              class="text-blue-500 mr-3" style="width: 16px;"></i>
           {{ contextMenu.item.item_type === 'folder' ? 'Mở thư mục' : 'Xem file' }}
         </button>
+         <!-- ✅ THÊM: Nút Sửa cho folder -->
+        <button v-if="contextMenu.item.item_type === 'folder'" 
+                @click="editFolder(contextMenu.item)" 
+                class="context-menu-item">
+          <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa
+        </button>
         <button v-if="contextMenu.item.item_type === 'document'" 
                 @click="downloadDocument(contextMenu.item)" 
                 class="context-menu-item">

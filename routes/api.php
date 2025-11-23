@@ -82,6 +82,6 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
     Route::get('/folders/search', [FolderController::class, 'search']);
 
-    // ✅ THÊM MỚI: Route xóa document
+    // Route xóa document
     Route::delete('/documents/{id}', [FolderController::class, 'deleteDocument']);
 });
