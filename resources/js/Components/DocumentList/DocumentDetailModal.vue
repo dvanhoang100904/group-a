@@ -49,6 +49,8 @@
                   v-for="version in sortedVersions"
                   :key="version.version_id"
                   :class="['version-item', { current: version.is_current_version }]"
+                  @click="switchVersion(version)"
+                  style="cursor: pointer;"
                 >
                   <div class="version-header">
                     <span class="version-number">
@@ -68,6 +70,7 @@
                   <a
                     :href="`/documents/versions/${version.version_id}/download`"
                     class="btn btn-sm btn-outline-primary"
+                    @click.stop
                   >
                     <i class="fas fa-download"></i>
                   </a>
@@ -80,23 +83,23 @@
         <!-- Preview Section -->
         <div class="col-md-8 col-lg-9">
           <div class="document-preview-card">
-            <h4 class="preview-title"><i class="fas fa-file-alt"></i> Xem trước tài liệu</h4>
+            <h4 class="preview-title">
+              <i class="fas fa-file-alt"></i> Xem trước tài liệu
+            </h4>
 
             <div class="preview-container">
-              <iframe
-                v-if="isPdf(currentVersion?.file_name)"
-                :src="currentVersion?.preview_url"
-                class="pdf-viewer"
-              ></iframe>
+              <!-- Sử dụng PreviewFile Component -->
+              <PreviewFile
+                v-if="currentVersion && currentVersion.preview_url"
+                :file-url="currentVersion.preview_url"
+                :file-name="currentVersion.file_name"
+              />
 
-              <div v-else-if="isImage(currentVersion?.file_name)" class="image-preview">
-                <img :src="currentVersion?.preview_url" alt="Preview" class="img-fluid" />
-              </div>
-
+              <!-- Fallback khi không có file -->
               <div v-else class="no-preview">
                 <i class="fas fa-file-alt fa-5x"></i>
                 <h5>Không có preview</h5>
-                <p>Định dạng này chưa hỗ trợ xem trước. Hãy tải xuống để xem.</p>
+                <p>Chưa có phiên bản nào được tải lên hoặc file không có sẵn.</p>
               </div>
             </div>
 
@@ -130,9 +133,13 @@
 
 <script>
 import axios from 'axios';
+import PreviewFile from '../PreviewFile/PreviewFile.vue';
 
 export default {
   name: 'DocumentDetailPage',
+  components: {
+    PreviewFile
+  },
   data() {
     return {
       document: null,
@@ -166,15 +173,15 @@ export default {
       this.currentVersion = res.data.current_version;
       this.relatedDocuments = res.data.related_documents;
     },
-    isPdf(fileName) {
-      return fileName?.toLowerCase().endsWith('.pdf');
-    },
-    isImage(fileName) {
-      return /\.(jpg|jpeg|png|gif)$/i.test(fileName || '');
+    switchVersion(version) {
+      // Chuyển đổi xem phiên bản khác
+      this.currentVersion = version;
     },
     formatSize(bytes) {
       if (!bytes) return '';
-      return (bytes / 1024).toFixed(2) + ' KB';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     },
     getExtension(file) {
       return file?.split('.').pop()?.toUpperCase() || 'N/A';
@@ -341,23 +348,6 @@ export default {
   min-height: 500px;
 }
 
-.pdf-viewer {
-  width: 100%;
-  height: 700px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-
-.image-preview {
-  text-align: center;
-  padding: 20px;
-}
-.image-preview img {
-  max-height: 700px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-
 .no-preview {
   text-align: center;
   padding: 100px 20px;
@@ -371,19 +361,6 @@ export default {
 .no-preview h5 {
   margin-bottom: 10px;
   font-weight: 600;
-}
-
-.preview-note {
-  margin-top: 15px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #555;
-}
-.preview-note i {
-  margin-right: 8px;
-  color: #17a2b8;
 }
 
 .document-tags {
@@ -439,12 +416,11 @@ export default {
   .document-info-card {
     margin-bottom: 20px;
   }
-  .pdf-viewer {
-    height: 500px;
-  }
   .document-preview-card {
     padding: 20px;
   }
+  .preview-container {
+    min-height: 400px;
+  }
 }
 </style>
-

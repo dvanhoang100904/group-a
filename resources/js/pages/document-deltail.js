@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import DocumentDetailModal from '../Components/DocumentList/DocumentDetailModal.vue'
-
+import PreviewFile from '../PreviewFile/PreviewFile.vue';
 const app = createApp({
   data() {
     return {
