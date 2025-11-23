@@ -35,8 +35,6 @@
               <button v-if="canEdit" class="btn btn-warning btn-block">
                 <i class="fas fa-edit"></i> Chỉnh sửa
               </button>
-
-              <!-- Versions -->
               <a :href="`/documents/${document.document_id}/versions`" class="btn btn-info btn-block">
                 <i class="fas fa-history me-1"></i> Phiên bản
               </a>
@@ -54,16 +52,26 @@
             <h4 class="preview-title"><i class="fas fa-file-alt"></i> Xem trước tài liệu</h4>
 
             <div class="preview-container">
+              <!-- PDF -->
               <iframe
                 v-if="isPdf(currentVersion?.file_name)"
                 :src="currentVersion?.preview_url"
                 class="pdf-viewer"
               ></iframe>
 
+              <!-- Image -->
               <div v-else-if="isImage(currentVersion?.file_name)" class="image-preview">
                 <img :src="currentVersion?.preview_url" alt="Preview" class="img-fluid" />
               </div>
 
+              <!-- Office: DOCX / XLSX / PPTX -->
+              <iframe
+                v-else-if="isOffice(currentVersion?.file_name)"
+                :src="getPreviewUrl(currentVersion.file_name, currentVersion.file_url)"
+                class="pdf-viewer"
+              ></iframe>
+
+              <!-- No preview -->
               <div v-else class="no-preview">
                 <i class="fas fa-file-alt fa-5x"></i>
                 <h5>Không có preview</h5>
@@ -72,14 +80,14 @@
             </div>
 
             <!-- Tags -->
-            <div v-if="document.tags && document.tags.length > 0" class="document-tags">
+            <div v-if="document.tags && document.tags.length" class="document-tags">
               <label><i class="fas fa-tags"></i> Tags:</label>
               <span v-for="tag in document.tags" :key="tag.id" class="tag-badge">{{ tag.name }}</span>
             </div>
           </div>
 
-          <!-- Related -->
-          <div v-if="relatedDocuments.length > 0" class="related-documents">
+          <!-- Related Documents -->
+          <div v-if="relatedDocuments.length" class="related-documents">
             <h5><i class="fas fa-link"></i> Tài liệu liên quan</h5>
             <div class="row">
               <div v-for="rel in relatedDocuments" :key="rel.document_id" class="col-md-6 col-lg-4">
@@ -93,6 +101,7 @@
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -109,13 +118,10 @@ export default {
       document: null,
       currentVersion: null,
       relatedDocuments: [],
-      canEdit: true, // TODO: kiểm tra quyền user thực tế
+      canEdit: true,
     };
   },
   computed: {
-    sortedVersions() {
-      return [...(this.document?.versions || [])].sort((a, b) => b.version_number - a.version_number);
-    },
     infoItems() {
       if (!this.document) return [];
       return [
@@ -143,9 +149,23 @@ export default {
     isImage(fileName) {
       return /\.(jpg|jpeg|png|gif)$/i.test(fileName || '');
     },
+    isOffice(fileName) {
+      return /\.(docx|doc|xlsx|xls|pptx|ppt)$/i.test(fileName || '');
+    },
+    getPreviewUrl(fileName, fileUrl) {
+      if (!fileUrl) return null;
+      if (this.isPdf(fileName) || this.isImage(fileName)) return fileUrl;
+      if (this.isOffice(fileName)) {
+        // Google Docs Viewer, encode URL để tránh lỗi space
+        return `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+      }
+      return null;
+    },
     formatSize(bytes) {
       if (!bytes) return '';
-      return (bytes / 1024).toFixed(2) + ' KB';
+      if (bytes < 1024) return bytes + ' B';
+      else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+      return (bytes / (1024*1024)).toFixed(2) + ' MB';
     },
     getExtension(file) {
       return file?.split('.').pop()?.toUpperCase() || 'N/A';
@@ -164,12 +184,12 @@ export default {
 </script>
 
 <style scoped>
+/* --- Các style giống trước --- */
 .document-detail-container {
   padding: 30px 0;
   min-height: calc(100vh - 100px);
   background-color: #f9fafb;
 }
-
 .document-info-card {
   background: #fff;
   padding: 25px;
@@ -181,7 +201,6 @@ export default {
 .document-info-card:hover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
-
 .info-title {
   font-size: 18px;
   font-weight: 600;
@@ -190,232 +209,17 @@ export default {
   border-bottom: 2px solid #f1f3f4;
   color: #333;
 }
-
-.info-group {
-  margin-bottom: 15px;
-}
-.info-group label {
-  font-weight: 600;
-  color: #666;
-  font-size: 13px;
-  margin-bottom: 5px;
-  display: block;
-}
-.info-value {
-  color: #333;
-  font-size: 14px;
-  margin: 0;
-  word-wrap: break-word;
-}
-.info-value i {
-  margin-right: 6px;
-  color: #888;
-}
-
-.action-buttons {
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 2px solid #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.version-history {
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 2px solid #f0f0f0;
-}
-
-.history-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.version-list {
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-.version-list::-webkit-scrollbar {
-  width: 6px;
-}
-.version-list::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-.version-item {
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  transition: all 0.2s ease;
-  background-color: #fff;
-}
-.version-item.current {
-  background: #f0fff0;
-  border-color: #28a745;
-}
-.version-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-.version-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.version-number {
-  font-weight: 600;
-  color: #333;
-}
-.version-date {
-  font-size: 12px;
-  color: #999;
-}
-.version-note {
-  font-size: 13px;
-  color: #666;
-  margin: 8px 0;
-}
-.version-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #999;
-  margin-top: 8px;
-}
-
-.document-preview-card {
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  min-height: 600px;
-}
-
-.preview-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #f1f3f4;
-}
-
-.preview-container {
-  position: relative;
-  min-height: 500px;
-}
-
-.pdf-viewer {
-  width: 100%;
-  height: 700px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-
-.image-preview {
-  text-align: center;
-  padding: 20px;
-}
-.image-preview img {
-  max-height: 700px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-
-.no-preview {
-  text-align: center;
-  padding: 100px 20px;
-  color: #999;
-}
-.no-preview i {
-  color: #ddd;
-  margin-bottom: 20px;
-  font-size: 48px;
-}
-.no-preview h5 {
-  margin-bottom: 10px;
-  font-weight: 600;
-}
-
-.preview-note {
-  margin-top: 15px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #555;
-}
-.preview-note i {
-  margin-right: 8px;
-  color: #17a2b8;
-}
-
-.document-tags {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
-}
-.document-tags label {
-  font-weight: 600;
-  color: #666;
-  margin-right: 10px;
-}
-.tag-badge {
-  display: inline-block;
-  padding: 5px 12px;
-  background: #e9ecef;
-  border-radius: 15px;
-  font-size: 12px;
-  margin-right: 8px;
-  margin-bottom: 8px;
-}
-
-.related-documents {
-  margin-top: 30px;
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-.related-documents h5 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 20px;
-}
-.related-card {
-  padding: 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  transition: all 0.2s ease;
-}
-.related-card:hover {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
-}
-.related-card h6 {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-@media (max-width: 768px) {
-  .document-info-card {
-    margin-bottom: 20px;
-  }
-  .pdf-viewer {
-    height: 500px;
-  }
-  .document-preview-card {
-    padding: 20px;
-  }
-}
+.info-group { margin-bottom: 15px; }
+.info-group label { font-weight: 600; color: #666; font-size: 13px; display: block; margin-bottom: 5px; }
+.info-value { color: #333; font-size: 14px; margin: 0; word-wrap: break-word; }
+.info-value i { margin-right: 6px; color: #888; }
+.action-buttons { margin-top: 25px; padding-top: 20px; border-top: 2px solid #f0f0f0; display: flex; flex-direction: column; gap: 10px; }
+.document-preview-card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); min-height: 600px; }
+.pdf-viewer { width: 100%; height: 700px; border: 1px solid #ddd; border-radius: 6px; }
+.image-preview img { max-height: 700px; border: 1px solid #ddd; border-radius: 6px; display: block; margin: 0 auto; }
+.no-preview { text-align: center; padding: 100px 20px; color: #999; }
+.tag-badge { display:inline-block; padding:5px 12px; background:#e9ecef; border-radius:15px; font-size:12px; margin-right:8px; margin-bottom:8px; }
+.related-documents { margin-top:30px; background:#fff; padding:25px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+.related-card { padding:15px; border:1px solid #e0e0e0; border-radius:8px; margin-bottom:15px; transition:all 0.2s ease; }
+.related-card:hover { box-shadow:0 4px 10px rgba(0,0,0,0.08); transform:translateY(-2px); }
 </style>
-
