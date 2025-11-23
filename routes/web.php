@@ -149,3 +149,8 @@ Route::prefix('access-logs')->name('access.logs.')->middleware(['web', 'require.
 	// Route cho nhật ký cá nhân nếu cần
 	Route::get('/my', [AccessLogController::class, 'myLogs'])->name('my');
 });
+
+// Trang chi tiết tài liệu (Blade)
+Route::get('/documents/{id}', function($id) {
+    return view('documents.See_Document_Details.Document_Detail', compact('id'));
+})->name('documents.show');
