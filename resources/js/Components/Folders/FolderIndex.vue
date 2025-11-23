@@ -280,30 +280,9 @@
               <div class="relative inline-block text-left action-dropdown-container">
                 <button type="button" 
                         class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        @click.stop="toggleMenu(folder.folder_id)">
+                        @click.stop="toggleMenu(folder.folder_id, $event)">
                   <i class="fas fa-ellipsis-v text-gray-500"></i>
                 </button>
-                
-                <!-- Dropdown panel -->
-                <div v-if="activeMenu === folder.folder_id"
-                    class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-[10001]"
-                    style="z-index: 10001;">
-                  <div class="py-1" role="none">
-                    <!-- Edit -->
-                    <button @click.stop="editFolder(folder.folder_id)"
-                      class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left">
-                      <i class="fas fa-edit mr-3 text-blue-500"></i>
-                      Chỉnh sửa
-                    </button>
-                    
-                    <!-- Delete -->
-                    <button @click.stop="showDeleteConfirmation(folder)"
-                            class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 text-left">
-                      <i class="fas fa-trash mr-3 text-red-500"></i>
-                      Xóa
-                    </button>
-                  </div>
-                </div>
               </div>
             </td>
           </tr>
@@ -325,6 +304,27 @@
           </tr>
         </tbody>
       </table>
+    </div>
+    
+ <!-- Action Dropdown (ĐẶT NGOÀI TABLE) -->
+    <div v-if="activeMenu" 
+         class="fixed bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none w-56 z-[10001] action-dropdown-fixed"
+         :style="actionDropdownStyle">
+      <div class="py-1" role="none">
+        <!-- Edit -->
+        <button @click.stop="editFolder(activeMenu)"
+          class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left">
+          <i class="fas fa-edit mr-3 text-blue-500"></i>
+          Chỉnh sửa
+        </button>
+        
+        <!-- Delete -->
+        <button @click.stop="showDeleteConfirmation(activeMenu)"
+                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 text-left">
+          <i class="fas fa-trash mr-3 text-red-500"></i>
+          Xóa
+        </button>
+      </div>
     </div>
 
     <!-- Context Menu -->
@@ -486,6 +486,13 @@ export default {
         folder: null,
         rowElement: null
       },
+
+      // Action Dropdown State
+      actionDropdownPosition: {
+        x: 0,
+        y: 0
+      },
+      activeMenuFolder: null,
       
       // New dropdown state
       showNewDropdown: false,
@@ -530,6 +537,40 @@ export default {
 
       return pages;
     },
+
+      actionDropdownStyle() {
+    if (!this.activeMenu) {
+      return {};
+    }
+
+    const menuWidth = 224; // w-56 = 14rem = 224px
+    const menuHeight = 96; // chiều cao khoảng 2 items
+    const padding = 10;
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let x = this.actionDropdownPosition.x;
+    let y = this.actionDropdownPosition.y;
+    
+    // Điều chỉnh vị trí ngang nếu gần cạnh phải
+    if (x + menuWidth > viewportWidth) {
+      x = viewportWidth - menuWidth - padding;
+    }
+    
+    // Điều chỉnh vị trí dọc nếu gần cạnh dưới (QUAN TRỌNG)
+    if (y + menuHeight > viewportHeight) {
+      y = this.actionDropdownPosition.y - menuHeight - 40; // hiển thị phía trên button
+    }
+    
+    x = Math.max(padding, Math.min(x, viewportWidth - menuWidth - padding));
+    y = Math.max(padding, Math.min(y, viewportHeight - menuHeight - padding));
+    
+    return {
+      left: x + 'px',
+      top: y + 'px'
+    }
+    },
     contextMenuStyle() {
       if (!this.contextMenu.visible) {
         return {};
@@ -559,7 +600,7 @@ export default {
       return {
         left: x + 'px',
         top: y + 'px'
-      };
+      };      
     },
   },
   mounted() {
@@ -570,6 +611,7 @@ export default {
     document.addEventListener('keydown', this.handleKeydown);
     document.addEventListener('click', this.handleDocumentClick);
     document.addEventListener('scroll', this.hideContextMenu);
+    document.addEventListener('scroll', this.handleScroll); 
     window.addEventListener('resize', this.hideContextMenu);
     document.addEventListener('click', this.closeNewDropdownOutside);
   },
@@ -579,10 +621,17 @@ export default {
     document.removeEventListener('keydown', this.handleKeydown);
     document.removeEventListener('click', this.handleDocumentClick);
     document.removeEventListener('scroll', this.hideContextMenu);
+      document.removeEventListener('scroll', this.handleScroll); 
     window.removeEventListener('resize', this.hideContextMenu);
     document.removeEventListener('click', this.closeNewDropdownOutside);
   },
   methods: {
+    handleScroll() {
+    // Đóng dropdown khi người dùng scroll
+    if (this.activeMenu) {
+      this.activeMenu = null;
+    }
+  },
     // ==================== DELETE CONFIRMATION METHODS ====================
     showDeleteConfirmation(folder) {
       this.folderToDelete = folder;
@@ -844,13 +893,32 @@ export default {
       this.hideContextMenu();
     },
 
-    toggleMenu(folderId) {
-      this.activeMenu = this.activeMenu === folderId ? null : folderId;
-      this.hideContextMenu();
-    },
+     toggleMenu(folderId, event) {
+    // Tìm folder object từ folderId
+    const folder = this.folders.data.find(f => f.folder_id === folderId);
+    
+    if (this.activeMenu && this.activeMenu.folder_id === folderId) {
+      this.activeMenu = null;
+      return;
+    }
+
+    // Lấy vị trí của button để đặt dropdown - SỬA LỖI SCROLL
+    const button = event.target.closest('button');
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      this.actionDropdownPosition = {
+        x: rect.right - 224, // căn phải
+        y: rect.bottom // SỬA: chỉ dùng client coordinates, không cộng scrollY
+      };
+    }
+
+    this.activeMenu = folder;
+    this.hideContextMenu();
+  },
     
     closeMenu(event) {
-      if (!event.target.closest('.action-dropdown-container')) {
+      if (!event.target.closest('.action-dropdown-container') && 
+          !event.target.closest('.action-dropdown-fixed')) {
         this.activeMenu = null;
       }
     },
@@ -883,8 +951,9 @@ export default {
       this.loadFolders();
     },
 
-    editFolder(folderId) {
-      window.location.href = `/folders/${folderId}/edit`;
+     editFolder(folder) {
+      this.activeMenu = null;
+      window.location.href = `/folders/${folder.folder_id}/edit`;
     },
     
     handleSearch() {
@@ -939,11 +1008,15 @@ export default {
       setTimeout(() => {
         if (event.button === 0) {
           const contextMenuElement = document.querySelector('.context-menu');
-          const isClickInsideMenu = contextMenuElement && contextMenuElement.contains(event.target);
+          const actionDropdownElement = document.querySelector('.action-dropdown-fixed');
+          
+          const isClickInsideContextMenu = contextMenuElement && contextMenuElement.contains(event.target);
+          const isClickInsideActionDropdown = actionDropdownElement && actionDropdownElement.contains(event.target);
           const isClickInsideTable = event.target.closest('tbody');
           
-          if (!isClickInsideMenu && !isClickInsideTable) {
+          if (!isClickInsideContextMenu && !isClickInsideActionDropdown && !isClickInsideTable) {
             this.hideContextMenu();
+            this.activeMenu = null;
           }
         }
       }, 50);
@@ -1167,5 +1240,43 @@ tbody tr.context-menu-highlight {
 /* Đảm bảo các dropdown khác cũng có z-index cao */
 .relative .absolute {
   z-index: 10000 !important;
+}
+
+.action-dropdown-fixed {
+  position: fixed;
+  z-index: 10001;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 5px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  animation: fadeInScale 0.15s ease-out;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* Style cho các item trong dropdown fixed */
+.action-dropdown-fixed .py-1 button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #374151;
+  background: none;
+  border: none;
+  text-align: left;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.action-dropdown-fixed .py-1 button:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.action-dropdown-fixed .py-1 button i {
+  width: 16px;
+  margin-right: 12px;
 }
 </style>
