@@ -1,12 +1,52 @@
 <template>
   <div class="container mx-auto px-4 py-8">
-    <!-- Tiêu đề -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Home</h1>
-      <p class="text-gray-600 mt-1" v-if="userInfo">
-        👋 Xin chào, <strong>{{ userInfo.name }}</strong> 
-        <span class="text-sm text-gray-500">({{ userInfo.role }})</span>
-      </p>
+    <!-- Tiêu đề và Controls -->
+    <div class="flex items-center justify-between mb-6">
+      <!-- Tiêu đề bên trái -->
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Home</h1>
+        <p class="text-gray-600 mt-1" v-if="userInfo">
+          👋 Xin chào, <strong>{{ userInfo.name }}</strong>  
+          <span class="text-sm text-gray-500"> ({{ userInfo.role }})</span>
+        </p>
+      </div>
+
+      <!-- Auto-reload controls bên phải -->
+      <div class="flex items-center gap-3">
+        <!-- Last update time -->
+        <span v-if="lastUpdate" class="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-lg hidden sm:block">
+          <i class="fas fa-clock mr-2"></i>
+          {{ formatTime(lastUpdate) }}
+        </span>
+        
+        <div class="flex items-center gap-2">
+          <button @click="manualReload" 
+                  :disabled="loading"
+                  class="px-3 py-2 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-700 flex items-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fas fa-sync-alt mr-2" :class="{ 'animate-spin': loading }"></i>
+            Làm mới
+          </button>
+          
+          <button @click="toggleAutoReload"
+                  :class="[
+                    'px-3 py-2 border rounded-lg text-sm flex items-center transition-colors duration-200',
+                    autoReloadEnabled 
+                      ? 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200' 
+                      : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'
+                  ]">
+            <i class="fas fa-clock mr-2" :class="autoReloadEnabled ? 'text-green-600' : 'text-gray-500'"></i>
+         {{ autoReloadEnabled ? 'Tự động sau 30s: Bật' : 'Tự động sau 30s: Tắt' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Last update time - Mobile -->
+    <div class="sm:hidden mb-4">
+      <span v-if="lastUpdate" class="text-sm text-gray-500">
+        <i class="fas fa-clock mr-2"></i>
+        Cập nhật: {{ formatTime(lastUpdate) }}
+      </span>
     </div>
 
     <!-- Header với Button và Search cùng dòng -->
@@ -218,8 +258,8 @@
           </div>
         </div>
       </div>
-    </div>
-
+    </div>      
+      
     <!-- Table -->
     <div v-if="!loading" class="bg-white rounded-lg shadow overflow-hidden mb-6">
       <table class="min-w-full">
@@ -497,7 +537,7 @@ export default {
       // New dropdown state
       showNewDropdown: false,
       autoReloadInterval: null,
-      autoReloadEnabled: true,
+      autoReloadEnabled: false,
       lastUpdate: null,
       
       // Delete confirmation modal
@@ -606,7 +646,6 @@ export default {
   mounted() {
     this.loadUserInfo();
     this.loadFolders();
-    this.startAutoReload();
     document.addEventListener('click', this.closeMenu);
     document.addEventListener('keydown', this.handleKeydown);
     document.addEventListener('click', this.handleDocumentClick);
@@ -1055,8 +1094,10 @@ export default {
       this.autoReloadEnabled = !this.autoReloadEnabled;
       if (this.autoReloadEnabled) {
         this.startAutoReload();
+        console.log('🔔 Auto-reload: BẬT (30s)');
       } else {
         this.stopAutoReload();
+        console.log('🔕 Auto-reload: TẮT');
       }
     },
   
