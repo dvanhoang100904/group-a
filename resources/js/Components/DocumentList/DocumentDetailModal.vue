@@ -35,7 +35,6 @@
               <button v-if="canEdit" class="btn btn-warning btn-block">
                 <i class="fas fa-edit"></i> Chỉnh sửa
               </button>
-
               <a :href="`/documents/${document.document_id}/versions`" class="btn btn-info btn-block">
                 <i class="fas fa-history me-1"></i> Phiên bản
               </a>
