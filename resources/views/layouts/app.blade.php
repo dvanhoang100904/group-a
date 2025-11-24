@@ -31,14 +31,15 @@
 
     <!-- My CSS -->
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
-@auth
-<meta name="user-info" content="{{ json_encode([
-    'id' => auth()->id(),
-    'name' => auth()->user()->name,
-    'email' => auth()->user()->email,
-    'role' => auth()->user()->role->name ?? 'User'
-]) }}">
-@endauth
+    @auth
+        <meta name="user-info"
+            content="{{ json_encode([
+                'id' => auth()->id(),
+                'name' => auth()->user()->name,
+                'email' => auth()->user()->email,
+                'role' => auth()->user()->role->name ?? 'User',
+            ]) }}">
+    @endauth
 </head>
 
 <body>
@@ -70,6 +71,34 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.23.0/sweetalert2.min.js"
         integrity="sha512-pnPZhx5S+z5FSVwy62gcyG2Mun8h6R+PG01MidzU+NGF06/ytcm2r6+AaWMBXAnDHsdHWtsxS0dH8FBKA84FlQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    {{-- alert error --}}
+    @if (session('error'))
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: "{{ session('error') }}",
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            });
+        </script>
+    @endif
+
+    {{-- alert success --}}
+    @if (session('success'))
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: "{{ session('success') }}",
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            });
+        </script>
+    @endif
 
     @stack('scripts')
 </body>
