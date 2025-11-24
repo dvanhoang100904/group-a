@@ -99,41 +99,42 @@
       </div>
 
     <!-- Breadcrumbs -->
-     <nav v-if="breadcrumbs.length > 0" class="flex items-center justify-between mb-6">
+       <nav v-if="breadcrumbs.length > 0 || !isSearchMode" class="flex items-center justify-between mb-6">
       <ol class="flex items-center space-x-2 text-sm">
-        <li v-if="isSearchMode">
+        <!-- Root chỉ hiển thị khi KHÔNG ở chế độ tìm kiếm -->
+        <li v-if="!isSearchMode">
           <button @click="goToRoot" class="text-blue-500 hover:text-blue-700 flex items-center">
             <i class="fas fa-home mr-1"></i>Root
           </button>
         </li>
-        <li>
-          <button @click="goToRoot" class="text-blue-500 hover:text-blue-700 flex items-center">
-            <i class="fas fa-home mr-1"></i>Root
-          </button>
-        </li>
-        <li v-for="(crumb, idx) in breadcrumbs" :key="crumb.folder_id || idx" class="flex items-center">
-          <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-          <button v-if="crumb.folder_id && idx < breadcrumbs.length - 1" 
-                  @click="goToFolder(crumb.folder_id)" 
-                  class="text-blue-500 hover:text-blue-700">
-            {{ crumb.name }}
-          </button>
-          <span v-else class="text-gray-600 font-medium">{{ crumb.name }}</span>
-        </li>
+        
+        <!-- Breadcrumbs bình thường -->
+        <template v-if="!isSearchMode">
+          <li v-for="(crumb, idx) in breadcrumbs" :key="crumb.folder_id" class="flex items-center">
+            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+            <button v-if="idx < breadcrumbs.length - 1" 
+                    @click="goToFolder(crumb.folder_id)" 
+                    class="text-blue-500 hover:text-blue-700">
+              {{ crumb.name }}
+            </button>
+            <span v-else class="text-gray-600 font-medium">{{ crumb.name }}</span>
+          </li>
+        </template>
+        
+        <!-- Breadcrumbs khi tìm kiếm (chỉ hiển thị kết quả tìm kiếm) -->
+        <template v-else>
+          <li class="text-gray-600 font-medium">
+            Kết quả tìm kiếm
+          </li>
+        </template>
       </ol>
 
-      <!-- Nút quay lại chỉ hiển thị khi không ở chế độ tìm kiếm -->
+      <!-- Nút quay lại chỉ hiển thị khi có currentFolder và không ở chế độ tìm kiếm -->
       <button v-if="currentFolder && !isSearchMode" @click="goToParent" 
               class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
         <i class="fas fa-arrow-left mr-2"></i>Quay lại
-      </button>      
-
-      <!-- Nút thoát tìm kiếm -->
-      <button v-if="isSearchMode && hasActiveFilters" @click="exitSearchMode" 
-              class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-        <i class="fas fa-times mr-2"></i>Thoát tìm kiếm
       </button>
-    </nav>  
+    </nav>
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-8">
@@ -601,6 +602,19 @@ export default {
     window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
+     goToFolder(folderId) {
+      // ✅ FIX: Xử lý cả chế độ tìm kiếm
+      if (this.isSearchMode) {
+        // Khi đang ở chế độ tìm kiếm, chuyển đến folder đó và thoát chế độ tìm kiếm
+        this.isSearchMode = false;
+        this.searchParams = { name: '', date: '', file_type: '' };
+      }
+      
+      this.currentFolder = { folder_id: folderId };
+      this.items.current_page = 1;
+      this.loadData();
+    },
+
    // THÊM: Method load danh sách loại tài liệu
     async loadDocumentTypes() {
       this.loadingDocumentTypes = true;
@@ -741,12 +755,6 @@ export default {
       };
       
       return icons[item.type_name] || 'fas fa-file text-gray-500';
-    },
-
-    goToFolder(folderId) {
-      this.currentFolder = { folder_id: folderId };
-      this.items.current_page = 1;
-      this.loadData();
     },
 
     goToParent() {
