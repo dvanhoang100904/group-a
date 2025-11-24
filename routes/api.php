@@ -51,7 +51,8 @@ Route::get('/shared/users', [DocumentSharedController::class, 'listUsers']);
 Route::middleware(['api'])->group(function () {
     Route::get('/upload/metadata', [UploadController::class, 'getMetadata']);
     Route::get('/download/{version}', [UploadController::class, 'download']);
-    Route::delete('/documents/{document}', [UploadController::class, 'destroy']);
+    //Route::delete('/documents/{document}', [UploadController::class, 'destroy']);
+    Route::delete('/upload/documents/{document}', [UploadController::class, 'destroy'])->name('upload.destroy');
 
     Route::post('/documents/upload', [UploadController::class, 'store'])->name('api.upload.store');
 });
@@ -83,5 +84,5 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/folders/search', [FolderController::class, 'search']);
 
     // Route xóa document
-    Route::delete('/documents/{id}', [FolderController::class, 'deleteDocument']);
+    Route::delete('/documents/{id}', [DocumentAccessController::class, 'deleteDocument']);
 });

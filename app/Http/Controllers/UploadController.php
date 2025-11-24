@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use App\Models\Document;
 use App\Models\DocumentVersion;
@@ -15,7 +16,7 @@ use Exception;
 
 class UploadController extends Controller
 {
-  public function index()
+    public function index()
     {
         return view('documents.Upload_Documents.Index_Upload');
     }
@@ -61,7 +62,6 @@ class UploadController extends Controller
                 'path' => $pdfPath,
                 'message' => 'Convert PDF thành công'
             ];
-
         } catch (Exception $e) {
             Log::error("❌ Lỗi convert DOCX → PDF", [
                 'file' => $fileName,
@@ -86,7 +86,7 @@ class UploadController extends Controller
     {
         $basePath = storage_path('app/public/documents');
         $folders = glob($basePath . '/versions*');
-        
+
         if (empty($folders)) {
             $currentFolder = $basePath . '/versions';
             mkdir($currentFolder, 0755, true);
@@ -94,10 +94,10 @@ class UploadController extends Controller
         }
 
         // Lấy thư mục mới nhất
-        usort($folders, function($a, $b) {
+        usort($folders, function ($a, $b) {
             return filemtime($b) - filemtime($a);
         });
-        
+
         $latestFolder = $folders[0];
         $fileCount = count(glob($latestFolder . '/*'));
 
@@ -222,7 +222,7 @@ class UploadController extends Controller
     public function checkPreviewStatus($documentId)
     {
         $preview = DocumentPreview::where('document_id', $documentId)
-            ->where('version_id', function($query) use ($documentId) {
+            ->where('version_id', function ($query) use ($documentId) {
                 $query->select('version_id')
                     ->from('document_versions')
                     ->where('document_id', $documentId)
