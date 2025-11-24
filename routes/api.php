@@ -88,3 +88,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Route xóa document
     Route::delete('/documents/{id}', [DocumentAccessController::class, 'deleteDocument']);
 });
+Route::get('/api/documents', [DocumentController::class, 'getDocuments']);
+Route::get('/api/documents/{id}/detail', [DocumentController::class, 'getDocumentDetail']);
+Route::get('/api/types', [TypeControllers::class, 'index']);
+Route::get('/api/subjects', [SubjectController::class, 'index']);
