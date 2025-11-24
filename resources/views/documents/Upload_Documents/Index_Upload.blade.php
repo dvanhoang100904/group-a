@@ -10,7 +10,7 @@
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="{{ url('/') }}">Trang chủ</a>
+                        <a href="{{ url('/folders') }}">Trang chủ</a>
                     </li>
                     <li class="breadcrumb-item">
                         <a href="{{ route('documents.index', [], false) }}">Tài liệu</a>
