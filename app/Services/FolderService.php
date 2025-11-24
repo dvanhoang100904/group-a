@@ -8,20 +8,97 @@ use App\Models\Document;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class FolderService
 {
     /**
-     * Lấy danh sách thư mục với bộ lọc
+     * Validate và sanitize folder ID
+     */
+    private function validateFolderId($folderId): int
+    {
+        if (!is_numeric($folderId) || $folderId <= 0) {
+            throw new \Exception('ID thư mục không hợp lệ');
+        }
+
+        return (int)$folderId;
+    }
+
+    /**
+     * Validate và sanitize input parameters
+     */
+    private function validateSearchParams(array $params): array
+    {
+        $validator = Validator::make($params, [
+            'name' => 'nullable|string|max:255',
+            'date' => 'nullable|date_format:Y-m-d',
+            'status' => 'nullable|in:public,private',
+            'file_type' => 'nullable|string|max:100',
+            'parent_id' => 'nullable|integer|min:0',
+            'per_page' => 'nullable|integer|min:1|max:100',
+            'page' => 'nullable|integer|min:1'
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        $validated = $validator->validated();
+
+        // Sanitize inputs
+        if (isset($validated['name'])) {
+            $validated['name'] = $this->sanitizeInput($validated['name']);
+        }
+
+        if (isset($validated['file_type'])) {
+            $validated['file_type'] = $this->sanitizeInput($validated['file_type']);
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Sanitize input để tránh XSS
+     */
+    private function sanitizeInput(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
+     * Escape output để tránh XSS - FIXED: Cho phép null
+     */
+    private function escapeOutput(?string $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
+     * Lấy danh sách thư mục với bộ lọc (ĐÃ BẢO MẬT)
      */
     public function getFoldersWithFilters(array $filters = [])
     {
-        $perPage = $filters['per_page'] ?? 10;
-        $page = $filters['page'] ?? 1;
+        try {
+            // Validate input
+            $validatedFilters = $this->validateSearchParams($filters);
+        } catch (ValidationException $e) {
+            throw new \Exception('Tham số tìm kiếm không hợp lệ: ' . $e->getMessage());
+        }
+
+        $perPage = $validatedFilters['per_page'] ?? 10;
+        $page = $validatedFilters['page'] ?? 1;
 
         // Lấy user_id của người dùng đăng nhập
         $userId = Auth::id();
-
         if (!$userId) {
             throw new \Exception('User not authenticated');
         }
@@ -30,32 +107,32 @@ class FolderService
         $query = Folder::withCount(['childFolders', 'documents'])
             ->where('user_id', $userId);
 
-        // Xử lý parent_id
-        $parentId = $filters['parent_id'] ?? null;
-        if ($parentId === null || $parentId === '') {
-            // Nếu không có parent_id, lấy folders gốc (parent_folder_id IS NULL)
-            $query->whereNull('parent_folder_id');
-        } else {
-            // Nếu có parent_id, lấy folders con của parent_id đó
+        // Xử lý parent_id với validation
+        $parentId = $validatedFilters['parent_id'] ?? null;
+        if ($parentId !== null) {
+            $parentId = $this->validateFolderId($parentId);
             $query->where('parent_folder_id', $parentId);
 
             // Lấy thông tin folder hiện tại
             $currentFolder = Folder::where('folder_id', $parentId)
                 ->where('user_id', $userId)
                 ->first();
+        } else {
+            // Nếu không có parent_id, lấy folders gốc
+            $query->whereNull('parent_folder_id');
         }
 
-        // Xử lý các bộ lọc khác
-        if (!empty($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+        // Xử lý các bộ lọc khác với prepared statements
+        if (!empty($validatedFilters['name'])) {
+            $query->where('name', 'LIKE', '%' . $validatedFilters['name'] . '%');
         }
 
-        if (!empty($filters['date'])) {
-            $query->whereDate('created_at', $filters['date']);
+        if (!empty($validatedFilters['date'])) {
+            $query->whereDate('created_at', $validatedFilters['date']);
         }
 
-        if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
+        if (!empty($validatedFilters['status'])) {
+            $query->where('status', $validatedFilters['status']);
         }
 
         // Phân trang
@@ -76,17 +153,18 @@ class FolderService
     }
 
     /**
-     * Lấy thông tin vị trí thư mục
+     * Lấy thông tin vị trí thư mục (ĐÃ BẢO MẬT)
      */
     public function getFolderLocationInfo($parentFolderId = null)
     {
         $userId = Auth::id();
-
         if (!$userId) {
             throw new \Exception('User not authenticated');
         }
 
         if ($parentFolderId) {
+            $parentFolderId = $this->validateFolderId($parentFolderId);
+
             $parentFolder = Folder::where('folder_id', $parentFolderId)
                 ->where('user_id', $userId)
                 ->first();
@@ -98,7 +176,7 @@ class FolderService
             $breadcrumbs = $this->buildBreadcrumbs($parentFolder);
 
             return [
-                'name' => $parentFolder->name,
+                'name' => $this->escapeOutput($parentFolder->name),
                 'breadcrumbs' => $breadcrumbs,
             ];
         }
@@ -110,7 +188,7 @@ class FolderService
     }
 
     /**
-     * Tạo thư mục mới
+     * Tạo thư mục mới (ĐÃ BẢO MẬT)
      */
     public function createFolder(array $data): Folder
     {
@@ -118,13 +196,40 @@ class FolderService
 
         return DB::transaction(function () use ($data) {
             try {
+                // Validate input data
+                $validator = Validator::make($data, [
+                    'name' => 'required|string|max:255',
+                    'status' => 'required|in:public,private',
+                    'parent_folder_id' => 'nullable|integer|min:1'
+                ]);
+
+                if ($validator->fails()) {
+                    throw new ValidationException($validator);
+                }
+
+                $validatedData = $validator->validated();
+
+                // Sanitize name
+                $validatedData['name'] = $this->sanitizeInput($validatedData['name']);
+
                 // Xử lý parent_folder_id
-                $parentFolderId = $data['parent_folder_id'] ?? null;
+                $parentFolderId = $validatedData['parent_folder_id'] ?? null;
 
                 Log::info('Processing parent_folder_id:', ['raw' => $parentFolderId]);
 
                 if ($parentFolderId === '' || $parentFolderId === 'null' || $parentFolderId === null) {
                     $parentFolderId = null;
+                } else {
+                    $parentFolderId = $this->validateFolderId($parentFolderId);
+
+                    // Verify parent folder exists and belongs to user
+                    $parentFolder = Folder::where('folder_id', $parentFolderId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+
+                    if (!$parentFolder) {
+                        throw new \Exception('Thư mục cha không tồn tại hoặc không có quyền truy cập');
+                    }
                 }
 
                 // Kiểm tra user_id
@@ -134,8 +239,8 @@ class FolderService
                 }
 
                 $folderData = [
-                    'name' => $data['name'],
-                    'status' => $data['status'],
+                    'name' => $validatedData['name'],
+                    'status' => $validatedData['status'],
                     'parent_folder_id' => $parentFolderId,
                     'user_id' => $userId,
                 ];
@@ -159,42 +264,45 @@ class FolderService
                 ]);
 
                 return $folder;
+            } catch (ValidationException $e) {
+                throw $e;
             } catch (\Exception $e) {
                 Log::error('Error in createFolder transaction: ' . $e->getMessage());
-                Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
                 throw new \Exception('Không thể tạo thư mục: ' . $e->getMessage());
             }
         });
     }
 
     /**
-     * Lấy dữ liệu cho form chỉnh sửa - ĐÃ SỬA: Tối ưu hiệu suất
+     * Lấy dữ liệu cho form chỉnh sửa - ĐÃ BẢO MẬT
      */
     public function getFolderForEdit(string $folderId): array
     {
         $userId = Auth::id();
-
         if (!$userId) {
             throw new \Exception('User not authenticated');
         }
 
         try {
+            // Validate folder ID
+            $folderId = $this->validateFolderId($folderId);
+
             // Lấy folder với user_id check
             $folder = Folder::where('folder_id', $folderId)
                 ->where('user_id', $userId)
                 ->firstOrFail();
 
-            // FIX: Sử dụng phương thức tối ưu để lấy descendant IDs
-            $descendantIds = $this->getDescendantIdsOptimized($folderId);
+            // Sử dụng phương thức an toàn để lấy descendant IDs
+            $descendantIds = $this->getDescendantIdsSecure($folderId, $userId);
 
-            // FIX: Lấy parent folders với điều kiện user_id và loại trừ descendants
+            // Lấy parent folders với điều kiện user_id và loại trừ descendants
             $parentFolders = Folder::where('user_id', $userId)
                 ->where('folder_id', '!=', $folderId)
                 ->whereNotIn('folder_id', $descendantIds)
                 ->get();
 
-            // FIX: Xây dựng hierarchical folders với giới hạn
-            $hierarchicalFolders = $this->buildHierarchicalFoldersOptimized($parentFolders);
+            // Xây dựng hierarchical folders với giới hạn
+            $hierarchicalFolders = $this->buildHierarchicalFoldersSecure($parentFolders);
 
             $breadcrumbs = $this->buildBreadcrumbs($folder);
 
@@ -213,39 +321,42 @@ class FolderService
     }
 
     /**
-     * FIX: Phương thức tối ưu để lấy descendant IDs sử dụng recursive query
+     * PHƯƠNG THỨC AN TOÀN: Lấy descendant IDs sử dụng Eloquent (không dùng raw SQL)
      */
-    private function getDescendantIdsOptimized(string $folderId): array
+    private function getDescendantIdsSecure(string $folderId, int $userId): array
     {
         try {
-            // Sử dụng recursive CTE để lấy tất cả descendant IDs
-            $descendantIds = DB::select("
-                WITH RECURSIVE folder_tree AS (
-                    SELECT folder_id, parent_folder_id
-                    FROM folders 
-                    WHERE folder_id = ?
-                    
-                    UNION ALL
-                    
-                    SELECT f.folder_id, f.parent_folder_id
-                    FROM folders f
-                    INNER JOIN folder_tree ft ON f.parent_folder_id = ft.folder_id
-                )
-                SELECT folder_id FROM folder_tree WHERE folder_id != ?
-            ", [$folderId, $folderId]);
+            // Sử dụng Eloquent thay vì raw SQL để tránh SQL Injection
+            $descendants = collect();
+            $currentLevel = Folder::where('parent_folder_id', $folderId)
+                ->where('user_id', $userId)
+                ->get();
 
-            return array_column($descendantIds, 'folder_id');
+            $maxDepth = 10;
+            $depth = 0;
+
+            while ($currentLevel->isNotEmpty() && $depth < $maxDepth) {
+                $descendants = $descendants->merge($currentLevel);
+
+                $currentLevelIds = $currentLevel->pluck('folder_id')->toArray();
+                $currentLevel = Folder::whereIn('parent_folder_id', $currentLevelIds)
+                    ->where('user_id', $userId)
+                    ->get();
+
+                $depth++;
+            }
+
+            return $descendants->pluck('folder_id')->toArray();
         } catch (\Exception $e) {
-            Log::error('Error in getDescendantIdsOptimized: ' . $e->getMessage());
-            // Fallback: trả về mảng rỗng nếu có lỗi
+            Log::error('Error in getDescendantIdsSecure: ' . $e->getMessage());
             return [];
         }
     }
 
     /**
-     * FIX: Phương thức tối ưu để xây dựng hierarchical folders
+     * PHƯƠNG THỨC AN TOÀN: Xây dựng hierarchical folders
      */
-    private function buildHierarchicalFoldersOptimized($folders, $parentId = null, $level = 0, $maxLevel = 5): array
+    private function buildHierarchicalFoldersSecure($folders, $parentId = null, $level = 0, $maxLevel = 5): array
     {
         $hierarchical = [];
 
@@ -257,13 +368,14 @@ class FolderService
         $children = $folders->where('parent_folder_id', $parentId);
 
         foreach ($children as $folder) {
-            $indentedName = str_repeat('-- ', $level) . $folder->name;
+            // Escape output để tránh XSS
+            $indentedName = str_repeat('-- ', $level) . $this->escapeOutput($folder->name);
             $folder->indented_name = $indentedName;
 
             $hierarchical[] = $folder;
 
             // Recursive for sub-children với giới hạn độ sâu
-            $sub = $this->buildHierarchicalFoldersOptimized($folders, $folder->folder_id, $level + 1, $maxLevel);
+            $sub = $this->buildHierarchicalFoldersSecure($folders, $folder->folder_id, $level + 1, $maxLevel);
             $hierarchical = array_merge($hierarchical, $sub);
         }
 
@@ -271,60 +383,91 @@ class FolderService
     }
 
     /**
-     * Cập nhật thư mục
+     * Cập nhật thư mục - ĐÃ BẢO MẬT
      */
     public function updateFolder(string $folderId, array $data): Folder
     {
         $userId = Auth::id();
-
         if (!$userId) {
             throw new \Exception('User not authenticated');
         }
 
         return DB::transaction(function () use ($folderId, $data, $userId) {
             try {
+                // Validate input data
+                $validator = Validator::make($data, [
+                    'name' => 'required|string|max:255',
+                    'status' => 'required|in:public,private',
+                    'parent_folder_id' => 'nullable|integer|min:1'
+                ]);
+
+                if ($validator->fails()) {
+                    throw new ValidationException($validator);
+                }
+
+                $validatedData = $validator->validated();
+
+                // Sanitize name
+                $validatedData['name'] = $this->sanitizeInput($validatedData['name']);
+
+                $folderId = $this->validateFolderId($folderId);
+
                 $folder = Folder::where('folder_id', $folderId)
                     ->where('user_id', $userId)
                     ->firstOrFail();
 
                 // Kiểm tra không cho phép chọn chính nó làm parent
-                if (isset($data['parent_folder_id']) && $data['parent_folder_id'] == $folderId) {
+                if (isset($validatedData['parent_folder_id']) && $validatedData['parent_folder_id'] == $folderId) {
                     throw new \Exception('Không thể chọn chính thư mục này làm thư mục cha!');
                 }
 
                 // Kiểm tra cycle prevention
-                if (isset($data['parent_folder_id'])) {
-                    $descendantIds = $this->getDescendantIdsOptimized($folderId);
-                    if (in_array($data['parent_folder_id'], $descendantIds)) {
+                if (isset($validatedData['parent_folder_id'])) {
+                    $descendantIds = $this->getDescendantIdsSecure($folderId, $userId);
+                    if (in_array($validatedData['parent_folder_id'], $descendantIds)) {
                         throw new \Exception('Không thể chọn thư mục con làm thư mục cha!');
+                    }
+
+                    // Verify parent folder exists and belongs to user
+                    if ($validatedData['parent_folder_id']) {
+                        $parentFolder = Folder::where('folder_id', $validatedData['parent_folder_id'])
+                            ->where('user_id', $userId)
+                            ->first();
+
+                        if (!$parentFolder) {
+                            throw new \Exception('Thư mục cha không tồn tại hoặc không có quyền truy cập');
+                        }
                     }
                 }
 
                 $folder->update([
-                    'name' => $data['name'],
-                    'status' => $data['status'],
-                    'parent_folder_id' => $data['parent_folder_id'] ?? null,
+                    'name' => $validatedData['name'],
+                    'status' => $validatedData['status'],
+                    'parent_folder_id' => $validatedData['parent_folder_id'] ?? null,
                 ]);
 
                 return $folder;
             } catch (ModelNotFoundException $e) {
                 throw new \Exception('Thư mục không tồn tại');
+            } catch (ValidationException $e) {
+                throw $e;
             }
         });
     }
 
     /**
-     * Xóa thư mục
+     * Xóa thư mục - ĐÃ BẢO MẬT
      */
     public function deleteFolder($folderId)
     {
         $userId = Auth::id();
-
         if (!$userId) {
             throw new \Exception('User not authenticated');
         }
 
         try {
+            $folderId = $this->validateFolderId($folderId);
+
             $folder = Folder::where('folder_id', $folderId)
                 ->where('user_id', $userId)
                 ->firstOrFail();
@@ -361,38 +504,47 @@ class FolderService
 
         return $this->buildBreadcrumbs($currentFolder);
     }
+
     /**
-     * Lấy danh sách folders + documents (cho Home page)
+     * Lấy danh sách folders + documents (cho Home page) - ĐÃ BẢO MẬT
      */
     public function getFoldersAndDocuments(array $params = [])
     {
-        \Log::info('🔍 FolderService filters received:', $params);
+        try {
+            // Validate input parameters
+            $validatedParams = $this->validateSearchParams($params);
+        } catch (ValidationException $e) {
+            throw new \Exception('Tham số không hợp lệ: ' . $e->getMessage());
+        }
+
+        \Log::info('🔍 FolderService filters received:', $validatedParams);
 
         $user = Auth::user();
-        $perPage = $params['per_page'] ?? 20;
-        $currentFolderId = $params['parent_id'] ?? null;
+        $perPage = $validatedParams['per_page'] ?? 20;
+        $currentFolderId = $validatedParams['parent_id'] ?? null;
 
         // Convert "null" string to null
         if ($currentFolderId === 'null' || $currentFolderId === '') {
             $currentFolderId = null;
+        } else if ($currentFolderId) {
+            $currentFolderId = $this->validateFolderId($currentFolderId);
         }
 
-        $searchName = $params['name'] ?? '';
-        $searchDate = $params['date'] ?? '';
-        $searchStatus = $params['status'] ?? '';
-        $searchFileType = $params['file_type'] ?? '';
+        $searchName = $validatedParams['name'] ?? '';
+        $searchDate = $validatedParams['date'] ?? '';
+        $searchStatus = $validatedParams['status'] ?? '';
+        $searchFileType = $validatedParams['file_type'] ?? '';
 
-        // ==================== PHÂN BIỆT CHẾ ĐỘ TÌM KIẾM ====================
+        // Phân biệt chế độ tìm kiếm
         $isSearchMode = !empty($searchName) || !empty($searchDate) || !empty($searchFileType);
 
         if ($isSearchMode) {
-            // 🔍 CHẾ ĐỘ TÌM KIẾM: Hiển thị FLAT LIST
-            return $this->getSearchResults($user, $params, $perPage);
+            return $this->getSearchResults($user, $validatedParams, $perPage);
         } else {
-            // 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị TREE VIEW
-            return $this->getTreeView($user, $currentFolderId, $params, $perPage);
+            return $this->getTreeView($user, $currentFolderId, $validatedParams, $perPage);
         }
     }
+
     /**
      * 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị dạng cây
      */
@@ -460,7 +612,7 @@ class FolderService
         $items = collect($folders)->map(function ($folder) {
             return [
                 'id' => $folder->folder_id,
-                'name' => $folder->name,
+                'name' => $this->escapeOutput($folder->name),
                 'created_at' => $folder->created_at,
                 'updated_at' => $folder->updated_at,
                 'status' => $folder->status,
@@ -469,23 +621,23 @@ class FolderService
                 'documents_count' => $folder->documents_count ?? 0,
                 'size' => null,
                 'type_name' => 'Thư mục',
-                'folder_path' => $this->getFolderPath($folder), // Thêm path để hiển thị
+                'folder_path' => $this->getFolderPath($folder),
             ];
         })->concat(
             collect($documents)->map(function ($doc) {
                 return [
                     'id' => $doc->document_id,
-                    'name' => $doc->title,
+                    'name' => $this->escapeOutput($doc->title),
                     'created_at' => $doc->created_at,
                     'updated_at' => $doc->updated_at,
                     'status' => $doc->status,
                     'item_type' => 'document',
                     'size' => $doc->size,
                     'file_path' => $doc->file_path,
-                    'file_name' => $doc->file_name,
-                    'type_name' => $doc->type_name,
-                    'description' => $doc->description,
-                    'folder_path' => $this->getDocumentFolderPath($doc), // Thêm path để hiển thị
+                    'file_name' => $this->escapeOutput($doc->file_name ?? ''),
+                    'type_name' => $this->escapeOutput($doc->type_name ?? 'Unknown'),
+                    'description' => $this->escapeOutput($doc->description ?? ''),
+                    'folder_path' => $this->getDocumentFolderPath($doc),
                 ];
             })
         );
@@ -516,7 +668,7 @@ class FolderService
             'items' => $paginatedItems,
             'currentFolder' => $currentFolder,
             'breadcrumbs' => $breadcrumbs,
-            'isSearchMode' => false, // Đánh dấu không phải chế độ tìm kiếm
+            'isSearchMode' => false,
         ];
     }
 
@@ -536,7 +688,6 @@ class FolderService
         if (!$searchFileType || $searchFileType === 'folder') {
             $foldersQuery = Folder::where('user_id', $user->user_id);
 
-            // ✅ SỬA: Tìm kiếm theo name trong folders
             if ($searchName) {
                 $foldersQuery->where(function ($query) use ($searchName) {
                     $query->where('name', 'like', "%{$searchName}%");
@@ -555,7 +706,7 @@ class FolderService
             $folderItems = $folders->map(function ($folder) {
                 return [
                     'id' => $folder->folder_id,
-                    'name' => $folder->name,
+                    'name' => $this->escapeOutput($folder->name),
                     'created_at' => $folder->created_at,
                     'updated_at' => $folder->updated_at,
                     'status' => $folder->status,
@@ -577,7 +728,6 @@ class FolderService
             $documentsQuery = Document::with(['type', 'subject', 'tags'])
                 ->where('user_id', $user->user_id);
 
-            // ✅ SỬA: Tìm kiếm theo name/title trong documents
             if ($searchName) {
                 $documentsQuery->where(function ($query) use ($searchName) {
                     $query->where('title', 'like', "%{$searchName}%")
@@ -607,16 +757,16 @@ class FolderService
             $documentItems = $documents->map(function ($doc) {
                 return [
                     'id' => $doc->document_id,
-                    'name' => $doc->title,
+                    'name' => $this->escapeOutput($doc->title),
                     'created_at' => $doc->created_at,
                     'updated_at' => $doc->updated_at,
                     'status' => $doc->status,
                     'item_type' => 'document',
                     'size' => $doc->size,
                     'file_path' => $doc->file_path,
-                    'file_name' => $doc->file_name,
-                    'type_name' => $doc->type_name,
-                    'description' => $doc->description,
+                    'file_name' => $this->escapeOutput($doc->file_name ?? ''),
+                    'type_name' => $this->escapeOutput($doc->type_name ?? 'Unknown'),
+                    'description' => $this->escapeOutput($doc->description ?? ''),
                     'folder_path' => $this->getDocumentFolderPath($doc),
                     'is_search_result' => true,
                 ];
@@ -648,10 +798,11 @@ class FolderService
         return [
             [
                 'folder_id' => null,
-                'name' => 'Kết quả tìm kiếm: "' . $searchName . '"'
+                'name' => 'Kết quả tìm kiếm: "' . $this->escapeOutput($searchName) . '"'
             ]
         ];
     }
+
     /**
      * Lấy đường dẫn thư mục cho folder
      */
@@ -663,13 +814,14 @@ class FolderService
         $depth = 0;
 
         while ($current && $depth < $maxDepth) {
-            $path[] = $current->name;
+            $path[] = $this->escapeOutput($current->name);
             $current = $current->parentFolder;
             $depth++;
         }
 
         return implode(' / ', array_reverse($path));
     }
+
     /**
      * Lấy đường dẫn thư mục cho document
      */
@@ -739,7 +891,7 @@ class FolderService
         while ($current && $depth < $maxDepth) {
             $breadcrumbs[] = [
                 'folder_id' => $current->folder_id,
-                'name' => $current->name,
+                'name' => $this->escapeOutput($current->name),
             ];
             $current = $current->parentFolder;
             $depth++;

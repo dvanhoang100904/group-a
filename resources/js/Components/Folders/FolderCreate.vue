@@ -16,7 +16,7 @@
 
       <!-- Form -->
       <div v-else class="bg-white rounded-lg shadow p-6">
-        <form @submit.prevent="submitForm">
+        <form @submit.prevent="submitForm" @keydown="preventEnterSubmit">
           <!-- Tên thư mục -->
           <div class="mb-4">
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
@@ -28,8 +28,10 @@
                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                    :class="{ 'border-red-500': errors.name }"
                    placeholder="Nhập tên thư mục"
-                   required>
-            <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name[0] }}</p>
+                   required
+                   maxlength="255"
+                   @input="sanitizeFormField('name')">
+            <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ sanitizeOutput(errors.name[0]) }}</p>
           </div>
 
           <!-- Trạng thái -->
@@ -46,7 +48,7 @@
               <option value="private">Riêng tư</option>
               <option value="public">Công khai</option>
             </select>
-            <p v-if="errors.status" class="mt-1 text-sm text-red-600">{{ errors.status[0] }}</p>
+            <p v-if="errors.status" class="mt-1 text-sm text-red-600">{{ sanitizeOutput(errors.status[0]) }}</p>
           </div>
 
           <!-- Thông báo vị trí -->
@@ -54,7 +56,7 @@
             <div class="flex items-center">
               <i class="fas fa-info-circle text-blue-500 mr-2"></i>
               <span class="text-sm text-blue-700">
-                Thư mục sẽ được tạo trong <strong>{{ locationText }}</strong>
+                Thư mục sẽ được tạo trong <strong>{{ sanitizeOutput(locationText) }}</strong>
               </span>
             </div>
           </div>
@@ -67,7 +69,7 @@
               Hủy
             </button>
             <button type="submit" 
-                    :disabled="submitting"
+                    :disabled="submitting || !isFormValid"
                     class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
               <i class="fas fa-folder-plus mr-2"></i>
               {{ submitting ? 'Đang tạo...' : 'Tạo Thư Mục' }}
@@ -76,7 +78,8 @@
         </form>
       </div>
     </div>
-        <!-- Success Modal -->
+    
+    <!-- Success Modal -->
     <div v-if="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="p-6">
@@ -85,7 +88,7 @@
             <h3 class="text-lg font-medium text-gray-900">Thành công</h3>
           </div>
           <p class="text-sm text-gray-600 mb-6">
-            {{ successMessage }}
+            {{ sanitizeOutput(successMessage) }}
           </p>
           <div class="flex justify-end space-x-3">
             <button @click="continueAfterSuccess" 
@@ -106,7 +109,7 @@
             <h3 class="text-lg font-medium text-gray-900">Lỗi</h3>
           </div>
           <p class="text-sm text-gray-600 mb-6">
-            {{ errorMessage }}
+            {{ sanitizeOutput(errorMessage) }}
           </p>
           <div class="flex justify-end space-x-3">
             <button @click="hideErrorModal" 
@@ -152,6 +155,13 @@ export default {
   computed: {
     locationText() {
       return this.parentFolderName;
+    },
+    
+    // ✅ BẢO MẬT: Client-side form validation
+    isFormValid() {
+      return this.form.name.trim().length > 0 && 
+             this.form.name.length <= 255 &&
+             ['private', 'public'].includes(this.form.status);
     }
   },
   mounted() {
@@ -164,15 +174,59 @@ export default {
   },
   
   methods: {
+    // ✅ BẢO MẬT: Sanitize output để tránh XSS
+    sanitizeOutput(value) {
+      if (value === null || value === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = value.toString();
+      return div.innerHTML;
+    },
+
+    // ✅ BẢO MẬT: Sanitize input để tránh XSS
+    sanitizeInput(value) {
+      if (value === null || value === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = value.toString();
+      return div.innerHTML
+        .replace(/[<>"'`]/g, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+=/gi, '')
+        .substring(0, 255)
+        .trim();
+    },
+
+    // ✅ BẢO MẬT: Sanitize form field
+    sanitizeFormField(fieldName) {
+      if (this.form[fieldName]) {
+        this.form[fieldName] = this.sanitizeInput(this.form[fieldName]);
+      }
+    },
+
+    // ✅ BẢO MẬT: Validate folder ID
+    validateFolderId(folderId) {
+      if (!folderId) return null;
+      if (!Number.isInteger(Number(folderId)) || folderId <= 0) {
+        throw new Error('ID thư mục không hợp lệ');
+      }
+      return Number(folderId);
+    },
+
+    // ✅ BẢO MẬT: Sanitize URL parameters
+    sanitizeUrlParam(param) {
+      if (!param) return '';
+      return encodeURIComponent(param.toString());
+    },
+
     // ✅ THÊM: Modal methods
     continueAfterSuccess() {
       this.showSuccessModal = false;
       this.successMessage = '';
       
-      // Redirect về trang folders
+      // ✅ BẢO MẬT: Sanitize URL parameters
       const parentId = this.form.parent_folder_id;
+      const safeParentId = parentId ? this.sanitizeUrlParam(parentId) : '';
       const redirectUrl = parentId 
-        ? `/folders?parent_id=${parentId}`
+        ? `/folders?parent_id=${safeParentId}`
         : '/folders';
       window.location.href = redirectUrl;
     },
@@ -183,12 +237,12 @@ export default {
     },
 
     showSuccess(message) {
-      this.successMessage = message;
+      this.successMessage = this.sanitizeOutput(message);
       this.showSuccessModal = true;
     },
 
     showError(message) {
-      this.errorMessage = message;
+      this.errorMessage = this.sanitizeOutput(message);
       this.showErrorModal = true;
     },
 
@@ -204,57 +258,98 @@ export default {
       }
     },
 
+    // ✅ BẢO MẬT: Prevent form submission on Enter in inputs
+    preventEnterSubmit(event) {
+      if (event.key === 'Enter' && event.target.tagName !== 'FORM') {
+        event.preventDefault();
+      }
+    },
+
     // ==================== API CALLS ====================
     async getLocationInfo() {
       try {
-        // Lấy parent_id từ URL parameters
+        // ✅ BẢO MẬT: Lấy và validate URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const parentId = urlParams.get('parent_id');
         
         if (parentId) {
-          this.form.parent_folder_id = parentId;
-          
-          // Lấy thông tin thư mục cha để hiển thị
-          const response = await axios.get(`/api/folders/${parentId}`);
-          if (response.data.success) {
-            this.parentFolderName = response.data.data.folder.name;
+          try {
+            // ✅ BẢO MẬT: Validate parent folder ID
+            const validParentId = this.validateFolderId(parentId);
+            this.form.parent_folder_id = validParentId;
+            
+            // ✅ BẢO MẬT: Lấy thông tin thư mục cha với error handling
+            const response = await axios.get(`/api/folders/${validParentId}`);
+            
+            if (response.data.success) {
+              this.parentFolderName = this.sanitizeOutput(response.data.data.folder.name);
+            } else {
+              console.warn('Không thể lấy thông tin thư mục cha:', response.data.message);
+              this.parentFolderName = 'Thư mục không xác định';
+            }
+          } catch (validationError) {
+            console.warn('Parent folder ID không hợp lệ:', validationError.message);
+            this.form.parent_folder_id = null;
+            this.parentFolderName = 'Danh sách hiện tại (Thư mục gốc)';
           }
         }
       } catch (error) {
         console.error('Error getting location info:', error);
-        // Không hiển thị lỗi vì đây chỉ là thông tin phụ
+        // ✅ BẢO MẬT: Fallback an toàn
+        this.parentFolderName = 'Danh sách hiện tại (Thư mục gốc)';
       }
     },
 
     async submitForm() {
+      // ✅ BẢO MẬT: Client-side validation trước khi gửi
+      if (!this.isFormValid) {
+        this.showError('Vui lòng kiểm tra lại thông tin đã nhập.');
+        return;
+      }
+
       this.submitting = true;
       this.errors = {};
       this.successMessage = '';
       this.errorMessage = '';
 
       try {
-        const response = await axios.post('/api/folders', this.form);
+        // ✅ BẢO MẬT: Sanitize form data trước khi gửi
+        const sanitizedForm = {
+          name: this.sanitizeInput(this.form.name),
+          status: this.form.status,
+          parent_folder_id: this.form.parent_folder_id
+        };
+
+        const response = await axios.post('/api/folders', sanitizedForm);
 
         if (response.data.success) {
           // ✅ THAY THẾ: Hiển thị modal thông báo thành công
           this.showSuccess(response.data.message);
-          
-          // XÓA: Redirect tự động, sẽ redirect khi user nhấn "Tiếp tục"
         } else {
           // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
           this.showError(response.data.message || 'Lỗi khi tạo thư mục');
         }
       } catch (error) {
+        console.error('Submit Error:', error);
+        
+        // ✅ BẢO MẬT: Sanitize error handling
         if (error.response && error.response.status === 422) {
           this.errors = error.response.data.errors || {};
-          // ✅ THAY THẾ: Hiển thị modal thông báo lỗi validation
+          // Sanitize error messages
+          Object.keys(this.errors).forEach(key => {
+            if (Array.isArray(this.errors[key])) {
+              this.errors[key] = this.errors[key].map(msg => this.sanitizeOutput(msg));
+            }
+          });
           this.showError('Vui lòng kiểm tra lại thông tin đã nhập.');
         } else if (error.response && error.response.data.message) {
-          // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
           this.showError(error.response.data.message);
-        } else {
-          // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
+        } else if (error.message && error.message.includes('Network Error')) {
+          this.showError('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối và thử lại.');
+        } else if (error.message) {
           this.showError('Đã có lỗi xảy ra khi tạo thư mục. Vui lòng thử lại.');
+        } else {
+          this.showError('Lỗi không xác định. Vui lòng thử lại.');
         }
       } finally {
         this.submitting = false;
@@ -263,11 +358,23 @@ export default {
 
     // ==================== UI METHODS ====================
     goBack() {
+      // ✅ BẢO MẬT: Sanitize URL parameters
       const parentId = this.form.parent_folder_id;
+      const safeParentId = parentId ? this.sanitizeUrlParam(parentId) : '';
       const backUrl = parentId 
-        ? `/folders?parent_id=${parentId}`
+        ? `/folders?parent_id=${safeParentId}`
         : '/folders';
       window.location.href = backUrl;
+    },
+
+    // ✅ BẢO MẬT: Reset form an toàn
+    resetForm() {
+      this.form = {
+        name: '',
+        status: '',
+        parent_folder_id: this.form.parent_folder_id // Giữ parent_id
+      };
+      this.errors = {};
     }
   }
 }
@@ -285,5 +392,24 @@ export default {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Smooth transitions for modals */
+.fixed {
+  transition: opacity 0.3s ease;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Disabled state styles */
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 </style>
