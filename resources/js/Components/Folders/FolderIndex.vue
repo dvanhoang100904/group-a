@@ -1,13 +1,23 @@
 <template>
   <div class="container mx-auto px-4 py-8">
-    <!-- Header -->
+    <!-- Header với nút Mới -->
     <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800">Home</h1>
-        <p class="text-gray-600 mt-1" v-if="userInfo">
-          👋 Xin chào, <strong>{{ userInfo.name }}</strong>
-          <span class="text-sm text-gray-500">({{ userInfo.role }})</span>
-        </p>
+      <!-- Nút Mới ở vị trí header cũ -->
+      <div class="flex-shrink-0 relative">
+        <button @click="toggleNewDropdown"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
+          <i class="fas fa-plus mr-2"></i>Mới
+          <i class="fas fa-chevron-down ml-2 text-xs"></i>
+        </button>
+        
+        <div v-if="showNewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
+          <button @click="openCreateFolder" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
+            <i class="fas fa-folder-plus text-blue-500 mr-3"></i>Tạo thư mục
+          </button>
+          <a :href="uploadFileUrl" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
+            <i class="fas fa-file-upload text-green-500 mr-3"></i>Tải file lên
+          </a>
+        </div>
       </div>
 
       <!-- Controls -->
@@ -31,55 +41,53 @@
       </div>
     </div>
 
-    <!-- Actions & Search -->
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-      <div class="flex-shrink-0 relative">
-        <button @click="toggleNewDropdown"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
-          <i class="fas fa-plus mr-2"></i>Mới
-          <i class="fas fa-chevron-down ml-2 text-xs"></i>
-        </button>
-        
-        <div v-if="showNewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
-          <button @click="openCreateFolder" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
-            <i class="fas fa-folder-plus text-blue-500 mr-3"></i>Tạo thư mục
-          </button>
-          <a :href="uploadFileUrl" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
-            <i class="fas fa-file-upload text-green-500 mr-3"></i>Tải file lên
-          </a>
-        </div>
-      </div>
-
-      <!-- Search -->
+    <!-- Actions & Search - Layout đã được chỉnh sửa -->
+    <div class="flex flex-col lg:flex-row gap-4 mb-6">
+      <!-- Search Section - Chiếm toàn bộ chiều rộng -->
       <div class="flex-1 min-w-0">
         <div class="flex flex-col sm:flex-row gap-2 bg-white rounded-lg shadow-sm border p-3">
-          <div class="relative flex-1 sm:flex-none">
+          <div class="relative flex-1">
             <input v-model="searchParams.name" type="text" placeholder="Tìm tên..." 
-                   class="pl-10 pr-4 py-2 border rounded-lg w-full sm:w-48 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
           </div>
           
-          <div class="relative flex-1 sm:flex-none">
+          <div class="relative flex-1">
             <input v-model="searchParams.date" type="date" 
-                   class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
           </div>
           
-          <select v-model="searchParams.status" 
-                  class="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none w-full sm:w-40">
-            <option value="">Tất cả trạng thái</option>
-            <option value="public">Công khai</option>
-            <option value="private">Riêng tư</option>
-          </select>
+          <!-- Lọc theo loại file -->
+          <div class="relative flex-1 min-w-0">
+            <select v-model="searchParams.file_type" 
+                    class="pl-10 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none w-full appearance-none bg-white truncate"
+                    :disabled="loadingDocumentTypes">
+              <option value="">Tất cả loại file</option>
+              <option value="folder">Thư mục</option>
+              <option v-for="docType in documentTypes" 
+                      :key="docType.type_id" 
+                      :value="docType.name"
+                      class="truncate">
+                {{ docType.name }}
+              </option>
+            </select>
+            <i class="fas fa-file-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+          </div>
           
-          <button @click="handleSearch" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors">
-            <i class="fas fa-search mr-2"></i>Tìm
-          </button>
-          
-          <button v-if="hasActiveFilters" @click="resetFilters" 
-                  class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors">
-            <i class="fas fa-times mr-2"></i>Reset
-          </button>
+          <div class="flex gap-2">
+            <button @click="handleSearch" 
+                    :disabled="loading"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 flex-shrink-0">
+              <i class="fas fa-search mr-2"></i>Tìm
+            </button>
+            
+            <button v-if="hasActiveFilters" @click="resetFilters" 
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+              <i class="fas fa-times mr-2"></i>Reset
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -113,7 +121,6 @@
     <div v-if="loading" class="flex justify-center py-8">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
     </div>
-
 
     <!-- Delete Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
@@ -382,7 +389,7 @@ import axios from 'axios';
 
 export default {
   name: 'FolderIndex',
-   data() {
+  data() {
     return {
       items: { 
         data: [], 
@@ -405,8 +412,11 @@ export default {
       searchParams: { 
         name: '', 
         date: '', 
-        status: '' 
+        file_type: '' 
       },
+      // THÊM: Danh sách loại tài liệu động
+      documentTypes: [],
+      loadingDocumentTypes: false,
       contextMenu: { 
         visible: false, 
         x: 0, 
@@ -430,7 +440,7 @@ export default {
       return (this.items.data || []).filter(item => item !== null && item !== undefined);
     },
     hasActiveFilters() {
-      return this.searchParams.name || this.searchParams.date || this.searchParams.status;
+      return this.searchParams.name || this.searchParams.date || this.searchParams.file_type;
     },
     uploadFileUrl() {
       const folderId = this.currentFolder?.folder_id || null;
@@ -454,6 +464,7 @@ export default {
       
       return pages.filter((v, i, a) => a.indexOf(v) === i);
     },
+    
     actionDropdownStyle() {
       if (!this.activeMenu) return {};
       
@@ -483,7 +494,8 @@ export default {
         top: y + 'px'
       };
     },
-    contextMenuStyle() {
+
+     contextMenuStyle() {
       if (!this.contextMenu.visible) return {};
       
       const menuWidth = 256;
@@ -513,19 +525,20 @@ export default {
       };
     },
   
-  safePagination() {
-      return {
-        current_page: this.items.current_page || 1,
-        last_page: this.items.last_page || 1,
-        from: this.items.from || 0,
-        to: this.items.to || 0,
-        total: this.items.total || 0
+    safePagination() {
+        return {
+          current_page: this.items.current_page || 1,
+          last_page: this.items.last_page || 1,
+          from: this.items.from || 0,
+          to: this.items.to || 0,
+          total: this.items.total || 0
       };
     }
   },
   mounted() {
     this.loadUserInfo();
     this.loadData();
+    this.loadDocumentTypes(); 
     document.addEventListener('click', this.closeMenu);
     document.addEventListener('keydown', this.handleKeydown);
     document.addEventListener('click', this.closeNewDropdownOutside);
@@ -541,6 +554,25 @@ export default {
     window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
+   // THÊM: Method load danh sách loại tài liệu
+    async loadDocumentTypes() {
+      this.loadingDocumentTypes = true;
+      try {
+        const response = await axios.get('/api/types'); // ✅ Sửa endpoint chính xác
+        console.log('✅ Types API response:', response.data);
+        
+        // API trả về trực tiếp array, không có wrapper success/data
+        this.documentTypes = response.data || [];
+        
+        console.log('📋 Loaded document types:', this.documentTypes);
+      } catch (error) {
+        console.error('❌ Error loading document types:', error);
+        // Fallback to empty array if API fails
+        this.documentTypes = [];
+      } finally {
+        this.loadingDocumentTypes = false;
+      }
+    },
     getItemKey(item) {
       if (!item) return 'null-item';
       return `${item.item_type}-${item.id}`;
@@ -577,7 +609,7 @@ export default {
         const params = {
           name: this.searchParams.name || '',
           date: this.searchParams.date || '',
-          status: this.searchParams.status || '',
+          file_type: this.searchParams.file_type || '',
           per_page: this.perPage,
           page: this.items.current_page,
         };
@@ -608,11 +640,7 @@ export default {
         }
       } catch (error) {
         console.error('❌ Error loading data:', error);
-        
-        // ✅ THAY THẾ: Sử dụng modal cho lỗi load data
         this.showError(error.response?.data?.message || 'Lỗi khi tải dữ liệu');
-        
-        // Reset data khi có lỗi
         this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
         this.currentFolder = null;
         this.breadcrumbs = [];
@@ -620,37 +648,49 @@ export default {
         this.loading = false;
       }
     },
-
-async loadUserInfo() {
-      try {
-        const userMeta = document.querySelector('meta[name="user-info"]');
-        if (userMeta) {
-          this.userInfo = JSON.parse(userMeta.getAttribute('content'));
-        }
-      } catch (error) {
-        console.error('Error loading user info:', error);
-      }
+    // THÊM: Method refresh cả danh sách loại tài liệu
+    async refreshDocumentTypes() {
+      await this.loadDocumentTypes();
     },
 
-   getItemIcon(item) {
-  if (!item) return 'fas fa-question-circle text-gray-400';
-  
-  if (item.item_type === 'folder') {
-    return 'fas fa-folder text-yellow-500';
-  }
-  
-  const icons = {
-    'PDF': 'fas fa-file-pdf text-red-500',
-    'Word': 'fas fa-file-word text-blue-500',
-    'Excel': 'fas fa-file-excel text-green-500',
-    'PowerPoint': 'fas fa-file-powerpoint text-orange-500',
-    'Image': 'fas fa-file-image text-purple-500',
-    'Video': 'fas fa-file-video text-pink-500',
-    'Audio': 'fas fa-file-audio text-indigo-500',
-  };
-  
-  return icons[item.type_name] || 'fas fa-file text-gray-500';
-},
+ // CẬP NHẬT: Method manualReload để refresh cả document types
+    async manualReload() {
+      await Promise.all([
+        this.loadDocumentTypes(),
+        this.loadData()
+      ]);
+    },
+
+    async loadUserInfo() {
+          try {
+            const userMeta = document.querySelector('meta[name="user-info"]');
+            if (userMeta) {
+              this.userInfo = JSON.parse(userMeta.getAttribute('content'));
+            }
+          } catch (error) {
+            console.error('Error loading user info:', error);
+          }
+        },
+
+      getItemIcon(item) {
+      if (!item) return 'fas fa-question-circle text-gray-400';
+      
+      if (item.item_type === 'folder') {
+        return 'fas fa-folder text-yellow-500';
+      }
+      
+      const icons = {
+        'PDF': 'fas fa-file-pdf text-red-500',
+        'Word': 'fas fa-file-word text-blue-500',
+        'Excel': 'fas fa-file-excel text-green-500',
+        'PowerPoint': 'fas fa-file-powerpoint text-orange-500',
+        'Image': 'fas fa-file-image text-purple-500',
+        'Video': 'fas fa-file-video text-pink-500',
+        'Audio': 'fas fa-file-audio text-indigo-500',
+      };
+      
+      return icons[item.type_name] || 'fas fa-file text-gray-500';
+    },
 
     goToFolder(folderId) {
       console.log('🔍 Navigate to folder:', folderId);
@@ -863,8 +903,7 @@ async loadUserInfo() {
     },
 
     resetFilters() {
-      this.searchParams = { name: '', date: '', status: '' };
-      this.perPage = 20;
+      this.searchParams = { name: '', date: '', file_type: '' }; 
       this.items.current_page = 1;
       this.loadData();
     },
@@ -938,10 +977,6 @@ async loadUserInfo() {
         this.stopAutoReload();
         console.log('🔕 Auto-reload: OFF');
       }
-    },
-
-    manualReload() {
-      this.loadData();
     },
   }
 }
