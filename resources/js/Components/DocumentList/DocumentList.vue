@@ -419,7 +419,7 @@ const goToPage = (page) => {
 
 // Go to Detail
 const goDetail = (id) => {
-  window.location.href = `/documents/${id}/detail`
+  window.location.href = `/documents/${id}`
 }
 
 // Scroll to Top
