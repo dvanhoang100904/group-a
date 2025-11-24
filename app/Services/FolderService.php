@@ -386,11 +386,10 @@ class FolderService
     /**
      * Lấy danh sách folders + documents (cho Home page)
      */
-    /**
-     * Lấy danh sách folders + documents (cho Home page)
-     */
-    public function getFoldersAndDocuments(array $params)
+    public function getFoldersAndDocuments(array $params = []) // ✅ THÊM default value
     {
+        \Log::info('🔍 FolderService filters received:', $params); // ✅ SỬA: $params thay vì $filters
+
         $user = Auth::user();
         $perPage = $params['per_page'] ?? 20;
         $currentFolderId = $params['parent_id'] ?? null;
@@ -403,19 +402,26 @@ class FolderService
         $searchName = $params['name'] ?? '';
         $searchDate = $params['date'] ?? '';
         $searchStatus = $params['status'] ?? '';
+        $searchFileType = $params['file_type'] ?? ''; // ✅ THÊM: Lấy file_type filter
 
         // ==================== LẤY FOLDERS ====================
         $foldersQuery = Folder::where('user_id', $user->user_id)
             ->where('parent_folder_id', $currentFolderId);
 
-        if ($searchName) {
-            $foldersQuery->where('name', 'like', "%{$searchName}%");
-        }
-        if ($searchDate) {
-            $foldersQuery->whereDate('created_at', $searchDate);
-        }
-        if ($searchStatus) {
-            $foldersQuery->where('status', $searchStatus);
+        // ✅ FIX: Chỉ hiển thị folders khi không filter hoặc filter = 'folder'
+        if ($searchFileType && $searchFileType !== 'folder') {
+            $foldersQuery->whereRaw('1 = 0'); // Ẩn folders khi filter document type
+        } else {
+            // Áp dụng các filter khác cho folders
+            if ($searchName) {
+                $foldersQuery->where('name', 'like', "%{$searchName}%");
+            }
+            if ($searchDate) {
+                $foldersQuery->whereDate('created_at', $searchDate);
+            }
+            if ($searchStatus) {
+                $foldersQuery->where('status', $searchStatus);
+            }
         }
 
         $folders = $foldersQuery->withCount(['childFolders', 'documents'])->get();
@@ -425,14 +431,42 @@ class FolderService
             ->where('user_id', $user->user_id)
             ->where('folder_id', $currentFolderId);
 
-        if ($searchName) {
-            $documentsQuery->where('title', 'like', "%{$searchName}%");
+        // ✅ FIX: Chỉ hiển thị documents khi không filter hoặc filter document type
+        if ($searchFileType === 'folder') {
+            $documentsQuery->whereRaw('1 = 0'); // Ẩn documents khi filter = 'folder'
+        } else {
+            // Áp dụng các filter cho documents
+            if ($searchName) {
+                $documentsQuery->where('title', 'like', "%{$searchName}%");
+            }
+            if ($searchDate) {
+                $documentsQuery->whereDate('created_at', $searchDate);
+            }
+            if ($searchStatus) {
+                $documentsQuery->where('status', $searchStatus);
+            }
+
+            // Filter theo file_type cho documents
+            if ($searchFileType && $searchFileType !== 'folder') {
+                $documentsQuery->whereHas('type', function ($query) use ($searchFileType) {
+                    $query->where('name', $searchFileType);
+                });
+            }
         }
-        if ($searchDate) {
-            $documentsQuery->whereDate('created_at', $searchDate);
-        }
-        if ($searchStatus) {
-            $documentsQuery->where('status', $searchStatus);
+
+        $documents = $documentsQuery->orderByDesc('created_at')->get();
+
+        // ✅ THÊM: Filter theo file_type
+        if ($searchFileType) {
+            if ($searchFileType === 'folder') {
+                // Nếu chọn "Thư mục", chỉ trả về folders
+                $documentsQuery->whereRaw('1 = 0'); // Không trả về document nào
+            } else {
+                // Filter theo loại tài liệu
+                $documentsQuery->whereHas('type', function ($query) use ($searchFileType) {
+                    $query->where('name', $searchFileType);
+                });
+            }
         }
 
         $documents = $documentsQuery->orderByDesc('created_at')->get();
@@ -492,8 +526,15 @@ class FolderService
             })
         );
 
+        // ✅ THÊM: Xử lý trường hợp chỉ hiển thị folders
+        if ($searchFileType === 'folder') {
+            $items = $items->filter(function ($item) {
+                return $item['item_type'] === 'folder';
+            });
+        }
+
         // ==================== PHÂN TRANG ====================
-        $page = $params['page'] ?? 1; // Sửa: lấy page từ params thay vì request()
+        $page = $params['page'] ?? 1;
         $offset = ($page - 1) * $perPage;
         $total = $items->count();
         $lastPage = ceil($total / $perPage);
@@ -503,7 +544,7 @@ class FolderService
             $total,
             $perPage,
             $page,
-            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $params] // Sửa: sử dụng params thay vì request()->query()
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $params]
         );
 
         // ==================== BREADCRUMBS ====================
@@ -518,9 +559,8 @@ class FolderService
             }
         }
 
-        // ✅ FIX: Trả về $paginatedItems thay vì $combinedItems
         return [
-            'items' => $paginatedItems, // SỬA: $paginatedItems thay vì $combinedItems
+            'items' => $paginatedItems,
             'currentFolder' => $currentFolder,
             'breadcrumbs' => $breadcrumbs,
         ];
