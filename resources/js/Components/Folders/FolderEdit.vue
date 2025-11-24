@@ -29,20 +29,7 @@
       <!-- Form -->
       <div v-else class="bg-white rounded-lg shadow p-6">
         <!-- Success Message -->
-        <div v-if="successMessage" class="mb-4 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded">
-          <div class="flex items-center">
-            <i class="fas fa-check-circle text-green-500 mr-3"></i>
-            <span>{{ successMessage }}</span>
-          </div>
-        </div>
-
-        <!-- Error Message khi submit -->
-        <div v-if="errorMessage" class="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
-          <div class="flex items-center">
-            <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
-            <span>{{ errorMessage }}</span>
-          </div>
-        </div>
+      
 
         <form @submit.prevent="submitForm">
           <!-- Tên thư mục -->
@@ -131,6 +118,47 @@
         </form>
       </div>
     </div>
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i>
+            <h3 class="text-lg font-medium text-gray-900">Thành công</h3>
+          </div>
+          <p class="text-sm text-gray-600 mb-6">
+            {{ successMessage }}
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button @click="continueAfterSuccess" 
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center transition-colors">
+              <i class="fas fa-check mr-2"></i>Tiếp tục
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div v-if="showErrorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-exclamation-circle text-red-500 text-2xl mr-3"></i>
+            <h3 class="text-lg font-medium text-gray-900">Lỗi</h3>
+          </div>
+          <p class="text-sm text-gray-600 mb-6">
+            {{ errorMessage }}
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button @click="hideErrorModal" 
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -139,7 +167,7 @@ import axios from 'axios';
 
 export default {
   name: 'FolderEdit',
-  data() {
+   data() {
     return {
       // Data từ API
       folder: {},
@@ -160,7 +188,11 @@ export default {
       errors: {},
       successMessage: '',
       errorMessage: '',
-      loadError: ''
+      loadError: '',
+      
+      // ✅ THÊM: Modal states
+      showSuccessModal: false,
+      showErrorModal: false
     }
   },
   mounted() {
@@ -174,6 +206,34 @@ export default {
     }
   },
   methods: {
+    // ✅ THÊM: Modal methods
+    continueAfterSuccess() {
+      this.showSuccessModal = false;
+      this.successMessage = '';
+      
+      // Redirect về trang folders
+      const parentId = this.folder.parent_folder_id || this.form.parent_folder_id;
+      const redirectUrl = parentId 
+        ? `/folders?parent_id=${parentId}`
+        : '/folders';
+      window.location.href = redirectUrl;
+    },
+
+    hideErrorModal() {
+      this.showErrorModal = false;
+      this.errorMessage = '';
+    },
+
+    showSuccess(message) {
+      this.successMessage = message;
+      this.showSuccessModal = true;
+    },
+
+    showError(message) {
+      this.errorMessage = message;
+      this.showErrorModal = true;
+    },
+
     // ==================== API CALLS ====================
     async loadFolderData() {
       this.loading = true;
@@ -258,31 +318,29 @@ export default {
         const response = await axios.put(`/api/folders/${folderId}`, this.form);
 
         if (response.data.success) {
-          this.successMessage = response.data.message;
+          // ✅ THAY THẾ: Hiển thị modal thông báo thành công
+          this.showSuccess(response.data.message);
           
           // Cập nhật data local sau khi thành công
           this.folder = { ...this.folder, ...response.data.data };
           
-          // Redirect sau 1.5 giây
-          setTimeout(() => {
-            const parentId = response.data.data.parent_folder_id || this.folder.parent_folder_id;
-            const redirectUrl = parentId 
-              ? `/folders?parent_id=${parentId}`
-              : '/folders';
-            window.location.href = redirectUrl;
-          }, 1500);
+          // XÓA: Redirect tự động, sẽ redirect khi user nhấn "Tiếp tục"
         } else {
-          this.errorMessage = response.data.message || 'Lỗi khi cập nhật thư mục';
+          // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
+          this.showError(response.data.message || 'Lỗi khi cập nhật thư mục');
         }
       } catch (error) {
         console.error('Submit Error:', error);
         if (error.response && error.response.status === 422) {
           this.errors = error.response.data.errors || {};
-          this.errorMessage = 'Vui lòng kiểm tra lại thông tin đã nhập.';
+          // ✅ THAY THẾ: Hiển thị modal thông báo lỗi validation
+          this.showError('Vui lòng kiểm tra lại thông tin đã nhập.');
         } else if (error.response && error.response.data.message) {
-          this.errorMessage = error.response.data.message;
+          // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
+          this.showError(error.response.data.message);
         } else {
-          this.errorMessage = 'Đã có lỗi xảy ra khi cập nhật thư mục. Vui lòng thử lại.';
+          // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
+          this.showError('Đã có lỗi xảy ra khi cập nhật thư mục. Vui lòng thử lại.');
         }
       } finally {
         this.submitting = false;
@@ -309,7 +367,29 @@ export default {
 
     retryLoad() {
       this.loadFolderData();
+    },
+
+    // ✅ THÊM: Handle Escape key
+    handleKeydown(event) {
+      if (event.key === 'Escape') {
+        if (this.showSuccessModal) {
+          this.continueAfterSuccess();
+        }
+        if (this.showErrorModal) {
+          this.hideErrorModal();
+        }
+      }
     }
+  },
+  
+  // ✅ THÊM: Event listeners cho phím
+  mounted() {
+    this.loadFolderData();
+    document.addEventListener('keydown', this.handleKeydown);
+  },
+  
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.handleKeydown);
   }
 }
 </script>
