@@ -43,6 +43,7 @@ class FolderController extends Controller
                 'name' => 'nullable|string|max:255',
                 'date' => 'nullable|date',
                 'status' => 'nullable|in:public,private',
+                'file_type' => 'nullable|string|max:255',
                 'parent_id' => 'nullable|integer',
                 'per_page' => 'nullable|integer|min:1|max:100',
                 'page' => 'nullable|integer|min:1'
