@@ -114,13 +114,6 @@
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
     </div>
 
-    <!-- Messages -->
-    <div v-if="successMessage" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded flex items-center">
-      <i class="fas fa-check-circle mr-2"></i>{{ successMessage }}
-    </div>
-    <div v-if="errorMessage" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded flex items-center">
-      <i class="fas fa-exclamation-circle mr-2"></i>{{ errorMessage }}
-    </div>
 
     <!-- Delete Modal -->
     <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
@@ -142,6 +135,48 @@
             <button @click="confirmDelete" 
                     class="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg flex items-center transition-colors">
               <i class="fas fa-trash mr-2"></i>Xóa
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+     <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i>
+            <h3 class="text-lg font-medium text-gray-900">Thành công</h3>
+          </div>
+          <p class="text-sm text-gray-600 mb-6">
+            {{ successMessage }}
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button @click="continueAfterSuccess" 
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center transition-colors">
+              <i class="fas fa-sync-alt mr-2"></i>Tiếp tục
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div v-if="showErrorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-exclamation-circle text-red-500 text-2xl mr-3"></i>
+            <h3 class="text-lg font-medium text-gray-900">Lỗi</h3>
+          </div>
+          <p class="text-sm text-gray-600 mb-6">
+            {{ errorMessage }}
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button @click="hideErrorModal" 
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+              Đóng
             </button>
           </div>
         </div>
@@ -347,7 +382,7 @@ import axios from 'axios';
 
 export default {
   name: 'FolderIndex',
-  data() {
+   data() {
     return {
       items: { 
         data: [], 
@@ -365,6 +400,8 @@ export default {
       perPage: 20,
       successMessage: '',
       errorMessage: '',
+      showSuccessModal: false,
+      showErrorModal: false, 
       searchParams: { 
         name: '', 
         date: '', 
@@ -389,9 +426,9 @@ export default {
     }
   },
   computed: {
-     safeItems() {
-    return (this.items.data || []).filter(item => item !== null && item !== undefined);
-  },
+    safeItems() {
+      return (this.items.data || []).filter(item => item !== null && item !== undefined);
+    },
     hasActiveFilters() {
       return this.searchParams.name || this.searchParams.date || this.searchParams.status;
     },
@@ -475,19 +512,16 @@ export default {
         top: y + 'px'
       };
     },
-     safeItems() {
-    return this.items.data || [];
-  },
   
   safePagination() {
-    return {
-      current_page: this.items.current_page || 1,
-      last_page: this.items.last_page || 1,
-      from: this.items.from || 0,
-      to: this.items.to || 0,
-      total: this.items.total || 0
-    };
-  }
+      return {
+        current_page: this.items.current_page || 1,
+        last_page: this.items.last_page || 1,
+        from: this.items.from || 0,
+        to: this.items.to || 0,
+        total: this.items.total || 0
+      };
+    }
   },
   mounted() {
     this.loadUserInfo();
@@ -508,67 +542,86 @@ export default {
   },
   methods: {
     getItemKey(item) {
-    if (!item) return 'null-item';
-    return `${item.item_type}-${item.id}`;
-  },
+      if (!item) return 'null-item';
+      return `${item.item_type}-${item.id}`;
+    },
+     // ✅ THAY THẾ: Method tiếp tục sau khi thành công
+    continueAfterSuccess() {
+      this.showSuccessModal = false;
+      this.successMessage = '';
+      this.loadData(); // Reload lại table list view
+    },
+
+    // ✅ THAY THẾ: Method ẩn modal lỗi
+    hideErrorModal() {
+      this.showErrorModal = false;
+      this.errorMessage = '';
+    },
+
+    // ✅ THAY THẾ: Hiển thị modal thành công
+    showSuccess(message) {
+      this.successMessage = message;
+      this.showSuccessModal = true;
+    },
+
+    // ✅ THAY THẾ: Hiển thị modal lỗi
+    showError(message) {
+      this.errorMessage = message;
+      this.showErrorModal = true;
+    },
+
     async loadData() {
-  this.loading = true;
-  this.errorMessage = '';
-  
-  try {
-    const params = {
-      name: this.searchParams.name || '',
-      date: this.searchParams.date || '',
-      status: this.searchParams.status || '',
-      per_page: this.perPage,
-      page: this.items.current_page,
-    };
-
-    if (this.currentFolder?.folder_id) {
-      params.parent_id = this.currentFolder.folder_id;
-    }
-
-    console.log('📡 Loading data with params:', params);
-
-    const response = await axios.get('/api/folders', { params });
-    
-    console.log('📄 API Response:', response.data);
-
-    if (response.data.success) {
-      const data = response.data.data;
+      this.loading = true;
       
-      // ✅ Đảm bảo items luôn có cấu trúc đúng
-      this.items = {
-        data: data.items?.data || data.items || [],
-        current_page: data.items?.current_page || data.current_page || 1,
-        last_page: data.items?.last_page || data.last_page || 1,
-        from: data.items?.from || data.from || 0,
-        to: data.items?.to || data.to || 0,
-        total: data.items?.total || data.total || 0
-      };
-      
-      this.currentFolder = data.currentFolder || null;
-      this.breadcrumbs = data.breadcrumbs || [];
-      this.lastUpdate = new Date().toISOString();
-      
-      console.log('✅ Load success:', this.items.data.length, 'items');
-    } else {
-      throw new Error(response.data.message || 'API response not successful');
-    }
-  } catch (error) {
-    console.error('❌ Error loading data:', error);
-    this.errorMessage = error.response?.data?.message || 'Lỗi khi tải dữ liệu';
-    
-    // Reset data khi có lỗi
-    this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
-    this.currentFolder = null;
-    this.breadcrumbs = [];
-  } finally {
-    this.loading = false;
-  }
-},
+      try {
+        const params = {
+          name: this.searchParams.name || '',
+          date: this.searchParams.date || '',
+          status: this.searchParams.status || '',
+          per_page: this.perPage,
+          page: this.items.current_page,
+        };
 
-    async loadUserInfo() {
+        if (this.currentFolder?.folder_id) {
+          params.parent_id = this.currentFolder.folder_id;
+        }
+
+        const response = await axios.get('/api/folders', { params });
+        
+        if (response.data.success) {
+          const data = response.data.data;
+          
+          this.items = {
+            data: data.items?.data || data.items || [],
+            current_page: data.items?.current_page || data.current_page || 1,
+            last_page: data.items?.last_page || data.last_page || 1,
+            from: data.items?.from || data.from || 0,
+            to: data.items?.to || data.to || 0,
+            total: data.items?.total || data.total || 0
+          };
+          
+          this.currentFolder = data.currentFolder || null;
+          this.breadcrumbs = data.breadcrumbs || [];
+          this.lastUpdate = new Date().toISOString();
+        } else {
+          throw new Error(response.data.message || 'API response not successful');
+        }
+      } catch (error) {
+        console.error('❌ Error loading data:', error);
+        
+        // ✅ THAY THẾ: Sử dụng modal cho lỗi load data
+        this.showError(error.response?.data?.message || 'Lỗi khi tải dữ liệu');
+        
+        // Reset data khi có lỗi
+        this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
+        this.currentFolder = null;
+        this.breadcrumbs = [];
+      } finally {
+        this.loading = false;
+      }
+    },
+
+async loadUserInfo() {
       try {
         const userMeta = document.querySelector('meta[name="user-info"]');
         if (userMeta) {
@@ -681,7 +734,8 @@ export default {
         const response = await axios.delete(endpoint);
         
         if (response.data.success) {
-          this.successMessage = response.data.message;
+          // ✅ THAY THẾ: Hiển thị modal thông báo thành công
+          this.showSuccess(response.data.message);
           
           // Reset currentFolder if deleting current folder
           if (this.itemToDelete.item_type === 'folder' && 
@@ -690,72 +744,41 @@ export default {
             this.currentFolder = null;
           }
           
-          await this.loadData();
-          
-          // Auto hide success message
-          setTimeout(() => {
-            this.successMessage = '';
-          }, 5000);
+          // KHÔNG gọi loadData() ở đây nữa, sẽ gọi khi user nhấn "Tiếp tục"
         }
       } catch (error) {
         console.error('❌ Delete error:', error);
-        this.errorMessage = error.response?.data?.message || 'Lỗi khi xóa';
         
-        // Auto hide error message
-        setTimeout(() => {
-          this.errorMessage = '';
-        }, 8000);
+        // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
+        if (error.response?.data?.message) {
+          this.showError(error.response.data.message);
+        } else {
+          this.showError('Lỗi khi xóa: ' + error.message);
+        }
       } finally {
         this.showDeleteModal = false;
         this.itemToDelete = null;
       }
     },
-showContextMenu(event, item) {
-  if (!item) return;
-  
-  event.preventDefault();
-  event.stopPropagation();
-  
-  this.contextMenu = {
-    visible: true,
-    x: event.clientX,
-    y: event.clientY,
-    item: item
-  };
-  this.activeMenu = null;
-},
 
-toggleMenu(item, event) {
-  if (!item) return;
-  
-  if (this.activeMenu && this.activeMenu.id === item.id && this.activeMenu.item_type === item.item_type) {
-    this.activeMenu = null;
-    return;
-  }
-
-  const button = event.target.closest('button');
-  if (button) {
-    const rect = button.getBoundingClientRect();
-    this.actionDropdownPosition = {
-      x: rect.right - 224,
-      y: rect.bottom
-    };
-  }
-
-  this.activeMenu = item;
-  this.hideContextMenu();
-},
-
-    hideContextMenu() {
-      this.contextMenu = { 
-        visible: false, 
-        x: 0, 
-        y: 0, 
-        item: null 
+    showContextMenu(event, item) {
+      if (!item) return;
+      
+      event.preventDefault();
+      event.stopPropagation();
+      
+      this.contextMenu = {
+        visible: true,
+        x: event.clientX,
+        y: event.clientY,
+        item: item
       };
+      this.activeMenu = null;
     },
 
-    toggleMenu(item, event) {
+ toggleMenu(item, event) {
+      if (!item) return;
+      
       if (this.activeMenu && this.activeMenu.id === item.id && this.activeMenu.item_type === item.item_type) {
         this.activeMenu = null;
         return;
@@ -774,7 +797,16 @@ toggleMenu(item, event) {
       this.hideContextMenu();
     },
 
-    closeMenu(event) {
+    hideContextMenu() {
+      this.contextMenu = { 
+        visible: false, 
+        x: 0, 
+        y: 0, 
+        item: null 
+      };
+    },     
+
+     closeMenu(event) {
       const isDropdown = event.target.closest('.action-dropdown-container');
       const isFixed = event.target.closest('.action-dropdown-fixed');
       
@@ -783,12 +815,18 @@ toggleMenu(item, event) {
       }
     },
 
-    handleKeydown(event) {
+      handleKeydown(event) {
       if (event.key === 'Escape') {
         this.activeMenu = null;
         this.hideContextMenu();
         if (this.showDeleteModal) {
           this.cancelDelete();
+        }
+        if (this.showSuccessModal) {
+          this.continueAfterSuccess();
+        }
+        if (this.showErrorModal) {
+          this.hideErrorModal();
         }
       }
     },
@@ -908,7 +946,6 @@ toggleMenu(item, event) {
   }
 }
 </script>
-
 <style scoped>
 /* Context Menu Styles */
 .context-menu {
