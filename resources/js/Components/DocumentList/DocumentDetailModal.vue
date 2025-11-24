@@ -27,20 +27,27 @@
               <a
                 v-if="currentVersion"
                 :href="`/documents/versions/${currentVersion.version_id}/download`"
-                class="btn btn-primary btn-block"
+                class="btn btn-primary btn-block mb-2"
               >
-                <i class="fas fa-download"></i> Tải xuống
+                <i class="bi bi-download me-1"></i> Tải xuống
               </a>
 
-              <button v-if="canEdit" class="btn btn-warning btn-block">
-                <i class="fas fa-edit"></i> Chỉnh sửa
+              <!--Document Accesses -->
+              <a :href="`/documents/${document.document_id}/accesses`" class="btn btn-primary btn-block mb-2">
+                <i class="bi bi-shield-lock me-1"></i> Cài đặt chia sẻ
+              </a>
+
+              <!-- Document Versions -->
+              <a :href="`/documents/${document.document_id}/versions`" class="btn btn-outline-primary btn-block mb-2">
+                <i class="bi bi-clock-history me-1"></i> Phiên bản
+              </a>
+
+              <button v-if="canEdit" class="btn btn-outline-primary btn-block mb-2">
+                <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
               </button>
-              <a :href="`/documents/${document.document_id}/versions`" class="btn btn-info btn-block">
-                <i class="fas fa-history me-1"></i> Phiên bản
-              </a>
 
-              <a href="/documents" class="btn btn-secondary btn-block">
-                <i class="fas fa-arrow-left"></i> Quay lại
+              <a href="/documents" class="btn btn-outline-secondary btn-block">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
               </a>
             </div>
           </div>
