@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Document;
 use Illuminate\Http\Request;
+use App\Models\DocumentVersion;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -121,5 +123,30 @@ class DocumentController extends Controller
             'total' => $documents->total(),
             'per_page' => $documents->perPage(),
         ]);
+    }
+    public function downloadVersion($versionId)
+    {
+        $version = DocumentVersion::find($versionId);
+
+        if (!$version) {
+            abort(404, 'Phiên bản tài liệu không tồn tại.');
+        }
+
+        // Kiểm tra file_path có hợp lệ không
+        if (!$version->file_path || trim($version->file_path) === '') {
+            abort(500, 'File path rỗng hoặc không hợp lệ trong database.');
+        }
+
+        // Đường dẫn trong disk public
+        $filePath = $version->file_path;
+
+        if (!Storage::disk('public')->exists($filePath)) {
+            abort(404, 'Không tìm thấy file trên hệ thống.');
+        }
+
+        // Tên file trả về cho người dùng
+        $downloadName = basename($filePath);
+
+        return Storage::disk('public')->download($filePath, $downloadName);
     }
 }

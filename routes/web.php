@@ -57,6 +57,12 @@ Route::get('/documents/{id}', function ($id) {
 	return view('documents.See_Document_Details.Document_Detail', compact('id'));
 })->name('documents.show');
 
+// Route tải tài liệu tại chi tiết
+Route::get(
+	'/documents/versions/{versionId}/download',
+	[DocumentController::class, 'downloadVersion']
+)->name('documents.version.download');
+
 // Document Versions
 Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login');;
 
