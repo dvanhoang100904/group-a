@@ -106,6 +106,11 @@
             <i class="fas fa-home mr-1"></i>Root
           </button>
         </li>
+        <li>
+          <button @click="goToRoot" class="text-blue-500 hover:text-blue-700 flex items-center">
+            <i class="fas fa-home mr-1"></i>Root
+          </button>
+        </li>
         <li v-for="(crumb, idx) in breadcrumbs" :key="crumb.folder_id || idx" class="flex items-center">
           <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
           <button v-if="crumb.folder_id && idx < breadcrumbs.length - 1" 
@@ -121,14 +126,14 @@
       <button v-if="currentFolder && !isSearchMode" @click="goToParent" 
               class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
         <i class="fas fa-arrow-left mr-2"></i>Quay lại
-      </button>
+      </button>      
 
       <!-- Nút thoát tìm kiếm -->
       <button v-if="isSearchMode && hasActiveFilters" @click="exitSearchMode" 
               class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
         <i class="fas fa-times mr-2"></i>Thoát tìm kiếm
       </button>
-    </nav>
+    </nav>  
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-8">
