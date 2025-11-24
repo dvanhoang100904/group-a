@@ -155,15 +155,15 @@
 
                         <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
                             <a class="small text-muted text-decoration-none" href="#!">Quên mật khẩu?</a>
-                            <button type="submit" class="btn btn-primary px-4">Đăng nhập</button>
+                            <button id="loginBtn" type="submit" class="btn btn-primary px-4">Đăng nhập</button>
                         </div>
                     </form>
-
-                    <div class="text-center mt-4 pt-3 border-top">
+                    
+                    {{-- <div class="text-center mt-4 pt-3 border-top">
                         <p class="mb-0">Bạn chưa có tài khoản?
                             <a class="text-primary text-decoration-none" href="#!">Tạo tài khoản mới</a>
                         </p>
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
@@ -171,6 +171,18 @@
 
     {{-- Bootstrap JS --}}
     <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
+
+    <script>
+        const loginForm = document.querySelector('form[role="form"]');
+        const loginBtn = document.getElementById('loginBtn');
+
+        if (loginForm && loginBtn) {
+            loginForm.addEventListener('submit', function() {
+                loginBtn.disabled = true;
+                loginBtn.innerText = 'Đang đăng nhập...';
+            });
+        }
+    </script>
 
 </body>
 
