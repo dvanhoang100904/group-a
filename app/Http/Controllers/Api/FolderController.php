@@ -7,10 +7,13 @@ use App\Services\FolderService;
 use App\Http\Requests\Folder\StoreFolderRequest;
 use App\Http\Requests\Folder\UpdateFolderRequest;
 use App\Models\Folder;
+use App\Models\Document;
+use App\Models\DocumentVersion;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class FolderController extends Controller
 {
@@ -55,17 +58,34 @@ class FolderController extends Controller
 
             $validatedData = $validator->validated();
 
-            $result = $this->folderService->getFoldersWithFilters($validatedData);
+            // ✅ FIX: Sử dụng service method đúng
+            $result = $this->folderService->getFoldersAndDocuments($validatedData);
+            $items = $result['items'] ?? [];
+            if ($items && method_exists($items, 'getCollection')) {
+                $filteredCollection = $items->getCollection()->filter(function ($item) {
+                    return $item !== null;
+                });
+                $items->setCollection($filteredCollection);
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $result
+                'data' => [
+                    'items' => $result['items'] ?? [],
+                    'currentFolder' => $result['currentFolder'] ?? null,
+                    'breadcrumbs' => $result['breadcrumbs'] ?? [],
+                    'current_page' => $request->input('page', 1),
+                    'last_page' => $result['items']->lastPage() ?? 1,
+                    'from' => $result['items']->firstItem() ?? 0,
+                    'to' => $result['items']->lastItem() ?? 0,
+                    'total' => $result['items']->total() ?? 0
+                ]
             ]);
         } catch (\Exception $e) {
             \Log::error('API Folder Index Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error loading folders'
+                'message' => 'Error loading folders: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -209,6 +229,118 @@ class FolderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error searching folders'
+            ], 500);
+        }
+    }
+    /**
+     * API: Xóa document
+     */
+    /**
+     * API: Xóa document - ĐÃ SỬA VỚI DEBUG
+     */
+    public function deleteDocument($id)
+    {
+        DB::beginTransaction();
+
+        try {
+            Log::info('=== API DELETE DOCUMENT START ===');
+            Log::info('Document ID:', ['id' => $id]);
+            Log::info('User ID:', ['user_id' => Auth::id()]);
+
+            // Kiểm tra user đăng nhập
+            if (!Auth::check()) {
+                Log::warning('User not authenticated');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $document = Document::find($id);
+
+            if (!$document) {
+                Log::warning('Document not found:', ['document_id' => $id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tài liệu không tồn tại'
+                ], 404);
+            }
+
+            Log::info('Document found:', [
+                'id' => $document->document_id,
+                'title' => $document->title,
+                'user_id' => $document->user_id,
+                'owner' => $document->user_id
+            ]);
+
+            // Kiểm tra quyền
+            if ($document->user_id != Auth::id()) {
+                Log::warning('Permission denied:', [
+                    'current_user' => Auth::id(),
+                    'document_owner' => $document->user_id
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa tài liệu này'
+                ], 403);
+            }
+
+            // Xóa các versions
+            $versions = DocumentVersion::where('document_id', $id)->get();
+            Log::info('Found versions:', ['count' => $versions->count()]);
+
+            foreach ($versions as $version) {
+                Log::info('Processing version:', [
+                    'version_id' => $version->id,
+                    'file_name' => $version->file_name
+                ]);
+
+                if ($version->file_name) {
+                    $filePath = base_path('app/Public_UploadFile/' . $version->file_name);
+                    Log::info('File path:', ['path' => $filePath]);
+
+                    if (file_exists($filePath)) {
+                        if (unlink($filePath)) {
+                            Log::info('File deleted successfully:', ['file' => $version->file_name]);
+                        } else {
+                            Log::warning('Failed to delete file:', ['file' => $version->file_name]);
+                        }
+                    } else {
+                        Log::warning('File not found:', ['file' => $version->file_name]);
+                    }
+                }
+
+                $version->delete();
+                Log::info('Version deleted:', ['version_id' => $version->id]);
+            }
+
+            $documentName = $document->title;
+            $document->delete();
+
+            Log::info('Document deleted successfully:', [
+                'document_id' => $id,
+                'document_name' => $documentName
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa tài liệu "' . $documentName . '" thành công!'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('=== API DELETE DOCUMENT ERROR ===');
+            Log::error('Error message: ' . $e->getMessage());
+            Log::error('Error trace: ' . $e->getTraceAsString());
+            Log::error('Error in file: ' . $e->getFile());
+            Log::error('Error on line: ' . $e->getLine());
+            Log::error('=== END ERROR ===');
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi hệ thống khi xóa tài liệu: ' . $e->getMessage()
             ], 500);
         }
     }

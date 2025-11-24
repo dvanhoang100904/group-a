@@ -73,6 +73,7 @@ Route::get('/folders', [FolderController::class, 'getFolder']);
 // =========================
 // 📁 Folder API Routes
 // =========================
+// Thêm vào cuối nhóm Folder API Routes
 Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/folders', [FolderController::class, 'index']);
     Route::get('/folders/{folder}', [FolderController::class, 'show']);
@@ -80,4 +81,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::put('/folders/{folder}', [FolderController::class, 'update']);
     Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
     Route::get('/folders/search', [FolderController::class, 'search']);
+
+    // Route xóa document
+    Route::delete('/documents/{id}', [FolderController::class, 'deleteDocument']);
 });
