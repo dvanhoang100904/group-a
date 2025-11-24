@@ -50,7 +50,7 @@
           <div class="relative flex-1">
             <input v-model="searchParams.name" 
                    type="text" 
-                   placeholder="Tìm theo tên folder hoặc file..." 
+                   placeholder="Tìm theo tên" 
                    class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
                    @keyup.enter="handleSearch">
             <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
