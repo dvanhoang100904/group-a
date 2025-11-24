@@ -14,7 +14,7 @@
           <button @click="openCreateFolder" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
             <i class="fas fa-folder-plus text-blue-500 mr-3"></i>Tạo thư mục
           </button>
-          <a :href="uploadFileUrl" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
+          <a :href="sanitizeUrl(uploadFileUrl)" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
             <i class="fas fa-file-upload text-green-500 mr-3"></i>Tải file lên
           </a>
         </div>
@@ -44,62 +44,64 @@
     <!-- Actions & Search -->
     <div class="flex flex-col lg:flex-row gap-4 mb-6">
       <!-- Search Section -->
-     <div class="flex flex-col lg:flex-row gap-4 mb-6">
-      <div class="flex-1 min-w-0">
-        <div class="flex flex-col sm:flex-row gap-2 bg-white rounded-lg shadow-sm border p-3">
-          <div class="relative flex-1">
-            <input v-model="searchParams.name" 
-                   type="text" 
-                   placeholder="Tìm theo tên" 
-                   class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                   @keyup.enter="handleSearch">
-            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-          </div>
-          
-          <div class="relative flex-1">
-            <input v-model="searchParams.date" 
-                   type="date" 
-                   class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-          </div>
-          
-          <!-- Lọc theo loại file -->
-          <div class="relative flex-1 min-w-0">
-            <select v-model="searchParams.file_type" 
-                    class="pl-10 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none w-full appearance-none bg-white truncate"
-                    :disabled="loadingDocumentTypes">
-              <option value="">Tất cả loại file</option>
-              <option value="folder">Thư mục</option>
-              <option v-for="docType in documentTypes" 
-                      :key="docType.type_id" 
-                      :value="docType.name"
-                      class="truncate">
-                {{ docType.name }}
-              </option>
-            </select>
-            <i class="fas fa-file-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-          </div>
-          
-          <div class="flex gap-2">
-            <button @click="handleSearch" 
-                    :disabled="loading"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 flex-shrink-0">
-              <i class="fas fa-search mr-2"></i>Tìm
-            </button>
+      <div class="flex flex-col lg:flex-row gap-4 mb-6">
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-col sm:flex-row gap-2 bg-white rounded-lg shadow-sm border p-3">
+            <div class="relative flex-1">
+              <input v-model="searchParams.name" 
+                     type="text" 
+                     placeholder="Tìm theo tên" 
+                     class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                     @keyup.enter="handleSearch"
+                     maxlength="255">
+              <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </div>
             
-            <button v-if="hasActiveFilters" @click="resetFilters" 
-                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-              <i class="fas fa-times mr-2"></i>Reset
-            </button>
+            <div class="relative flex-1">
+              <input v-model="searchParams.date" 
+                     type="date" 
+                     class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                     @change="validateDate">
+              <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            </div>
+            
+            <!-- Lọc theo loại file -->
+            <div class="relative flex-1 min-w-0">
+              <select v-model="searchParams.file_type" 
+                      class="pl-10 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none w-full appearance-none bg-white truncate"
+                      :disabled="loadingDocumentTypes">
+                <option value="">Tất cả loại file</option>
+                <option value="folder">Thư mục</option>
+                <option v-for="docType in documentTypes" 
+                        :key="docType.type_id" 
+                        :value="sanitizeInput(docType.name)"
+                        class="truncate">
+                  {{ sanitizeOutput(docType.name) }}
+                </option>
+              </select>
+              <i class="fas fa-file-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+            </div>
+            
+            <div class="flex gap-2">
+              <button @click="handleSearch" 
+                      :disabled="loading"
+                      class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 flex-shrink-0">
+                <i class="fas fa-search mr-2"></i>Tìm
+              </button>
+              
+              <button v-if="hasActiveFilters" @click="resetFilters" 
+                      class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                <i class="fas fa-times mr-2"></i>Reset
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
-      </div>
 
     <!-- Breadcrumbs -->
-       <nav v-if="breadcrumbs.length > 0 || !isSearchMode" class="flex items-center justify-between mb-6">
+    <nav v-if="breadcrumbs.length > 0 || !isSearchMode" class="flex items-center justify-between mb-6">
       <ol class="flex items-center space-x-2 text-sm">
         <!-- Root chỉ hiển thị khi KHÔNG ở chế độ tìm kiếm -->
         <li v-if="!isSearchMode">
@@ -115,9 +117,9 @@
             <button v-if="idx < breadcrumbs.length - 1" 
                     @click="goToFolder(crumb.folder_id)" 
                     class="text-blue-500 hover:text-blue-700">
-              {{ crumb.name }}
+              {{ sanitizeOutput(crumb.name) }}
             </button>
-            <span v-else class="text-gray-600 font-medium">{{ crumb.name }}</span>
+            <span v-else class="text-gray-600 font-medium">{{ sanitizeOutput(crumb.name) }}</span>
           </li>
         </template>
         
@@ -151,7 +153,7 @@
           </div>
           <p class="text-sm text-gray-600 mb-6">
             Bạn có chắc muốn xóa <strong>{{ itemToDelete?.item_type === 'folder' ? 'thư mục' : 'tài liệu' }}</strong> 
-            "<strong>{{ itemToDelete?.name }}</strong>"? Hành động này không thể hoàn tác.
+            "<strong>{{ sanitizeOutput(itemToDelete?.name) }}</strong>"? Hành động này không thể hoàn tác.
           </p>
           <div class="flex justify-end space-x-3">
             <button @click="cancelDelete" 
@@ -167,7 +169,7 @@
       </div>
     </div>
 
-     <!-- Success Modal -->
+    <!-- Success Modal -->
     <div v-if="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="p-6">
@@ -176,7 +178,7 @@
             <h3 class="text-lg font-medium text-gray-900">Thành công</h3>
           </div>
           <p class="text-sm text-gray-600 mb-6">
-            {{ successMessage }}
+            {{ sanitizeOutput(successMessage) }}
           </p>
           <div class="flex justify-end space-x-3">
             <button @click="continueAfterSuccess" 
@@ -197,7 +199,7 @@
             <h3 class="text-lg font-medium text-gray-900">Lỗi</h3>
           </div>
           <p class="text-sm text-gray-600 mb-6">
-            {{ errorMessage }}
+            {{ sanitizeOutput(errorMessage) }}
           </p>
           <div class="flex justify-end space-x-3">
             <button @click="hideErrorModal" 
@@ -221,7 +223,7 @@
     </div>
 
     <!-- Table -->
-   <div v-if="!loading" class="bg-white rounded-lg shadow overflow-hidden mb-6">
+    <div v-if="!loading" class="bg-white rounded-lg shadow overflow-hidden mb-6">
       <table class="min-w-full">
         <thead class="bg-gray-100">
           <tr>
@@ -246,7 +248,7 @@
                    @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
                 <i :class="getItemIcon(item)" class="text-lg mr-3"></i>
                 <div>
-                  <div class="text-sm font-medium text-gray-900">{{ item?.name || 'Unknown' }}</div>
+                  <div class="text-sm font-medium text-gray-900">{{ sanitizeOutput(item?.name) || 'Unknown' }}</div>
                   <!-- Chỉ hiển thị thông tin con khi không ở chế độ tìm kiếm -->
                   <div v-if="!isSearchMode && item && item.item_type === 'folder' && (item.child_folders_count > 0 || item.documents_count > 0)" 
                        class="text-xs text-gray-500 flex items-center">
@@ -261,13 +263,13 @@
             <td v-if="isSearchMode" class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
               <div class="flex items-center">
                 <i class="fas fa-folder text-yellow-500 mr-2"></i>
-                <span class="truncate max-w-xs">{{ item.folder_path || 'Thư mục gốc' }}</span>
+                <span class="truncate max-w-xs">{{ sanitizeOutput(item.folder_path) || 'Thư mục gốc' }}</span>
               </div>
             </td>
 
             <!-- Các cột khác giữ nguyên -->
             <td class="px-6 py-4 whitespace-nowrap" @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-              <span class="text-sm text-gray-600">{{ item?.type_name || 'Unknown' }}</span>
+              <span class="text-sm text-gray-600">{{ sanitizeOutput(item?.type_name) || 'Unknown' }}</span>
             </td>
 
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
@@ -291,7 +293,7 @@
             </td>
           </tr>
 
- <!-- Empty state -->
+          <!-- Empty state -->
           <tr v-if="(items.data || []).length === 0">
             <td :colspan="isSearchMode ? 6 : 5" class="px-6 py-12 text-center">
               <div class="flex flex-col items-center">
@@ -342,7 +344,7 @@
     <div v-if="contextMenu.visible" class="context-menu" :style="contextMenuStyle">
       <div class="context-menu-header">
         <i :class="getItemIcon(contextMenu.item)" class="mr-2"></i>
-        <span class="font-medium text-sm truncate">{{ contextMenu.item.name }}</span>
+        <span class="font-medium text-sm truncate">{{ sanitizeOutput(contextMenu.item.name) }}</span>
       </div>
       <div class="py-2">
         <button @click="openContextItem" class="context-menu-item">
@@ -350,7 +352,7 @@
              class="text-blue-500 mr-3" style="width: 16px;"></i>
           {{ contextMenu.item.item_type === 'folder' ? 'Mở thư mục' : 'Xem file' }}
         </button>
-         <!-- ✅ THÊM: Nút Sửa cho folder -->
+        <!-- ✅ THÊM: Nút Sửa cho folder -->
         <button v-if="contextMenu.item.item_type === 'folder'" 
                 @click="editFolder(contextMenu.item)" 
                 class="context-menu-item">
@@ -460,7 +462,6 @@ export default {
         name: '', 
         date: '', 
         file_type: '' 
-        
       },
       // THÊM: Danh sách loại tài liệu động
       documentTypes: [],
@@ -492,7 +493,9 @@ export default {
     },
     uploadFileUrl() {
       const folderId = this.currentFolder?.folder_id || null;
-      return `/upload?folder_id=${folderId}`;
+      // ✅ BẢO MẬT: Sanitize folder ID trong URL
+      const safeFolderId = folderId ? encodeURIComponent(folderId) : '';
+      return `/upload?folder_id=${safeFolderId}`;
     },
     pages() {
       const pages = [];
@@ -543,7 +546,7 @@ export default {
       };
     },
 
-     contextMenuStyle() {
+    contextMenuStyle() {
       if (!this.contextMenu.visible) return {};
       
       const menuWidth = 256;
@@ -602,44 +605,105 @@ export default {
     window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
-     goToFolder(folderId) {
-      // ✅ FIX: Xử lý cả chế độ tìm kiếm
-      if (this.isSearchMode) {
-        // Khi đang ở chế độ tìm kiếm, chuyển đến folder đó và thoát chế độ tìm kiếm
-        this.isSearchMode = false;
-        this.searchParams = { name: '', date: '', file_type: '' };
-      }
-      
-      this.currentFolder = { folder_id: folderId };
-      this.items.current_page = 1;
-      this.loadData();
+    // ✅ BẢO MẬT: Sanitize input để tránh XSS
+    sanitizeInput(value) {
+      if (value === null || value === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = value.toString();
+      return div.innerHTML.replace(/[^\w\s\-_.]/gi, '');
     },
 
-   // THÊM: Method load danh sách loại tài liệu
+    // ✅ BẢO MẬT: Sanitize output để tránh XSS
+    sanitizeOutput(value) {
+      if (value === null || value === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = value.toString();
+      return div.innerHTML;
+    },
+
+    // ✅ BẢO MẬT: Sanitize URL để tránh XSS và injection
+    sanitizeUrl(url) {
+      if (!url) return '';
+      try {
+        const parsed = new URL(url, window.location.origin);
+        // Chỉ cho phép các URL cùng origin hoặc đường dẫn tương đối
+        if (parsed.origin === window.location.origin || parsed.protocol === 'about:') {
+          return url;
+        }
+        return '';
+      } catch {
+        return '';
+      }
+    },
+
+    // ✅ BẢO MẬT: Validate folder ID
+    validateFolderId(folderId) {
+      if (!folderId || !Number.isInteger(Number(folderId)) || folderId <= 0) {
+        throw new Error('ID thư mục không hợp lệ');
+      }
+      return Number(folderId);
+    },
+
+    // ✅ BẢO MẬT: Validate date input
+    validateDate() {
+      if (this.searchParams.date) {
+        const date = new Date(this.searchParams.date);
+        if (isNaN(date.getTime())) {
+          this.searchParams.date = '';
+          this.showError('Ngày không hợp lệ');
+        }
+      }
+    },
+
+    goToFolder(folderId) {
+      // ✅ BẢO MẬT: Validate folder ID
+      try {
+        const validFolderId = this.validateFolderId(folderId);
+        
+        if (this.isSearchMode) {
+          this.isSearchMode = false;
+          this.searchParams = { name: '', date: '', file_type: '' };
+        }
+        
+        this.currentFolder = { folder_id: validFolderId };
+        this.items.current_page = 1;
+        this.loadData();
+      } catch (error) {
+        this.showError('ID thư mục không hợp lệ');
+      }
+    },
+
+    // THÊM: Method load danh sách loại tài liệu
     async loadDocumentTypes() {
       this.loadingDocumentTypes = true;
       try {
         const response = await axios.get('/api/types');
         
-        // API trả về trực tiếp array, không có wrapper success/data
-        this.documentTypes = response.data || [];
+        // ✅ BẢO MẬT: Sanitize document type names
+        this.documentTypes = (response.data || []).map(docType => ({
+          ...docType,
+          name: this.sanitizeInput(docType.name)
+        }));
         
       } catch (error) {
         // Fallback to empty array if API fails
         this.documentTypes = [];
+        console.error('Error loading document types:', error);
       } finally {
         this.loadingDocumentTypes = false;
       }
     },
+
     getItemKey(item) {
       if (!item) return 'null-item';
       return `${item.item_type}-${item.id}`;
     },
-     // ✅ THAY THẾ: Method tiếp tục sau khi thành công
+
+    // ✅ THAY THẾ: Method tiếp tục sau khi thành công
     continueAfterSuccess() {
       this.showSuccessModal = false;
       this.successMessage = '';
-      this.loadData(); // Reload lại table list view
+      this.loadData();
     },
 
     // ✅ THAY THẾ: Method ẩn modal lỗi
@@ -650,24 +714,25 @@ export default {
 
     // ✅ THAY THẾ: Hiển thị modal thành công
     showSuccess(message) {
-      this.successMessage = message;
+      this.successMessage = this.sanitizeOutput(message);
       this.showSuccessModal = true;
     },
 
     // ✅ THAY THẾ: Hiển thị modal lỗi
     showError(message) {
-      this.errorMessage = message;
+      this.errorMessage = this.sanitizeOutput(message);
       this.showErrorModal = true;
     },
 
-         async loadData() {
+    async loadData() {
       this.loading = true;
       
       try {
+        // ✅ BẢO MẬT: Sanitize search parameters
         const params = {
-          name: this.searchParams.name || '',
+          name: this.sanitizeInput(this.searchParams.name || ''),
           date: this.searchParams.date || '',
-          file_type: this.searchParams.file_type || '',
+          file_type: this.sanitizeInput(this.searchParams.file_type || ''),
           per_page: this.perPage,
           page: this.items.current_page,
         };
@@ -699,7 +764,8 @@ export default {
           throw new Error(response.data.message || 'API response not successful');
         }
       } catch (error) {
-        this.showError(error.response?.data?.message || 'Lỗi khi tải dữ liệu');
+        const errorMsg = error.response?.data?.message || 'Lỗi khi tải dữ liệu';
+        this.showError(errorMsg);
         this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
         this.currentFolder = null;
         this.breadcrumbs = [];
@@ -708,7 +774,6 @@ export default {
         this.loading = false;
       }
     },
-
 
     exitSearchMode() {
       this.resetFilters();
@@ -719,7 +784,7 @@ export default {
       await this.loadDocumentTypes();
     },
 
- // CẬP NHẬT: Method manualReload để refresh cả document types
+    // CẬP NHẬT: Method manualReload để refresh cả document types
     async manualReload() {
       await Promise.all([
         this.loadDocumentTypes(),
@@ -728,16 +793,17 @@ export default {
     },
 
     async loadUserInfo() {
-          try {
-            const userMeta = document.querySelector('meta[name="user-info"]');
-            if (userMeta) {
-              this.userInfo = JSON.parse(userMeta.getAttribute('content'));
-            }
-          } catch (error) {
-          }
-        },
+      try {
+        const userMeta = document.querySelector('meta[name="user-info"]');
+        if (userMeta) {
+          this.userInfo = JSON.parse(userMeta.getAttribute('content'));
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      }
+    },
 
-      getItemIcon(item) {
+    getItemIcon(item) {
       if (!item) return 'fas fa-question-circle text-gray-400';
       
       if (item.item_type === 'folder') {
@@ -773,34 +839,57 @@ export default {
 
     openCreateFolder() {
       const parentId = this.currentFolder?.folder_id || null;
-      window.location.href = `/folders/create?parent_id=${parentId}`;
+      // ✅ BẢO MẬT: Sanitize URL
+      const safeParentId = parentId ? encodeURIComponent(parentId) : '';
+      window.location.href = `/folders/create?parent_id=${safeParentId}`;
       this.showNewDropdown = false;
     },
 
     editFolder(item) {
-      window.location.href = `/folders/${item.id}/edit`;
-      this.activeMenu = null;
+      // ✅ BẢO MẬT: Validate item ID
+      try {
+        const validId = this.validateFolderId(item.id);
+        window.location.href = `/folders/${validId}/edit`;
+        this.activeMenu = null;
+      } catch (error) {
+        this.showError('ID không hợp lệ');
+      }
     },
 
     openDocument(item) {
       if (item.file_path) {
-        window.open(item.file_path, '_blank');
+        // ✅ BẢO MẬT: Sanitize URL trước khi mở
+        const safeUrl = this.sanitizeUrl(item.file_path);
+        if (safeUrl) {
+          window.open(safeUrl, '_blank', 'noopener,noreferrer');
+        } else {
+          this.showError('Đường dẫn file không hợp lệ');
+        }
       } else {
-        this.errorMessage = 'File không tồn tại';
+        this.showError('File không tồn tại');
       }
       this.hideContextMenu();
     },
 
     downloadDocument(item) {
       if (item.file_path) {
-        const a = document.createElement('a');
-        a.href = item.file_path;
-        a.download = item.file_name || item.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        // ✅ BẢO MẬT: Sanitize URL và filename
+        const safeUrl = this.sanitizeUrl(item.file_path);
+        const safeFilename = this.sanitizeInput(item.file_name || item.name);
+        
+        if (safeUrl) {
+          const a = document.createElement('a');
+          a.href = safeUrl;
+          a.download = safeFilename;
+          a.rel = 'noopener noreferrer';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          this.showError('Đường dẫn file không hợp lệ');
+        }
       } else {
-        this.errorMessage = 'File không tồn tại';
+        this.showError('File không tồn tại');
       }
       this.activeMenu = null;
       this.hideContextMenu();
@@ -821,15 +910,17 @@ export default {
     async confirmDelete() {
       if (!this.itemToDelete) return;
       
-      try {        
+      try {
+        // ✅ BẢO MẬT: Validate item ID
+        const validId = this.validateFolderId(this.itemToDelete.id);
+        
         const endpoint = this.itemToDelete.item_type === 'folder' 
-          ? `/api/folders/${this.itemToDelete.id}`
-          : `/api/documents/${this.itemToDelete.id}`;
+          ? `/api/folders/${validId}`
+          : `/api/documents/${validId}`;
         
         const response = await axios.delete(endpoint);
         
         if (response.data.success) {
-          // ✅ THAY THẾ: Hiển thị modal thông báo thành công
           this.showSuccess(response.data.message);
           
           // Reset currentFolder if deleting current folder
@@ -838,17 +929,10 @@ export default {
               this.currentFolder.folder_id === this.itemToDelete.id) {
             this.currentFolder = null;
           }
-          
-          // KHÔNG gọi loadData() ở đây nữa, sẽ gọi khi user nhấn "Tiếp tục"
         }
       } catch (error) {
-        
-        // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
-        if (error.response?.data?.message) {
-          this.showError(error.response.data.message);
-        } else {
-          this.showError('Lỗi khi xóa: ' + error.message);
-        }
+        const errorMsg = error.response?.data?.message || 'Lỗi khi xóa: ' + error.message;
+        this.showError(errorMsg);
       } finally {
         this.showDeleteModal = false;
         this.itemToDelete = null;
@@ -870,7 +954,7 @@ export default {
       this.activeMenu = null;
     },
 
- toggleMenu(item, event) {
+    toggleMenu(item, event) {
       if (!item) return;
       
       if (this.activeMenu && this.activeMenu.id === item.id && this.activeMenu.item_type === item.item_type) {
@@ -900,7 +984,7 @@ export default {
       };
     },     
 
-     closeMenu(event) {
+    closeMenu(event) {
       const isDropdown = event.target.closest('.action-dropdown-container');
       const isFixed = event.target.closest('.action-dropdown-fixed');
       
@@ -909,7 +993,7 @@ export default {
       }
     },
 
-      handleKeydown(event) {
+    handleKeydown(event) {
       if (event.key === 'Escape') {
         this.activeMenu = null;
         this.hideContextMenu();
@@ -951,10 +1035,13 @@ export default {
       this.hideContextMenu();
     },
 
-     handleSearch() {
+    handleSearch() {
       this.items.current_page = 1;
       
-      // ✅ QUAN TRỌNG: Khi tìm kiếm, reset currentFolder để tìm kiếm toàn bộ hệ thống
+      // ✅ BẢO MẬT: Sanitize search parameters
+      this.searchParams.name = this.sanitizeInput(this.searchParams.name);
+      this.searchParams.file_type = this.sanitizeInput(this.searchParams.file_type);
+      
       if (this.searchParams.name || this.searchParams.date || this.searchParams.file_type) {
         this.currentFolder = null;
       }
@@ -1039,6 +1126,7 @@ export default {
   }
 }
 </script>
+
 <style scoped>
 /* Context Menu Styles */
 .context-menu {
