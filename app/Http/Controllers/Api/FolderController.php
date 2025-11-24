@@ -27,10 +27,10 @@ class FolderController extends Controller
     /**
      * Lấy danh sách folders của user đăng nhập
      */
+    // Trong FolderController
     public function index(Request $request): JsonResponse
     {
         try {
-            // Kiểm tra user đã đăng nhập chưa
             if (!Auth::check()) {
                 return response()->json([
                     'success' => false,
@@ -38,7 +38,6 @@ class FolderController extends Controller
                 ], 401);
             }
 
-            // Validate parameters
             $validator = \Validator::make($request->all(), [
                 'name' => 'nullable|string|max:255',
                 'date' => 'nullable|date',
@@ -59,8 +58,11 @@ class FolderController extends Controller
 
             $validatedData = $validator->validated();
 
-            // ✅ FIX: Sử dụng service method đúng
+            \Log::info('📦 API Request Data:', $validatedData);
+
+            // Gọi service với tất cả params
             $result = $this->folderService->getFoldersAndDocuments($validatedData);
+
             $items = $result['items'] ?? [];
             if ($items && method_exists($items, 'getCollection')) {
                 $filteredCollection = $items->getCollection()->filter(function ($item) {
@@ -69,19 +71,28 @@ class FolderController extends Controller
                 $items->setCollection($filteredCollection);
             }
 
-            return response()->json([
+            $responseData = [
                 'success' => true,
                 'data' => [
                     'items' => $result['items'] ?? [],
                     'currentFolder' => $result['currentFolder'] ?? null,
                     'breadcrumbs' => $result['breadcrumbs'] ?? [],
+                    'isSearchMode' => $result['isSearchMode'] ?? false,
                     'current_page' => $request->input('page', 1),
                     'last_page' => $result['items']->lastPage() ?? 1,
                     'from' => $result['items']->firstItem() ?? 0,
                     'to' => $result['items']->lastItem() ?? 0,
                     'total' => $result['items']->total() ?? 0
                 ]
+            ];
+
+            \Log::info('📤 API Response Summary:', [
+                'items_count' => count($responseData['data']['items']->items() ?? []),
+                'isSearchMode' => $responseData['data']['isSearchMode'],
+                'total' => $responseData['data']['total']
             ]);
+
+            return response()->json($responseData);
         } catch (\Exception $e) {
             \Log::error('API Folder Index Error: ' . $e->getMessage());
             return response()->json([
@@ -90,6 +101,8 @@ class FolderController extends Controller
             ], 500);
         }
     }
+
+
     public function getFolder()
     {
         return response()->json(Folder::all());
