@@ -41,20 +41,25 @@
       </div>
     </div>
 
-    <!-- Actions & Search - Layout đã được chỉnh sửa -->
+    <!-- Actions & Search -->
     <div class="flex flex-col lg:flex-row gap-4 mb-6">
-      <!-- Search Section - Chiếm toàn bộ chiều rộng -->
+      <!-- Search Section -->
+     <div class="flex flex-col lg:flex-row gap-4 mb-6">
       <div class="flex-1 min-w-0">
         <div class="flex flex-col sm:flex-row gap-2 bg-white rounded-lg shadow-sm border p-3">
           <div class="relative flex-1">
-            <input v-model="searchParams.name" type="text" placeholder="Tìm tên..." 
-                  class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <input v-model="searchParams.name" 
+                   type="text" 
+                   placeholder="Tìm theo tên folder hoặc file..." 
+                   class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                   @keyup.enter="handleSearch">
             <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
           </div>
           
           <div class="relative flex-1">
-            <input v-model="searchParams.date" type="date" 
-                  class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <input v-model="searchParams.date" 
+                   type="date" 
+                   class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none">
             <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
           </div>
           
@@ -91,27 +96,41 @@
         </div>
       </div>
     </div>
+      </div>
 
     <!-- Breadcrumbs -->
-    <nav v-if="breadcrumbs.length > 0" class="flex items-center justify-between mb-6">
+       <nav v-if="breadcrumbs.length > 0 || !isSearchMode" class="flex items-center justify-between mb-6">
       <ol class="flex items-center space-x-2 text-sm">
-        <li>
+        <!-- Root chỉ hiển thị khi KHÔNG ở chế độ tìm kiếm -->
+        <li v-if="!isSearchMode">
           <button @click="goToRoot" class="text-blue-500 hover:text-blue-700 flex items-center">
             <i class="fas fa-home mr-1"></i>Root
           </button>
         </li>
-        <li v-for="(crumb, idx) in breadcrumbs" :key="crumb.folder_id" class="flex items-center">
-          <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-          <button v-if="idx < breadcrumbs.length - 1" 
-                  @click="goToFolder(crumb.folder_id)" 
-                  class="text-blue-500 hover:text-blue-700">
-            {{ crumb.name }}
-          </button>
-          <span v-else class="text-gray-600 font-medium">{{ crumb.name }}</span>
-        </li>
+        
+        <!-- Breadcrumbs bình thường -->
+        <template v-if="!isSearchMode">
+          <li v-for="(crumb, idx) in breadcrumbs" :key="crumb.folder_id" class="flex items-center">
+            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+            <button v-if="idx < breadcrumbs.length - 1" 
+                    @click="goToFolder(crumb.folder_id)" 
+                    class="text-blue-500 hover:text-blue-700">
+              {{ crumb.name }}
+            </button>
+            <span v-else class="text-gray-600 font-medium">{{ crumb.name }}</span>
+          </li>
+        </template>
+        
+        <!-- Breadcrumbs khi tìm kiếm (chỉ hiển thị kết quả tìm kiếm) -->
+        <template v-else>
+          <li class="text-gray-600 font-medium">
+            Kết quả tìm kiếm
+          </li>
+        </template>
       </ol>
 
-      <button v-if="currentFolder" @click="goToParent" 
+      <!-- Nút quay lại chỉ hiển thị khi có currentFolder và không ở chế độ tìm kiếm -->
+      <button v-if="currentFolder && !isSearchMode" @click="goToParent" 
               class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
         <i class="fas fa-arrow-left mr-2"></i>Quay lại
       </button>
@@ -190,83 +209,110 @@
       </div>
     </div>
 
+    <!-- Thông báo chế độ tìm kiếm -->
+    <div v-if="isSearchMode && items.data.length > 0" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <div class="flex items-center">
+        <i class="fas fa-search text-blue-500 mr-3"></i>
+        <div>
+          <p class="text-blue-800 font-medium">Đang hiển thị kết quả tìm kiếm</p>
+          <p class="text-blue-600 text-sm">Tìm thấy {{ items.total }} kết quả phù hợp</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Table -->
-    <div v-if="!loading" class="bg-white rounded-lg shadow overflow-hidden mb-6">
+   <div v-if="!loading" class="bg-white rounded-lg shadow overflow-hidden mb-6">
       <table class="min-w-full">
         <thead class="bg-gray-100">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
+            <!-- Thêm cột Vị trí khi ở chế độ tìm kiếm -->
+            <th v-if="isSearchMode" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vị trí</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kích cỡ</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
           </tr>
         </thead>
-           <tbody class="bg-white divide-y divide-gray-200">
-  <tr v-for="item in (items.data || [])" 
-      :key="getItemKey(item)" 
-      class="hover:bg-gray-50 transition-colors cursor-pointer"
-      @contextmenu.prevent="showContextMenu($event, item)">
-    
-    <!-- Tên -->
-    <td class="px-6 py-4 whitespace-nowrap">
-      <div class="flex items-center" 
-           @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-        <i :class="getItemIcon(item)" class="text-lg mr-3"></i>
-        <div>
-          <div class="text-sm font-medium text-gray-900">{{ item?.name || 'Unknown' }}</div>
-          <div v-if="item && item.item_type === 'folder' && (item.child_folders_count > 0 || item.documents_count > 0)" 
-               class="text-xs text-gray-500 flex items-center">
-            <i class="fas fa-folder-open mr-1"></i>
-            {{ item.child_folders_count }} thư mục, {{ item.documents_count }} file
-          </div>
-        </div>
-      </div>
-    </td>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr v-for="item in (items.data || [])" 
+              :key="getItemKey(item)" 
+              class="hover:bg-gray-50 transition-colors cursor-pointer"
+              @contextmenu.prevent="showContextMenu($event, item)">
+            
+            <!-- Tên -->
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center" 
+                   @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
+                <i :class="getItemIcon(item)" class="text-lg mr-3"></i>
+                <div>
+                  <div class="text-sm font-medium text-gray-900">{{ item?.name || 'Unknown' }}</div>
+                  <!-- Chỉ hiển thị thông tin con khi không ở chế độ tìm kiếm -->
+                  <div v-if="!isSearchMode && item && item.item_type === 'folder' && (item.child_folders_count > 0 || item.documents_count > 0)" 
+                       class="text-xs text-gray-500 flex items-center">
+                    <i class="fas fa-folder-open mr-1"></i>
+                    {{ item.child_folders_count }} thư mục, {{ item.documents_count }} file
+                  </div>
+                </div>
+              </div>
+            </td>
 
-    <!-- Loại -->
-    <td class="px-6 py-4 whitespace-nowrap" @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-      <span class="text-sm text-gray-600">{{ item?.type_name || 'Unknown' }}</span>
-    </td>
+            <!-- Cột Vị trí - chỉ hiển thị khi tìm kiếm -->
+            <td v-if="isSearchMode" class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <div class="flex items-center">
+                <i class="fas fa-folder text-yellow-500 mr-2"></i>
+                <span class="truncate max-w-xs">{{ item.folder_path || 'Thư mục gốc' }}</span>
+              </div>
+            </td>
 
-    <!-- Ngày tạo -->
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
-        @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-      {{ item ? formatDateTime(item.created_at) : '' }}
-    </td>
+            <!-- Các cột khác giữ nguyên -->
+            <td class="px-6 py-4 whitespace-nowrap" @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
+              <span class="text-sm text-gray-600">{{ item?.type_name || 'Unknown' }}</span>
+            </td>
 
-    <!-- Kích cỡ -->
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
-        @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-      {{ item && item.item_type === 'folder' ? '-' : formatFileSize(item?.size) }}
-    </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
+                @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
+              {{ item ? formatDateTime(item.created_at) : '' }}
+            </td>
 
-    <!-- Thao tác -->
-    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-      <div class="relative inline-block text-left action-dropdown-container">
-        <button @click.stop="item && toggleMenu(item, $event)"
-                :disabled="!item"
-                class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-          <i class="fas fa-ellipsis-v text-gray-500"></i>
-        </button>
-      </div>
-    </td>
-  </tr>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
+                @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
+              {{ item && item.item_type === 'folder' ? '-' : formatFileSize(item?.size) }}
+            </td>
 
-  <!-- Empty state -->
-  <tr v-if="(items.data || []).length === 0">
-    <td colspan="5" class="px-6 py-12 text-center">
-      <div class="flex flex-col items-center">
-        <i class="fas fa-folder-open text-gray-400 text-4xl mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Không có dữ liệu</h3>
-        <p class="text-gray-500 mb-4">Hãy tạo thư mục hoặc tải file lên</p>
-        <button @click="openCreateFolder" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
-          <i class="fas fa-plus mr-2"></i>Tạo thư mục
-        </button>
-      </div>
-    </td>
-  </tr>
-</tbody>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <div class="relative inline-block text-left action-dropdown-container">
+                <button @click.stop="item && toggleMenu(item, $event)"
+                        :disabled="!item"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <i class="fas fa-ellipsis-v text-gray-500"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+ <!-- Empty state -->
+          <tr v-if="(items.data || []).length === 0">
+            <td :colspan="isSearchMode ? 6 : 5" class="px-6 py-12 text-center">
+              <div class="flex flex-col items-center">
+                <i class="fas fa-search text-gray-400 text-4xl mb-4" v-if="isSearchMode"></i>
+                <i class="fas fa-folder-open text-gray-400 text-4xl mb-4" v-else></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">
+                  {{ isSearchMode ? 'Không tìm thấy kết quả' : 'Không có dữ liệu' }}
+                </h3>
+                <p class="text-gray-500 mb-4">
+                  {{ isSearchMode ? 'Hãy thử với từ khóa khác hoặc điều chỉnh bộ lọc' : 'Hãy tạo thư mục hoặc tải file lên' }}
+                </p>
+                <button v-if="!isSearchMode" @click="openCreateFolder" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                  <i class="fas fa-plus mr-2"></i>Tạo thư mục
+                </button>
+                <button v-if="isSearchMode" @click="resetFilters" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                  <i class="fas fa-times mr-2"></i>Xóa bộ lọc
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
@@ -403,6 +449,7 @@ export default {
       breadcrumbs: [],
       userInfo: null,
       loading: true,
+      isSearchMode: false,
       activeMenu: null,
       perPage: 20,
       successMessage: '',
@@ -413,6 +460,7 @@ export default {
         name: '', 
         date: '', 
         file_type: '' 
+        
       },
       // THÊM: Danh sách loại tài liệu động
       documentTypes: [],
@@ -554,19 +602,29 @@ export default {
     window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
+     goToFolder(folderId) {
+      // ✅ FIX: Xử lý cả chế độ tìm kiếm
+      if (this.isSearchMode) {
+        // Khi đang ở chế độ tìm kiếm, chuyển đến folder đó và thoát chế độ tìm kiếm
+        this.isSearchMode = false;
+        this.searchParams = { name: '', date: '', file_type: '' };
+      }
+      
+      this.currentFolder = { folder_id: folderId };
+      this.items.current_page = 1;
+      this.loadData();
+    },
+
    // THÊM: Method load danh sách loại tài liệu
     async loadDocumentTypes() {
       this.loadingDocumentTypes = true;
       try {
-        const response = await axios.get('/api/types'); // ✅ Sửa endpoint chính xác
-        console.log('✅ Types API response:', response.data);
+        const response = await axios.get('/api/types');
         
         // API trả về trực tiếp array, không có wrapper success/data
         this.documentTypes = response.data || [];
         
-        console.log('📋 Loaded document types:', this.documentTypes);
       } catch (error) {
-        console.error('❌ Error loading document types:', error);
         // Fallback to empty array if API fails
         this.documentTypes = [];
       } finally {
@@ -602,7 +660,7 @@ export default {
       this.showErrorModal = true;
     },
 
-    async loadData() {
+         async loadData() {
       this.loading = true;
       
       try {
@@ -614,7 +672,8 @@ export default {
           page: this.items.current_page,
         };
 
-        if (this.currentFolder?.folder_id) {
+        // ✅ QUAN TRỌNG: Chỉ thêm parent_id khi KHÔNG ở chế độ tìm kiếm
+        if (this.currentFolder?.folder_id && !this.isSearchMode) {
           params.parent_id = this.currentFolder.folder_id;
         }
 
@@ -634,20 +693,27 @@ export default {
           
           this.currentFolder = data.currentFolder || null;
           this.breadcrumbs = data.breadcrumbs || [];
+          this.isSearchMode = data.isSearchMode || false;
           this.lastUpdate = new Date().toISOString();
         } else {
           throw new Error(response.data.message || 'API response not successful');
         }
       } catch (error) {
-        console.error('❌ Error loading data:', error);
         this.showError(error.response?.data?.message || 'Lỗi khi tải dữ liệu');
         this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
         this.currentFolder = null;
         this.breadcrumbs = [];
+        this.isSearchMode = false;
       } finally {
         this.loading = false;
       }
     },
+
+
+    exitSearchMode() {
+      this.resetFilters();
+    },
+
     // THÊM: Method refresh cả danh sách loại tài liệu
     async refreshDocumentTypes() {
       await this.loadDocumentTypes();
@@ -668,7 +734,6 @@ export default {
               this.userInfo = JSON.parse(userMeta.getAttribute('content'));
             }
           } catch (error) {
-            console.error('Error loading user info:', error);
           }
         },
 
@@ -692,13 +757,6 @@ export default {
       return icons[item.type_name] || 'fas fa-file text-gray-500';
     },
 
-    goToFolder(folderId) {
-      console.log('🔍 Navigate to folder:', folderId);
-      this.currentFolder = { folder_id: folderId };
-      this.items.current_page = 1;
-      this.loadData();
-    },
-
     goToParent() {
       if (this.currentFolder?.parent_folder_id) {
         this.goToFolder(this.currentFolder.parent_folder_id);
@@ -708,7 +766,6 @@ export default {
     },
 
     goToRoot() {
-      console.log('🏠 Navigate to root');
       this.currentFolder = null;
       this.items.current_page = 1;
       this.loadData();
@@ -764,9 +821,7 @@ export default {
     async confirmDelete() {
       if (!this.itemToDelete) return;
       
-      try {
-        console.log('🗑️ Deleting:', this.itemToDelete);
-        
+      try {        
         const endpoint = this.itemToDelete.item_type === 'folder' 
           ? `/api/folders/${this.itemToDelete.id}`
           : `/api/documents/${this.itemToDelete.id}`;
@@ -787,7 +842,6 @@ export default {
           // KHÔNG gọi loadData() ở đây nữa, sẽ gọi khi user nhấn "Tiếp tục"
         }
       } catch (error) {
-        console.error('❌ Delete error:', error);
         
         // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
         if (error.response?.data?.message) {
@@ -897,14 +951,21 @@ export default {
       this.hideContextMenu();
     },
 
-    handleSearch() {
+     handleSearch() {
       this.items.current_page = 1;
+      
+      // ✅ QUAN TRỌNG: Khi tìm kiếm, reset currentFolder để tìm kiếm toàn bộ hệ thống
+      if (this.searchParams.name || this.searchParams.date || this.searchParams.file_type) {
+        this.currentFolder = null;
+      }
+      
       this.loadData();
     },
 
     resetFilters() {
       this.searchParams = { name: '', date: '', file_type: '' }; 
       this.items.current_page = 1;
+      this.isSearchMode = false;
       this.loadData();
     },
 
@@ -955,7 +1016,6 @@ export default {
     startAutoReload() {
       this.autoReloadInterval = setInterval(() => {
         if (this.autoReloadEnabled && !this.loading) {
-          console.log('🔄 Auto-reloading...');
           this.loadData();
         }
       }, 30000); // 30 seconds
@@ -972,10 +1032,8 @@ export default {
       this.autoReloadEnabled = !this.autoReloadEnabled;
       if (this.autoReloadEnabled) {
         this.startAutoReload();
-        console.log('🔔 Auto-reload: ON');
       } else {
         this.stopAutoReload();
-        console.log('🔕 Auto-reload: OFF');
       }
     },
   }

@@ -76,28 +76,6 @@ class FolderService
     }
 
     /**
-     * Xây dựng breadcrumbs với giới hạn độ sâu
-     */
-    private function buildBreadcrumbs(Folder $folder): array
-    {
-        $breadcrumbs = [];
-        $current = $folder;
-        $maxDepth = 10; // Giới hạn độ sâu để tránh vòng lặp vô hạn
-
-        $depth = 0;
-        while ($current && $depth < $maxDepth) {
-            $breadcrumbs[] = [
-                'folder_id' => $current->folder_id,
-                'name' => $current->name,
-            ];
-            $current = $current->parentFolder;
-            $depth++;
-        }
-
-        return array_reverse($breadcrumbs);
-    }
-
-    /**
      * Lấy thông tin vị trí thư mục
      */
     public function getFolderLocationInfo($parentFolderId = null)
@@ -386,9 +364,9 @@ class FolderService
     /**
      * Lấy danh sách folders + documents (cho Home page)
      */
-    public function getFoldersAndDocuments(array $params = []) // ✅ THÊM default value
+    public function getFoldersAndDocuments(array $params = [])
     {
-        \Log::info('🔍 FolderService filters received:', $params); // ✅ SỬA: $params thay vì $filters
+        \Log::info('🔍 FolderService filters received:', $params);
 
         $user = Auth::user();
         $perPage = $params['per_page'] ?? 20;
@@ -402,17 +380,37 @@ class FolderService
         $searchName = $params['name'] ?? '';
         $searchDate = $params['date'] ?? '';
         $searchStatus = $params['status'] ?? '';
-        $searchFileType = $params['file_type'] ?? ''; // ✅ THÊM: Lấy file_type filter
+        $searchFileType = $params['file_type'] ?? '';
+
+        // ==================== PHÂN BIỆT CHẾ ĐỘ TÌM KIẾM ====================
+        $isSearchMode = !empty($searchName) || !empty($searchDate) || !empty($searchFileType);
+
+        if ($isSearchMode) {
+            // 🔍 CHẾ ĐỘ TÌM KIẾM: Hiển thị FLAT LIST
+            return $this->getSearchResults($user, $params, $perPage);
+        } else {
+            // 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị TREE VIEW
+            return $this->getTreeView($user, $currentFolderId, $params, $perPage);
+        }
+    }
+    /**
+     * 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị dạng cây
+     */
+    private function getTreeView($user, $currentFolderId, $params, $perPage)
+    {
+        $searchName = $params['name'] ?? '';
+        $searchDate = $params['date'] ?? '';
+        $searchStatus = $params['status'] ?? '';
+        $searchFileType = $params['file_type'] ?? '';
 
         // ==================== LẤY FOLDERS ====================
         $foldersQuery = Folder::where('user_id', $user->user_id)
             ->where('parent_folder_id', $currentFolderId);
 
-        // ✅ FIX: Chỉ hiển thị folders khi không filter hoặc filter = 'folder'
+        // Filter cho folders
         if ($searchFileType && $searchFileType !== 'folder') {
-            $foldersQuery->whereRaw('1 = 0'); // Ẩn folders khi filter document type
+            $foldersQuery->whereRaw('1 = 0');
         } else {
-            // Áp dụng các filter khác cho folders
             if ($searchName) {
                 $foldersQuery->where('name', 'like', "%{$searchName}%");
             }
@@ -431,11 +429,10 @@ class FolderService
             ->where('user_id', $user->user_id)
             ->where('folder_id', $currentFolderId);
 
-        // ✅ FIX: Chỉ hiển thị documents khi không filter hoặc filter document type
+        // Filter cho documents
         if ($searchFileType === 'folder') {
-            $documentsQuery->whereRaw('1 = 0'); // Ẩn documents khi filter = 'folder'
+            $documentsQuery->whereRaw('1 = 0');
         } else {
-            // Áp dụng các filter cho documents
             if ($searchName) {
                 $documentsQuery->where('title', 'like', "%{$searchName}%");
             }
@@ -445,8 +442,6 @@ class FolderService
             if ($searchStatus) {
                 $documentsQuery->where('status', $searchStatus);
             }
-
-            // Filter theo file_type cho documents
             if ($searchFileType && $searchFileType !== 'folder') {
                 $documentsQuery->whereHas('type', function ($query) use ($searchFileType) {
                     $query->where('name', $searchFileType);
@@ -456,42 +451,9 @@ class FolderService
 
         $documents = $documentsQuery->orderByDesc('created_at')->get();
 
-        // ✅ THÊM: Filter theo file_type
-        if ($searchFileType) {
-            if ($searchFileType === 'folder') {
-                // Nếu chọn "Thư mục", chỉ trả về folders
-                $documentsQuery->whereRaw('1 = 0'); // Không trả về document nào
-            } else {
-                // Filter theo loại tài liệu
-                $documentsQuery->whereHas('type', function ($query) use ($searchFileType) {
-                    $query->where('name', $searchFileType);
-                });
-            }
-        }
-
-        $documents = $documentsQuery->orderByDesc('created_at')->get();
-
-        // Lấy thông tin file
+        // Xử lý thông tin file cho documents
         foreach ($documents as $doc) {
-            $latestVersion = \App\Models\DocumentVersion::where('document_id', $doc->document_id)
-                ->orderByDesc('version_number')
-                ->first();
-
-            if ($latestVersion) {
-                $filePath = base_path('app/Public_UploadFile/' . $latestVersion->file_name);
-                $doc->size = file_exists($filePath) ? filesize($filePath) : 0;
-                $doc->file_name = $latestVersion->file_name;
-                $doc->file_path = file_exists($filePath)
-                    ? asset('app/Public_UploadFile/' . $latestVersion->file_name)
-                    : null;
-            } else {
-                $doc->size = 0;
-                $doc->file_name = null;
-                $doc->file_path = null;
-            }
-
-            $doc->type_name = $doc->type->name ?? 'Unknown';
-            $doc->item_type = 'document';
+            $this->processDocumentInfo($doc);
         }
 
         // ==================== GỘP FOLDERS + DOCUMENTS ====================
@@ -507,6 +469,7 @@ class FolderService
                 'documents_count' => $folder->documents_count ?? 0,
                 'size' => null,
                 'type_name' => 'Thư mục',
+                'folder_path' => $this->getFolderPath($folder), // Thêm path để hiển thị
             ];
         })->concat(
             collect($documents)->map(function ($doc) {
@@ -522,11 +485,12 @@ class FolderService
                     'file_name' => $doc->file_name,
                     'type_name' => $doc->type_name,
                     'description' => $doc->description,
+                    'folder_path' => $this->getDocumentFolderPath($doc), // Thêm path để hiển thị
                 ];
             })
         );
 
-        // ✅ THÊM: Xử lý trường hợp chỉ hiển thị folders
+        // Filter theo file_type
         if ($searchFileType === 'folder') {
             $items = $items->filter(function ($item) {
                 return $item['item_type'] === 'folder';
@@ -535,17 +499,7 @@ class FolderService
 
         // ==================== PHÂN TRANG ====================
         $page = $params['page'] ?? 1;
-        $offset = ($page - 1) * $perPage;
-        $total = $items->count();
-        $lastPage = ceil($total / $perPage);
-
-        $paginatedItems = new \Illuminate\Pagination\LengthAwarePaginator(
-            $items->slice($offset, $perPage)->values(),
-            $total,
-            $perPage,
-            $page,
-            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $params]
-        );
+        $paginatedItems = $this->paginateItems($items, $perPage, $page);
 
         // ==================== BREADCRUMBS ====================
         $breadcrumbs = [];
@@ -553,7 +507,6 @@ class FolderService
 
         if ($currentFolderId) {
             $currentFolder = Folder::with('parentFolder')->find($currentFolderId);
-
             if ($currentFolder) {
                 $breadcrumbs = $this->buildBreadcrumbs($currentFolder);
             }
@@ -563,6 +516,235 @@ class FolderService
             'items' => $paginatedItems,
             'currentFolder' => $currentFolder,
             'breadcrumbs' => $breadcrumbs,
+            'isSearchMode' => false, // Đánh dấu không phải chế độ tìm kiếm
         ];
+    }
+
+    /**
+     * 🔍 CHẾ ĐỘ TÌM KIẾM: Hiển thị FLAT LIST
+     */
+    private function getSearchResults($user, $params, $perPage)
+    {
+        $searchName = $params['name'] ?? '';
+        $searchDate = $params['date'] ?? '';
+        $searchStatus = $params['status'] ?? '';
+        $searchFileType = $params['file_type'] ?? '';
+
+        $allItems = collect();
+
+        // ==================== TÌM TẤT CẢ FOLDERS PHÙ HỢP ====================
+        if (!$searchFileType || $searchFileType === 'folder') {
+            $foldersQuery = Folder::where('user_id', $user->user_id);
+
+            // ✅ SỬA: Tìm kiếm theo name trong folders
+            if ($searchName) {
+                $foldersQuery->where(function ($query) use ($searchName) {
+                    $query->where('name', 'like', "%{$searchName}%");
+                });
+            }
+
+            if ($searchDate) {
+                $foldersQuery->whereDate('created_at', $searchDate);
+            }
+            if ($searchStatus) {
+                $foldersQuery->where('status', $searchStatus);
+            }
+
+            $folders = $foldersQuery->withCount(['childFolders', 'documents'])->get();
+
+            $folderItems = $folders->map(function ($folder) {
+                return [
+                    'id' => $folder->folder_id,
+                    'name' => $folder->name,
+                    'created_at' => $folder->created_at,
+                    'updated_at' => $folder->updated_at,
+                    'status' => $folder->status,
+                    'item_type' => 'folder',
+                    'child_folders_count' => $folder->child_folders_count ?? 0,
+                    'documents_count' => $folder->documents_count ?? 0,
+                    'size' => null,
+                    'type_name' => 'Thư mục',
+                    'folder_path' => $this->getFolderPath($folder),
+                    'is_search_result' => true,
+                ];
+            });
+
+            $allItems = $allItems->concat($folderItems);
+        }
+
+        // ==================== TÌM TẤT CẢ DOCUMENTS PHÙ HỢP ====================
+        if (!$searchFileType || $searchFileType !== 'folder') {
+            $documentsQuery = Document::with(['type', 'subject', 'tags'])
+                ->where('user_id', $user->user_id);
+
+            // ✅ SỬA: Tìm kiếm theo name/title trong documents
+            if ($searchName) {
+                $documentsQuery->where(function ($query) use ($searchName) {
+                    $query->where('title', 'like', "%{$searchName}%")
+                        ->orWhere('description', 'like', "%{$searchName}%");
+                });
+            }
+
+            if ($searchDate) {
+                $documentsQuery->whereDate('created_at', $searchDate);
+            }
+            if ($searchStatus) {
+                $documentsQuery->where('status', $searchStatus);
+            }
+            if ($searchFileType && $searchFileType !== 'folder') {
+                $documentsQuery->whereHas('type', function ($query) use ($searchFileType) {
+                    $query->where('name', $searchFileType);
+                });
+            }
+
+            $documents = $documentsQuery->orderByDesc('created_at')->get();
+
+            // Xử lý thông tin file cho documents
+            foreach ($documents as $doc) {
+                $this->processDocumentInfo($doc);
+            }
+
+            $documentItems = $documents->map(function ($doc) {
+                return [
+                    'id' => $doc->document_id,
+                    'name' => $doc->title,
+                    'created_at' => $doc->created_at,
+                    'updated_at' => $doc->updated_at,
+                    'status' => $doc->status,
+                    'item_type' => 'document',
+                    'size' => $doc->size,
+                    'file_path' => $doc->file_path,
+                    'file_name' => $doc->file_name,
+                    'type_name' => $doc->type_name,
+                    'description' => $doc->description,
+                    'folder_path' => $this->getDocumentFolderPath($doc),
+                    'is_search_result' => true,
+                ];
+            });
+
+            $allItems = $allItems->concat($documentItems);
+        }
+
+        // ==================== SẮP XẾP THEO NGÀY TẠO ====================
+        $allItems = $allItems->sortByDesc('created_at');
+
+        // ==================== PHÂN TRANG ====================
+        $page = $params['page'] ?? 1;
+        $paginatedItems = $this->paginateItems($allItems, $perPage, $page);
+
+        return [
+            'items' => $paginatedItems,
+            'currentFolder' => null,
+            'breadcrumbs' => $this->getSearchBreadcrumbs($searchName),
+            'isSearchMode' => true,
+        ];
+    }
+
+    /**
+     * Breadcrumbs cho chế độ tìm kiếm
+     */
+    private function getSearchBreadcrumbs($searchName)
+    {
+        return [
+            [
+                'folder_id' => null,
+                'name' => 'Kết quả tìm kiếm: "' . $searchName . '"'
+            ]
+        ];
+    }
+    /**
+     * Lấy đường dẫn thư mục cho folder
+     */
+    private function getFolderPath(Folder $folder)
+    {
+        $path = [];
+        $current = $folder;
+        $maxDepth = 5;
+        $depth = 0;
+
+        while ($current && $depth < $maxDepth) {
+            $path[] = $current->name;
+            $current = $current->parentFolder;
+            $depth++;
+        }
+
+        return implode(' / ', array_reverse($path));
+    }
+    /**
+     * Lấy đường dẫn thư mục cho document
+     */
+    private function getDocumentFolderPath(Document $document)
+    {
+        if (!$document->folder_id) {
+            return 'Thư mục gốc';
+        }
+
+        $folder = Folder::find($document->folder_id);
+        return $folder ? $this->getFolderPath($folder) : 'Thư mục gốc';
+    }
+
+    /**
+     * Xử lý thông tin document
+     */
+    private function processDocumentInfo($doc)
+    {
+        $latestVersion = \App\Models\DocumentVersion::where('document_id', $doc->document_id)
+            ->orderByDesc('version_number')
+            ->first();
+
+        if ($latestVersion) {
+            $filePath = base_path('app/Public_UploadFile/' . $latestVersion->file_name);
+            $doc->size = file_exists($filePath) ? filesize($filePath) : 0;
+            $doc->file_name = $latestVersion->file_name;
+            $doc->file_path = file_exists($filePath)
+                ? asset('app/Public_UploadFile/' . $latestVersion->file_name)
+                : null;
+        } else {
+            $doc->size = 0;
+            $doc->file_name = null;
+            $doc->file_path = null;
+        }
+
+        $doc->type_name = $doc->type->name ?? 'Unknown';
+        $doc->item_type = 'document';
+    }
+
+    /**
+     * Phân trang items
+     */
+    private function paginateItems($items, $perPage, $page)
+    {
+        $total = $items->count();
+        $offset = ($page - 1) * $perPage;
+
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            $items->slice($offset, $perPage)->values(),
+            $total,
+            $perPage,
+            $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+        );
+    }
+
+    /**
+     * Xây dựng breadcrumbs
+     */
+    private function buildBreadcrumbs(Folder $folder): array
+    {
+        $breadcrumbs = [];
+        $current = $folder;
+        $maxDepth = 10;
+        $depth = 0;
+
+        while ($current && $depth < $maxDepth) {
+            $breadcrumbs[] = [
+                'folder_id' => $current->folder_id,
+                'name' => $current->name,
+            ];
+            $current = $current->parentFolder;
+            $depth++;
+        }
+
+        return array_reverse($breadcrumbs);
     }
 }
