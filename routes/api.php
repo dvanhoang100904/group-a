@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DocumentSharedController;
 //     return $request->user();
 // })->middleware('auth:sanctum');
 
+
 // Document Versions
 Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index']);
 Route::get('/documents/{documentId}/versions/compare', [DocumentVersionController::class, 'compare']);
@@ -69,6 +70,7 @@ Route::get('/types', [TypeControllers::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
 Route::get('/folders', [FolderController::class, 'getFolder']);
 
+Route::get('documents/{id}/detail', [DocumentDetailController::class, 'show']);
 
 // =========================
 // 📁 Folder API Routes
