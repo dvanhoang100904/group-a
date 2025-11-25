@@ -10,11 +10,7 @@ use App\Exports\TypesExport;
 
 class TypeController extends Controller
 {
-       //Đừng xóa của dân nha!!!
-    public function getType()
-    {
-        return response()->json(Type::all());
-    }
+  
     // Hiển thị danh sách loại tài liệu
     public function index(Request $request)
     {

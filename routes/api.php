@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DocumentSharedController;
 //     return $request->user();
 // })->middleware('auth:sanctum');
 
+
 // Document Versions
 Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index']);
 Route::get('/documents/{documentId}/versions/compare', [DocumentVersionController::class, 'compare']);
@@ -70,6 +71,7 @@ Route::get('/types', [TypeControllers::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
 Route::get('/folders', [FolderController::class, 'getFolder']);
 
+Route::get('documents/{id}/detail', [DocumentDetailController::class, 'show']);
 
 // =========================
 // 📁 Folder API Routes
@@ -86,3 +88,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     // Route xóa document
     Route::delete('/documents/{id}', [DocumentAccessController::class, 'deleteDocument']);
 });
+Route::get('/api/documents', [DocumentController::class, 'getDocuments']);
+Route::get('/api/documents/{id}/detail', [DocumentController::class, 'getDocumentDetail']);
+Route::get('/api/types', [TypeControllers::class, 'index']);
+Route::get('/api/subjects', [SubjectController::class, 'index']);

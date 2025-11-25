@@ -24,6 +24,22 @@ class Folder extends Model
         'user_id' => 'integer',
     ];
 
+    /**
+     * Accessor: Escape output khi lấy name
+     */
+    public function getNameAttribute($value)
+    {
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
+     * Mutator: Sanitize input khi set name
+     */
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
+    }
+
     /** Folder */
     public function parentFolder(): BelongsTo
     {
@@ -52,5 +68,22 @@ class Folder extends Model
     public function logs(): HasMany
     {
         return $this->hasMany(FolderLog::class, 'from_folder_id', 'folder_id');
+    }
+
+    /**
+     * Scope: Lấy folders của user hiện tại
+     */
+    public function scopeCurrentUser($query)
+    {
+        return $query->where('user_id', auth()->id());
+    }
+
+    /**
+     * Scope: Lấy folders với điều kiện bảo mật
+     */
+    public function scopeSecure($query, $userId = null)
+    {
+        $userId = $userId ?: auth()->id();
+        return $query->where('user_id', $userId);
     }
 }
