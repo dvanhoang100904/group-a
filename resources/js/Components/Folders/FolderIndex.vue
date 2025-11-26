@@ -46,7 +46,7 @@
       <!-- Search Section -->
       <div class="flex flex-col lg:flex-row gap-4 mb-6">
         <div class="flex-1 min-w-0">
-          <div class="flex flex-col sm:flex-row gap-2 bg-white rounded-lg shadow-sm border p-3">
+          <div class="flex flex-col sm:flex-row gap-2 bg-gray-100 rounded-lg shadow-sm border p-3">
             <div class="relative flex-1">
               <input v-model="searchParams.name" 
                      type="text" 
@@ -323,6 +323,12 @@
          class="fixed bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 w-56 z-[10001] action-dropdown-fixed"
          :style="actionDropdownStyle">
       <div class="py-1">
+        <!-- THÊM NÚT CHIA SẺ CHO FOLDER -->
+        <button v-if="activeMenu.item_type === 'folder' && activeMenu.is_owner" 
+                @click.stop="shareFolder(activeMenu)"
+                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+          <i class="fas fa-share-alt mr-3 text-green-500"></i>Chia sẻ
+        </button> 
         <button v-if="activeMenu.item_type === 'folder'" 
                 @click.stop="editFolder(activeMenu)"
                 class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
@@ -345,6 +351,11 @@
       <div class="context-menu-header">
         <i :class="getItemIcon(contextMenu.item)" class="mr-2"></i>
         <span class="font-medium text-sm truncate">{{ sanitizeOutput(contextMenu.item.name) }}</span>
+            <!-- HIỂN THỊ THÔNG TIN CHIA SẺ -->
+        <span v-if="contextMenu.item.shared_info && !contextMenu.item.is_owner" 
+              class="text-xs text-blue-600 ml-2">
+              (Được chia sẻ)
+        </span>
       </div>
       <div class="py-2">
         <button @click="openContextItem" class="context-menu-item">
@@ -357,6 +368,12 @@
                 @click="editFolder(contextMenu.item)" 
                 class="context-menu-item">
           <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa
+        </button>
+          <!-- THÊM NÚT CHIA SẺ CHO FOLDER -->
+        <button v-if="contextMenu.item.item_type === 'folder' && contextMenu.item.is_owner" 
+                @click="shareFolder(contextMenu.item)" 
+                class="context-menu-item">
+          <i class="fas fa-share-alt text-green-500 mr-3" style="width: 16px;"></i>Chia sẻ
         </button>
         <button v-if="contextMenu.item.item_type === 'document'" 
                 @click="downloadDocument(contextMenu.item)" 
@@ -429,7 +446,135 @@
         </select>
       </div>
     </div>
+    <!-- Share Folder Modal -->
+<div v-if="showShareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10002] p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div class="p-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center">
+          <i class="fas fa-share-alt text-blue-500 text-xl mr-3"></i>
+          <h3 class="text-lg font-medium text-gray-900">Chia sẻ thư mục</h3>
+        </div>
+        <button @click="closeShareModal" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Folder Info -->
+      <div class="bg-gray-50 rounded-lg p-3 mb-4">
+        <div class="flex items-center">
+          <i class="fas fa-folder text-yellow-500 mr-2"></i>
+          <span class="font-medium text-gray-800">{{ sanitizeOutput(selectedFolder?.name) }}</span>
+        </div>
+      </div>
+
+      <!-- Share Form -->
+      <form @submit.prevent="shareFolderAction">
+        <!-- Email Input -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Email người dùng (phân cách bằng dấu phẩy)
+          </label>
+          <input 
+            v-model="shareModalData.emailsInput"
+            type="text" 
+            placeholder="Nhập email1, email2, ..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            :disabled="shareModalData.loading"
+          >
+          <p class="text-xs text-gray-500 mt-1">
+            Nhập email của những người bạn muốn chia sẻ
+          </p>
+        </div>
+
+        <!-- Permission Selection -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Quyền truy cập
+          </label>
+          <div class="space-y-2">
+            <label class="flex items-center">
+              <input 
+                v-model="shareModalData.permission" 
+                type="radio" 
+                value="view" 
+                class="mr-3 text-blue-500 focus:ring-blue-500"
+                :disabled="shareModalData.loading"
+              >
+              <div>
+                <div class="font-medium text-gray-900">Chỉ xem</div>
+                <div class="text-sm text-gray-500">Có thể xem và tải xuống file</div>
+              </div>
+            </label>
+            <label class="flex items-center">
+              <input 
+                v-model="shareModalData.permission" 
+                type="radio" 
+                value="edit" 
+                class="mr-3 text-blue-500 focus:ring-blue-500"
+                :disabled="shareModalData.loading"
+              >
+              <div>
+                <div class="font-medium text-gray-900">Chỉnh sửa</div>
+                <div class="text-sm text-gray-500">Có thể thêm, sửa, xóa file và folder con</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Current Shares -->
+        <div v-if="shareModalData.sharedUsers.length > 0" class="mb-4">
+          <h4 class="text-sm font-medium text-gray-700 mb-2">Đang chia sẻ với:</h4>
+          <div class="space-y-2">
+            <div 
+              v-for="user in shareModalData.sharedUsers" 
+              :key="user.user_id"
+              class="flex items-center justify-between bg-gray-50 rounded-lg p-2"
+            >
+              <div class="flex items-center">
+                <i class="fas fa-user text-gray-400 mr-2"></i>
+                <span class="text-sm font-medium">{{ sanitizeOutput(user.name) }}</span>
+                <span class="text-xs text-gray-500 ml-2">({{ sanitizeOutput(user.email) }})</span>
+                <span class="text-xs text-gray-500 ml-2">- {{ user.permission === 'edit' ? 'Chỉnh sửa' : 'Chỉ xem' }}</span>
+              </div>
+              <button 
+                @click="unshareUser(user.user_id)"
+                type="button"
+                class="text-red-500 hover:text-red-700 text-sm"
+                :disabled="shareModalData.loading"
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end space-x-3">
+          <button 
+            type="button"
+            @click="closeShareModal"
+            :disabled="shareModalData.loading"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+          >
+            Hủy
+          </button>
+          <button 
+            type="submit"
+            :disabled="shareModalData.loading"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center transition-colors disabled:opacity-50"
+          >
+            <i class="fas fa-share-alt mr-2"></i>
+            {{ shareModalData.loading ? 'Đang chia sẻ...' : 'Chia sẻ' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
+</div>
+  </div>
+  
 </template>
 
 <script>
@@ -458,12 +603,18 @@ export default {
       errorMessage: '',
       showSuccessModal: false,
       showErrorModal: false, 
+      showShareModal: false,
       searchParams: { 
         name: '', 
         date: '', 
         file_type: '' 
       },
-      // THÊM: Danh sách loại tài liệu động
+      shareModalData: {
+      emailsInput: '',
+      permission: 'view',
+      loading: false,
+      sharedUsers: []
+      },
       documentTypes: [],
       loadingDocumentTypes: false,
       contextMenu: { 
@@ -605,6 +756,111 @@ export default {
     window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
+    /**
+   * Mở modal chia sẻ folder
+   */
+  shareFolder(item) {
+    // BẢO MẬT: Chỉ cho phép chủ sở hữu chia sẻ
+    if (!item.is_owner) {
+      this.showError('Chỉ chủ sở hữu mới có thể chia sẻ folder này');
+      return;
+    }
+    
+    this.selectedFolder = item;
+    this.showShareModal = true;
+    this.activeMenu = null;
+    this.hideContextMenu();
+    
+    // Load danh sách người đã được chia sẻ
+    this.loadSharedUsers();
+  },
+
+  /**
+   * Tải danh sách người được chia sẻ
+   */
+  async loadSharedUsers() {
+    if (!this.selectedFolder) return;
+    
+    try {
+      const response = await axios.get(`/api/folders/${this.selectedFolder.id}/shared-users`);
+      if (response.data.success) {
+        this.shareModalData.sharedUsers = response.data.data;
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách chia sẻ:', error);
+    }
+  },
+  /**
+   * Chia sẻ folder với nhiều user
+   */
+  async shareFolderAction() {
+    if (!this.shareModalData.emailsInput.trim()) {
+      this.showError('Vui lòng nhập ít nhất một email');
+      return;
+    }
+
+    this.shareModalData.loading = true;
+    try {
+      const emails = this.shareModalData.emailsInput.split(',')
+        .map(email => email.trim())
+        .filter(email => email);
+
+      // ✅ BẢO MẬT: Sanitize emails
+      const sanitizedEmails = emails.map(email => this.sanitizeInput(email));
+
+      const response = await axios.post(`/api/folders/${this.selectedFolder.id}/share`, {
+        emails: sanitizedEmails,
+        permission: this.shareModalData.permission
+      });
+
+      if (response.data.success) {
+        this.showSuccess(response.data.message);
+        this.shareModalData.emailsInput = '';
+        this.loadSharedUsers(); // Reload danh sách
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Lỗi khi chia sẻ folder';
+      this.showError(message);
+    } finally {
+      this.shareModalData.loading = false;
+    }
+  },
+   /**
+   * Hủy chia sẻ với user
+   */
+  async unshareUser(userId) {
+    if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
+      return;
+    }
+
+    try {
+      const response = await axios.post(`/api/folders/${this.selectedFolder.id}/unshare`, {
+        user_ids: [userId]
+      });
+
+      if (response.data.success) {
+        this.loadSharedUsers();
+        this.showSuccess('Hủy chia sẻ thành công');
+      }
+    } catch (error) {
+      this.showError('Lỗi khi hủy chia sẻ');
+    }
+  },
+   /**
+   * Đóng modal chia sẻ
+   */
+  closeShareModal() {
+    this.showShareModal = false;
+    this.selectedFolder = null;
+    this.shareModalData = {
+      emailsInput: '',
+      permission: 'view',
+      loading: false,
+      sharedUsers: []
+    };
+  },
+  
+// ---------------------------------------------------------------
     // ✅ BẢO MẬT: Sanitize input để tránh XSS
     sanitizeInput(value) {
       if (value === null || value === undefined) return '';
@@ -807,6 +1063,9 @@ export default {
       if (!item) return 'fas fa-question-circle text-gray-400';
       
       if (item.item_type === 'folder') {
+        if (item.shared_info && !item.is_owner) {
+          return 'fas fa-share-alt text-blue-500';
+        }
         return 'fas fa-folder text-yellow-500';
       }
       

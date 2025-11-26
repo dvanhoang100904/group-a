@@ -63,7 +63,7 @@ class FolderSeeder extends Seeder
             $folders[] = [
                 'folder_id' => $mainFolderId,
                 'name' => $this->generateFolderName($userId, $i, null, null),
-                'status' => $this->getRandomStatus(),
+                // ĐÃ XÓA STATUS
                 'parent_folder_id' => null,
                 'user_id' => $userId,
                 'created_at' => $now,
@@ -77,7 +77,7 @@ class FolderSeeder extends Seeder
                 $folders[] = [
                     'folder_id' => $childFolderId,
                     'name' => $this->generateFolderName($userId, $i, $j, null),
-                    'status' => $this->getRandomStatus(),
+                    // ĐÃ XÓA STATUS
                     'parent_folder_id' => $mainFolderId,
                     'user_id' => $userId,
                     'created_at' => $now,
@@ -90,7 +90,7 @@ class FolderSeeder extends Seeder
                 $folders[] = [
                     'folder_id' => $grandChildFolderId,
                     'name' => $this->generateFolderName($userId, $i, $j, 1),
-                    'status' => $this->getRandomStatus(),
+                    // ĐÃ XÓA STATUS
                     'parent_folder_id' => $childFolderId,
                     'user_id' => $userId,
                     'created_at' => $now,
@@ -116,14 +116,5 @@ class FolderSeeder extends Seeder
         }
 
         return "U{$userId}_Main{$mainIndex}";
-    }
-
-    /**
-     * Get random status
-     */
-    private function getRandomStatus(): string
-    {
-        $statuses = ['public', 'private'];
-        return $statuses[array_rand($statuses)];
     }
 }

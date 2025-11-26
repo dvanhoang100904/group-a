@@ -29,7 +29,6 @@ class FolderController extends Controller
         $validator = Validator::make($params, [
             'name' => 'nullable|string|max:255',
             'date' => 'nullable|date_format:Y-m-d',
-            'status' => 'nullable|in:public,private',
             'file_type' => 'nullable|string|max:100',
             'parent_id' => 'nullable|integer|min:0',
             'per_page' => 'nullable|integer|min:1|max:100'
@@ -341,7 +340,7 @@ class FolderController extends Controller
                     'folder' => [
                         'folder_id' => $updatedFolder->folder_id,
                         'name' => $this->escapeOutput($updatedFolder->name),
-                        'status' => $updatedFolder->status,
+                        // ✅ ĐÃ SỬA: BỎ status
                         'parent_folder_id' => $updatedFolder->parent_folder_id
                     ]
                 ]);

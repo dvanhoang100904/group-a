@@ -13,13 +13,11 @@ class Folder extends Model
 
     protected $fillable = [
         'name',
-        'status',
         'parent_folder_id',
         'user_id'
     ];
 
     protected $casts = [
-        'status' => 'string',
         'parent_folder_id' => 'integer',
         'user_id' => 'integer',
     ];
@@ -70,6 +68,47 @@ class Folder extends Model
         return $this->hasMany(FolderLog::class, 'from_folder_id', 'folder_id');
     }
 
+    // =========================
+    // 🆕 QUAN HỆ MỚI CHO FOLDER SHARES
+    // =========================
+
+    /** Các chia sẻ của folder này */
+    public function shares(): HasMany
+    {
+        return $this->hasMany(FolderShare::class, 'folder_id', 'folder_id');
+    }
+
+    /** Người được chia sẻ folder này */
+    public function sharedUsers()
+    {
+        return $this->belongsToMany(User::class, 'folder_shares', 'folder_id', 'shared_with_id')
+            ->withPivot(['permission', 'created_at']);
+    }
+
+    /**
+     * Kiểm tra user có quyền truy cập folder không
+     */
+    public function canAccess(User $user): bool
+    {
+        // Chủ sở hữu có toàn quyền
+        if ($this->user_id === $user->user_id) {
+            return true;
+        }
+
+        // Kiểm tra chia sẻ trực tiếp
+        if ($this->shares()->where('shared_with_id', $user->user_id)->exists()) {
+            return true;
+        }
+
+        // Kiểm tra chia sẻ thông qua folder cha (tính kế thừa)
+        if ($this->parent_folder_id) {
+            $parentFolder = Folder::find($this->parent_folder_id);
+            return $parentFolder ? $parentFolder->canAccess($user) : false;
+        }
+
+        return false;
+    }
+
     /**
      * Scope: Lấy folders của user hiện tại
      */
@@ -85,5 +124,18 @@ class Folder extends Model
     {
         $userId = $userId ?: auth()->id();
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope: Lấy folders mà user có quyền truy cập
+     */
+    public function scopeAccessibleBy($query, $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            $q->where('user_id', $userId)
+                ->orWhereHas('shares', function ($shareQuery) use ($userId) {
+                    $shareQuery->where('shared_with_id', $userId);
+                });
+        });
     }
 }
