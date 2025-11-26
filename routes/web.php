@@ -64,11 +64,11 @@ Route::get(
 )->name('documents.version.download');
 
 // Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login');;
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login', 'check.role:Admin, Giảng viên');;
 
 // Document Accesses
-Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login');;
-Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login');;
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login', 'check.role:Admin, Giảng viên');;
+Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login', 'check.role:Admin, Giảng viên');;
 
 // Document Shared
 Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index')->middleware('require.login');;
