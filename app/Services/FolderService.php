@@ -10,9 +10,40 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use App\Models\FolderShare;
 
 class FolderService
 {
+// Trong FolderService.php - THÊM METHODS KIỂM TRA QUYỀN
+
+    /**
+     * Kiểm tra user có quyền chỉnh sửa folder không
+     */
+    public function canEditFolder($folderId, $userId): bool
+    {
+        $folder = Folder::with('shares')->find($folderId);
+
+        if (!$folder) return false;
+
+        // Chủ sở hữu có toàn quyền
+        if ($folder->user_id === $userId) {
+            return true;
+        }
+
+        // Người được chia sẻ với quyền edit
+        $share = $folder->shares->where('shared_with_id', $userId)->first();
+        return $share && $share->permission === 'edit';
+    }
+
+    /**
+     * Kiểm tra user có quyền xóa folder không
+     */
+    public function canDeleteFolder($folderId, $userId): bool
+    {
+        // Chỉ chủ sở hữu mới được xóa
+        $folder = Folder::find($folderId);
+        return $folder && $folder->user_id === $userId;
+    }
     /**
      * Validate và sanitize folder ID
      */
@@ -26,14 +57,13 @@ class FolderService
     }
 
     /**
-     * Validate và sanitize input parameters
+     * Validate và sanitize input parameters    
      */
     private function validateSearchParams(array $params): array
     {
         $validator = Validator::make($params, [
             'name' => 'nullable|string|max:255',
             'date' => 'nullable|date_format:Y-m-d',
-            'status' => 'nullable|in:public,private',
             'file_type' => 'nullable|string|max:100',
             'parent_id' => 'nullable|integer|min:0',
             'per_page' => 'nullable|integer|min:1|max:100',
@@ -131,10 +161,6 @@ class FolderService
             $query->whereDate('created_at', $validatedFilters['date']);
         }
 
-        if (!empty($validatedFilters['status'])) {
-            $query->where('status', $validatedFilters['status']);
-        }
-
         // Phân trang
         $folders = $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -196,10 +222,9 @@ class FolderService
 
         return DB::transaction(function () use ($data) {
             try {
-                // Validate input data
+                // ✅ SỬA: Bỏ validation status
                 $validator = Validator::make($data, [
                     'name' => 'required|string|max:255',
-                    'status' => 'required|in:public,private',
                     'parent_folder_id' => 'nullable|integer|min:1'
                 ]);
 
@@ -240,7 +265,6 @@ class FolderService
 
                 $folderData = [
                     'name' => $validatedData['name'],
-                    'status' => $validatedData['status'],
                     'parent_folder_id' => $parentFolderId,
                     'user_id' => $userId,
                 ];
@@ -250,7 +274,6 @@ class FolderService
                 // Tạo folder
                 $folder = new Folder();
                 $folder->name = $folderData['name'];
-                $folder->status = $folderData['status'];
                 $folder->parent_folder_id = $folderData['parent_folder_id'];
                 $folder->user_id = $folderData['user_id'];
                 $folder->save();
@@ -258,7 +281,6 @@ class FolderService
                 Log::info('Folder saved successfully:', [
                     'folder_id' => $folder->folder_id,
                     'name' => $folder->name,
-                    'status' => $folder->status,
                     'parent_folder_id' => $folder->parent_folder_id,
                     'user_id' => $folder->user_id
                 ]);
@@ -284,13 +306,15 @@ class FolderService
         }
 
         try {
-            // Validate folder ID
             $folderId = $this->validateFolderId($folderId);
 
-            // Lấy folder với user_id check
-            $folder = Folder::where('folder_id', $folderId)
-                ->where('user_id', $userId)
-                ->firstOrFail();
+            // Kiểm tra quyền chỉnh sửa
+            if (!$this->canEditFolder($folderId, $userId)) {
+                throw new \Exception('Bạn không có quyền chỉnh sửa thư mục này');
+            }
+
+            // Lấy folder (có thể là sở hữu hoặc được chia sẻ với quyền edit)
+            $folder = Folder::accessibleBy($userId)->findOrFail($folderId);
 
             // Sử dụng phương thức an toàn để lấy descendant IDs
             $descendantIds = $this->getDescendantIdsSecure($folderId, $userId);
@@ -394,10 +418,9 @@ class FolderService
 
         return DB::transaction(function () use ($folderId, $data, $userId) {
             try {
-                // Validate input data
+                // ✅ SỬA: Bỏ validation status
                 $validator = Validator::make($data, [
                     'name' => 'required|string|max:255',
-                    'status' => 'required|in:public,private',
                     'parent_folder_id' => 'nullable|integer|min:1'
                 ]);
 
@@ -440,9 +463,9 @@ class FolderService
                     }
                 }
 
+                // ✅ SỬA: Bỏ status trong update
                 $folder->update([
                     'name' => $validatedData['name'],
-                    'status' => $validatedData['status'],
                     'parent_folder_id' => $validatedData['parent_folder_id'] ?? null,
                 ]);
 
@@ -486,7 +509,7 @@ class FolderService
 
             return $folderName;
         } catch (ModelNotFoundException $e) {
-            throw new \Exception('Thư mục không tồn tại');
+            throw new \Exception('Thư mục không tồn tại hoặc bạn không có quyền xóa');
         } catch (\Exception $e) {
             Log::error('Delete folder error: ' . $e->getMessage());
             throw $e;
@@ -532,7 +555,6 @@ class FolderService
 
         $searchName = $validatedParams['name'] ?? '';
         $searchDate = $validatedParams['date'] ?? '';
-        $searchStatus = $validatedParams['status'] ?? '';
         $searchFileType = $validatedParams['file_type'] ?? '';
 
         // Phân biệt chế độ tìm kiếm
@@ -546,17 +568,16 @@ class FolderService
     }
 
     /**
-     * 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị dạng cây
+     * 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị dạng cây - ĐÃ CẬP NHẬT HỖ TRỢ SHARE
      */
     private function getTreeView($user, $currentFolderId, $params, $perPage)
     {
         $searchName = $params['name'] ?? '';
         $searchDate = $params['date'] ?? '';
-        $searchStatus = $params['status'] ?? '';
         $searchFileType = $params['file_type'] ?? '';
 
-        // ==================== LẤY FOLDERS ====================
-        $foldersQuery = Folder::where('user_id', $user->user_id)
+        // ==================== LẤY FOLDERS (SỞ HỮU + ĐƯỢC CHIA SẺ) ====================
+        $foldersQuery = Folder::accessibleBy($user->user_id) // SỬ DỤNG SCOPE MỚI
             ->where('parent_folder_id', $currentFolderId);
 
         // Filter cho folders
@@ -569,17 +590,24 @@ class FolderService
             if ($searchDate) {
                 $foldersQuery->whereDate('created_at', $searchDate);
             }
-            if ($searchStatus) {
-                $foldersQuery->where('status', $searchStatus);
-            }
         }
 
-        $folders = $foldersQuery->withCount(['childFolders', 'documents'])->get();
+        $folders = $foldersQuery->withCount(['childFolders', 'documents'])
+            ->with(['shares' => function ($query) use ($user) {
+                $query->where('shared_with_id', $user->user_id);
+            }])
+            ->get();
 
         // ==================== LẤY DOCUMENTS ====================
         $documentsQuery = Document::with(['type', 'subject', 'tags'])
-            ->where('user_id', $user->user_id)
-            ->where('folder_id', $currentFolderId);
+            ->where('folder_id', $currentFolderId)
+            ->where(function ($query) use ($user) {
+                // Documents của user hoặc trong folder được chia sẻ
+                $query->where('user_id', $user->user_id)
+                    ->orWhereHas('folder.shares', function ($shareQuery) use ($user) {
+                        $shareQuery->where('shared_with_id', $user->user_id);
+                    });
+            });
 
         // Filter cho documents
         if ($searchFileType === 'folder') {
@@ -590,9 +618,6 @@ class FolderService
             }
             if ($searchDate) {
                 $documentsQuery->whereDate('created_at', $searchDate);
-            }
-            if ($searchStatus) {
-                $documentsQuery->where('status', $searchStatus);
             }
             if ($searchFileType && $searchFileType !== 'folder') {
                 $documentsQuery->whereHas('type', function ($query) use ($searchFileType) {
@@ -609,28 +634,43 @@ class FolderService
         }
 
         // ==================== GỘP FOLDERS + DOCUMENTS ====================
-        $items = collect($folders)->map(function ($folder) {
+        $items = collect($folders)->map(function ($folder) use ($user) {
+            $isOwner = $folder->user_id === $user->user_id;
+            $shareInfo = null;
+
+            if (!$isOwner) {
+                $share = $folder->shares->first();
+                $shareInfo = $share ? [
+                    'shared_by' => $share->owner->name ?? 'Unknown',
+                    'permission' => $share->permission,
+                    'shared_at' => $share->created_at
+                ] : null;
+            }
+
             return [
                 'id' => $folder->folder_id,
                 'name' => $this->escapeOutput($folder->name),
                 'created_at' => $folder->created_at,
                 'updated_at' => $folder->updated_at,
-                'status' => $folder->status,
                 'item_type' => 'folder',
                 'child_folders_count' => $folder->child_folders_count ?? 0,
                 'documents_count' => $folder->documents_count ?? 0,
                 'size' => null,
                 'type_name' => 'Thư mục',
                 'folder_path' => $this->getFolderPath($folder),
+                'is_owner' => $isOwner, // THÊM TRƯỜNG NÀY
+                'shared_info' => $shareInfo, // THÊM TRƯỜNG NÀY
+                'owner_name' => $folder->user->name ?? 'Unknown' // THÊM TRƯỜNG NÀY
             ];
         })->concat(
-            collect($documents)->map(function ($doc) {
+            collect($documents)->map(function ($doc) use ($user) {
+                $isOwner = $doc->user_id === $user->user_id;
+
                 return [
                     'id' => $doc->document_id,
                     'name' => $this->escapeOutput($doc->title),
                     'created_at' => $doc->created_at,
                     'updated_at' => $doc->updated_at,
-                    'status' => $doc->status,
                     'item_type' => 'document',
                     'size' => $doc->size,
                     'file_path' => $doc->file_path,
@@ -638,6 +678,8 @@ class FolderService
                     'type_name' => $this->escapeOutput($doc->type_name ?? 'Unknown'),
                     'description' => $this->escapeOutput($doc->description ?? ''),
                     'folder_path' => $this->getDocumentFolderPath($doc),
+                    'is_owner' => $isOwner, // THÊM TRƯỜNG NÀY
+                    'owner_name' => $doc->user->name ?? 'Unknown' // THÊM TRƯỜNG NÀY
                 ];
             })
         );
@@ -658,7 +700,7 @@ class FolderService
         $currentFolder = null;
 
         if ($currentFolderId) {
-            $currentFolder = Folder::with('parentFolder')->find($currentFolderId);
+            $currentFolder = Folder::accessibleBy($user->user_id)->find($currentFolderId);
             if ($currentFolder) {
                 $breadcrumbs = $this->buildBreadcrumbs($currentFolder);
             }
@@ -673,20 +715,19 @@ class FolderService
     }
 
     /**
-     * 🔍 CHẾ ĐỘ TÌM KIẾM: Hiển thị FLAT LIST
+     * 🔍 CHẾ ĐỘ TÌM KIẾM: Hiển thị FLAT LIST - ĐÃ CẬP NHẬT HỖ TRỢ SHARE
      */
     private function getSearchResults($user, $params, $perPage)
     {
         $searchName = $params['name'] ?? '';
         $searchDate = $params['date'] ?? '';
-        $searchStatus = $params['status'] ?? '';
         $searchFileType = $params['file_type'] ?? '';
 
         $allItems = collect();
 
-        // ==================== TÌM TẤT CẢ FOLDERS PHÙ HỢP ====================
+        // ==================== TÌM TẤT CẢ FOLDERS PHÙ HỢP (SỞ HỮU + ĐƯỢC CHIA SẺ) ====================
         if (!$searchFileType || $searchFileType === 'folder') {
-            $foldersQuery = Folder::where('user_id', $user->user_id);
+            $foldersQuery = Folder::accessibleBy($user->user_id); // SỬ DỤNG SCOPE MỚI
 
             if ($searchName) {
                 $foldersQuery->where(function ($query) use ($searchName) {
@@ -697,19 +738,31 @@ class FolderService
             if ($searchDate) {
                 $foldersQuery->whereDate('created_at', $searchDate);
             }
-            if ($searchStatus) {
-                $foldersQuery->where('status', $searchStatus);
-            }
 
-            $folders = $foldersQuery->withCount(['childFolders', 'documents'])->get();
+            $folders = $foldersQuery->withCount(['childFolders', 'documents'])
+                ->with(['shares' => function ($query) use ($user) {
+                    $query->where('shared_with_id', $user->user_id);
+                }])
+                ->get();
 
-            $folderItems = $folders->map(function ($folder) {
+            $folderItems = $folders->map(function ($folder) use ($user) {
+                $isOwner = $folder->user_id === $user->user_id;
+                $shareInfo = null;
+
+                if (!$isOwner) {
+                    $share = $folder->shares->first();
+                    $shareInfo = $share ? [
+                        'shared_by' => $share->owner->name ?? 'Unknown',
+                        'permission' => $share->permission,
+                        'shared_at' => $share->created_at
+                    ] : null;
+                }
+
                 return [
                     'id' => $folder->folder_id,
                     'name' => $this->escapeOutput($folder->name),
                     'created_at' => $folder->created_at,
                     'updated_at' => $folder->updated_at,
-                    'status' => $folder->status,
                     'item_type' => 'folder',
                     'child_folders_count' => $folder->child_folders_count ?? 0,
                     'documents_count' => $folder->documents_count ?? 0,
@@ -717,6 +770,9 @@ class FolderService
                     'type_name' => 'Thư mục',
                     'folder_path' => $this->getFolderPath($folder),
                     'is_search_result' => true,
+                    'is_owner' => $isOwner, // THÊM TRƯỜNG NÀY
+                    'shared_info' => $shareInfo, // THÊM TRƯỜNG NÀY
+                    'owner_name' => $folder->user->name ?? 'Unknown' // THÊM TRƯỜNG NÀY
                 ];
             });
 
@@ -726,7 +782,13 @@ class FolderService
         // ==================== TÌM TẤT CẢ DOCUMENTS PHÙ HỢP ====================
         if (!$searchFileType || $searchFileType !== 'folder') {
             $documentsQuery = Document::with(['type', 'subject', 'tags'])
-                ->where('user_id', $user->user_id);
+                ->where(function ($query) use ($user) {
+                    // Documents của user hoặc trong folder được chia sẻ
+                    $query->where('user_id', $user->user_id)
+                        ->orWhereHas('folder.shares', function ($shareQuery) use ($user) {
+                            $shareQuery->where('shared_with_id', $user->user_id);
+                        });
+                });
 
             if ($searchName) {
                 $documentsQuery->where(function ($query) use ($searchName) {
@@ -737,9 +799,6 @@ class FolderService
 
             if ($searchDate) {
                 $documentsQuery->whereDate('created_at', $searchDate);
-            }
-            if ($searchStatus) {
-                $documentsQuery->where('status', $searchStatus);
             }
             if ($searchFileType && $searchFileType !== 'folder') {
                 $documentsQuery->whereHas('type', function ($query) use ($searchFileType) {
@@ -754,13 +813,14 @@ class FolderService
                 $this->processDocumentInfo($doc);
             }
 
-            $documentItems = $documents->map(function ($doc) {
+            $documentItems = $documents->map(function ($doc) use ($user) {
+                $isOwner = $doc->user_id === $user->user_id;
+
                 return [
                     'id' => $doc->document_id,
                     'name' => $this->escapeOutput($doc->title),
                     'created_at' => $doc->created_at,
                     'updated_at' => $doc->updated_at,
-                    'status' => $doc->status,
                     'item_type' => 'document',
                     'size' => $doc->size,
                     'file_path' => $doc->file_path,
@@ -769,6 +829,8 @@ class FolderService
                     'description' => $this->escapeOutput($doc->description ?? ''),
                     'folder_path' => $this->getDocumentFolderPath($doc),
                     'is_search_result' => true,
+                    'is_owner' => $isOwner, // THÊM TRƯỜNG NÀY
+                    'owner_name' => $doc->user->name ?? 'Unknown' // THÊM TRƯỜNG NÀY
                 ];
             });
 

@@ -18,7 +18,7 @@
       <div v-else class="bg-white rounded-lg shadow p-6">
         <form @submit.prevent="submitForm" @keydown="preventEnterSubmit">
           <!-- Tên thư mục -->
-          <div class="mb-4">
+          <div class="mb-6">
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
               Tên thư mục *
             </label>
@@ -34,25 +34,97 @@
             <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ sanitizeOutput(errors.name[0]) }}</p>
           </div>
 
-          <!-- Trạng thái -->
+          <!-- Chia sẻ ngay sau khi tạo -->
           <div class="mb-6">
-            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-              Trạng thái *
-            </label>
-            <select id="status" 
-                    v-model="form.status"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    :class="{ 'border-red-500': errors.status }"
-                    required>
-              <option value="">Chọn trạng thái</option>
-              <option value="private">Riêng tư</option>
-              <option value="public">Công khai</option>
-            </select>
-            <p v-if="errors.status" class="mt-1 text-sm text-red-600">{{ sanitizeOutput(errors.status[0]) }}</p>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">
+                Chia sẻ thư mục (tùy chọn)
+              </label>
+              <button type="button" 
+                      @click="toggleShareSection"
+                      class="text-sm text-blue-500 hover:text-blue-700 flex items-center">
+                <i class="fas" :class="showShareSection ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                <span class="ml-1">{{ showShareSection ? 'Ẩn' : 'Hiện' }}</span>
+              </button>
+            </div>
+            
+            <div v-if="showShareSection" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <!-- Email Input -->
+              <div class="mb-3">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Email người dùng (phân cách bằng dấu phẩy)
+                </label>
+                <input 
+                  v-model="shareData.emailsInput"
+                  type="text" 
+                  placeholder="Nhập email1, email2, ..."
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  @input="validateEmails"
+                >
+                <p class="text-xs text-gray-500 mt-1">
+                  Nhập email của những người bạn muốn chia sẻ
+                </p>
+                <p v-if="shareData.emailError" class="text-xs text-red-500 mt-1">
+                  {{ shareData.emailError }}
+                </p>
+              </div>
+
+              <!-- Permission Selection -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Quyền truy cập
+                </label>
+                <div class="space-y-2">
+                  <label class="flex items-center">
+                    <input 
+                      v-model="shareData.permission" 
+                      type="radio" 
+                      value="view" 
+                      class="mr-3 text-blue-500 focus:ring-blue-500"
+                    >
+                    <div>
+                      <div class="font-medium text-gray-900">Chỉ xem</div>
+                      <div class="text-sm text-gray-500">Có thể xem và tải xuống file</div>
+                    </div>
+                  </label>
+                  <label class="flex items-center">
+                    <input 
+                      v-model="shareData.permission" 
+                      type="radio" 
+                      value="edit" 
+                      class="mr-3 text-blue-500 focus:ring-blue-500"
+                    >
+                    <div>
+                      <div class="font-medium text-gray-900">Chỉnh sửa</div>
+                      <div class="text-sm text-gray-500">Có thể thêm, sửa, xóa file và folder con</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Danh sách email đã nhập -->
+              <div v-if="shareData.validEmails.length > 0" class="mb-3">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Danh sách sẽ chia sẻ:
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <span v-for="(email, index) in shareData.validEmails" 
+                        :key="index"
+                        class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {{ sanitizeOutput(email) }}
+                    <button type="button" 
+                            @click="removeEmail(index)"
+                            class="ml-1 text-blue-600 hover:text-blue-800">
+                      <i class="fas fa-times text-xs"></i>
+                    </button>
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Thông báo vị trí -->
-          <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+          <div class="mb-6 p-3 bg-blue-50 rounded-lg">
             <div class="flex items-center">
               <i class="fas fa-info-circle text-blue-500 mr-2"></i>
               <span class="text-sm text-blue-700">
@@ -120,6 +192,27 @@
         </div>
       </div>
     </div>
+
+    <!-- Share Success Modal -->
+    <div v-if="showShareSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-share-alt text-green-500 text-2xl mr-3"></i>
+            <h3 class="text-lg font-medium text-gray-900">Chia sẻ thành công</h3>
+          </div>
+          <p class="text-sm text-gray-600 mb-6">
+            {{ sanitizeOutput(shareSuccessMessage) }}
+          </p>
+          <div class="flex justify-end space-x-3">
+            <button @click="continueAfterShareSuccess" 
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center transition-colors">
+              <i class="fas fa-check mr-2"></i>Hoàn tất
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -133,23 +226,37 @@ export default {
       // Form data
       form: {
         name: '',
-        status: '',
         parent_folder_id: null
+      },
+      
+      // Share data
+      shareData: {
+        emailsInput: '',
+        permission: 'view',
+        validEmails: [],
+        emailError: '',
+        loading: false
       },
       
       // UI State
       loading: false,
       submitting: false,
+      showShareSection: false,
       errors: {},
       successMessage: '',
       errorMessage: '',
+      shareSuccessMessage: '',
       
       // Location info
       parentFolderName: 'Danh sách hiện tại (Thư mục gốc)',
       
-      // ✅ THÊM: Modal states
+      // Modal states
       showSuccessModal: false,
-      showErrorModal: false
+      showErrorModal: false,
+      showShareSuccessModal: false,
+
+      // New folder ID after creation
+      createdFolderId: null
     }
   },
   computed: {
@@ -157,11 +264,15 @@ export default {
       return this.parentFolderName;
     },
     
-    // ✅ BẢO MẬT: Client-side form validation
+    // Client-side form validation
     isFormValid() {
       return this.form.name.trim().length > 0 && 
-             this.form.name.length <= 255 &&
-             ['private', 'public'].includes(this.form.status);
+             this.form.name.length <= 255;
+    },
+
+    // Check if there are emails to share
+    hasEmailsToShare() {
+      return this.shareData.validEmails.length > 0;
     }
   },
   mounted() {
@@ -174,7 +285,7 @@ export default {
   },
   
   methods: {
-    // ✅ BẢO MẬT: Sanitize output để tránh XSS
+    // Sanitize methods
     sanitizeOutput(value) {
       if (value === null || value === undefined) return '';
       const div = document.createElement('div');
@@ -182,7 +293,6 @@ export default {
       return div.innerHTML;
     },
 
-    // ✅ BẢO MẬT: Sanitize input để tránh XSS
     sanitizeInput(value) {
       if (value === null || value === undefined) return '';
       const div = document.createElement('div');
@@ -195,14 +305,12 @@ export default {
         .trim();
     },
 
-    // ✅ BẢO MẬT: Sanitize form field
     sanitizeFormField(fieldName) {
       if (this.form[fieldName]) {
         this.form[fieldName] = this.sanitizeInput(this.form[fieldName]);
       }
     },
 
-    // ✅ BẢO MẬT: Validate folder ID
     validateFolderId(folderId) {
       if (!folderId) return null;
       if (!Number.isInteger(Number(folderId)) || folderId <= 0) {
@@ -211,18 +319,91 @@ export default {
       return Number(folderId);
     },
 
-    // ✅ BẢO MẬT: Sanitize URL parameters
     sanitizeUrlParam(param) {
       if (!param) return '';
       return encodeURIComponent(param.toString());
     },
 
-    // ✅ THÊM: Modal methods
+    // Share methods
+    toggleShareSection() {
+      this.showShareSection = !this.showShareSection;
+    },
+
+    validateEmails() {
+      this.shareData.emailError = '';
+      
+      if (!this.shareData.emailsInput.trim()) {
+        this.shareData.validEmails = [];
+        return;
+      }
+
+      const emails = this.shareData.emailsInput.split(',')
+        .map(email => email.trim())
+        .filter(email => email);
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const invalidEmails = emails.filter(email => !emailRegex.test(email));
+
+      if (invalidEmails.length > 0) {
+        this.shareData.emailError = `Email không hợp lệ: ${invalidEmails.join(', ')}`;
+        this.shareData.validEmails = [];
+      } else {
+        this.shareData.validEmails = emails;
+      }
+    },
+
+    removeEmail(index) {
+      this.shareData.validEmails.splice(index, 1);
+      // Update the input field
+      this.shareData.emailsInput = this.shareData.validEmails.join(', ');
+    },
+
+    async shareFolder(folderId) {
+      if (!this.hasEmailsToShare) return;
+
+      this.shareData.loading = true;
+      try {
+        const response = await axios.post(`/api/folders/${folderId}/share`, {
+          emails: this.shareData.validEmails,
+          permission: this.shareData.permission
+        });
+
+        if (response.data.success) {
+          this.shareSuccessMessage = `Đã tạo thư mục và chia sẻ thành công với ${this.shareData.validEmails.length} người dùng`;
+          this.showShareSuccessModal = true;
+        } else {
+          console.warn('Chia sẻ thất bại:', response.data.message);
+        }
+      } catch (error) {
+        console.error('Lỗi khi chia sẻ folder:', error);
+        // Không hiển thị lỗi cho user vì folder đã được tạo thành công
+      } finally {
+        this.shareData.loading = false;
+      }
+    },
+
+    // Modal methods
     continueAfterSuccess() {
       this.showSuccessModal = false;
       this.successMessage = '';
       
-      // ✅ BẢO MẬT: Sanitize URL parameters
+      // Nếu có emails để chia sẻ, thực hiện chia sẻ
+      if (this.hasEmailsToShare && this.createdFolderId) {
+        this.shareFolder(this.createdFolderId);
+      } else {
+        // Chuyển hướng bình thường
+        this.redirectAfterCreation();
+      }
+    },
+
+    continueAfterShareSuccess() {
+      this.showShareSuccessModal = false;
+      this.shareSuccessMessage = '';
+      this.redirectAfterCreation();
+    },
+
+    redirectAfterCreation() {
       const parentId = this.form.parent_folder_id;
       const safeParentId = parentId ? this.sanitizeUrlParam(parentId) : '';
       const redirectUrl = parentId 
@@ -246,7 +427,7 @@ export default {
       this.showErrorModal = true;
     },
 
-    // ✅ THÊM: Handle Escape key
+    // Handle Escape key
     handleKeydown(event) {
       if (event.key === 'Escape') {
         if (this.showSuccessModal) {
@@ -255,30 +436,30 @@ export default {
         if (this.showErrorModal) {
           this.hideErrorModal();
         }
+        if (this.showShareSuccessModal) {
+          this.continueAfterShareSuccess();
+        }
       }
     },
 
-    // ✅ BẢO MẬT: Prevent form submission on Enter in inputs
+    // Prevent form submission on Enter in inputs
     preventEnterSubmit(event) {
       if (event.key === 'Enter' && event.target.tagName !== 'FORM') {
         event.preventDefault();
       }
     },
 
-    // ==================== API CALLS ====================
+    // API CALLS
     async getLocationInfo() {
       try {
-        // ✅ BẢO MẬT: Lấy và validate URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const parentId = urlParams.get('parent_id');
         
         if (parentId) {
           try {
-            // ✅ BẢO MẬT: Validate parent folder ID
             const validParentId = this.validateFolderId(parentId);
             this.form.parent_folder_id = validParentId;
             
-            // ✅ BẢO MẬT: Lấy thông tin thư mục cha với error handling
             const response = await axios.get(`/api/folders/${validParentId}`);
             
             if (response.data.success) {
@@ -295,15 +476,13 @@ export default {
         }
       } catch (error) {
         console.error('Error getting location info:', error);
-        // ✅ BẢO MẬT: Fallback an toàn
         this.parentFolderName = 'Danh sách hiện tại (Thư mục gốc)';
       }
     },
 
     async submitForm() {
-      // ✅ BẢO MẬT: Client-side validation trước khi gửi
       if (!this.isFormValid) {
-        this.showError('Vui lòng kiểm tra lại thông tin đã nhập.');
+        this.showError('Vui lòng nhập tên thư mục.');
         return;
       }
 
@@ -313,29 +492,25 @@ export default {
       this.errorMessage = '';
 
       try {
-        // ✅ BẢO MẬT: Sanitize form data trước khi gửi
         const sanitizedForm = {
           name: this.sanitizeInput(this.form.name),
-          status: this.form.status,
           parent_folder_id: this.form.parent_folder_id
         };
 
         const response = await axios.post('/api/folders', sanitizedForm);
 
         if (response.data.success) {
-          // ✅ THAY THẾ: Hiển thị modal thông báo thành công
+          // Lưu folder ID để sử dụng cho chia sẻ
+          this.createdFolderId = response.data.data.folder_id;
           this.showSuccess(response.data.message);
         } else {
-          // ✅ THAY THẾ: Hiển thị modal thông báo lỗi
           this.showError(response.data.message || 'Lỗi khi tạo thư mục');
         }
       } catch (error) {
         console.error('Submit Error:', error);
         
-        // ✅ BẢO MẬT: Sanitize error handling
         if (error.response && error.response.status === 422) {
           this.errors = error.response.data.errors || {};
-          // Sanitize error messages
           Object.keys(this.errors).forEach(key => {
             if (Array.isArray(this.errors[key])) {
               this.errors[key] = this.errors[key].map(msg => this.sanitizeOutput(msg));
@@ -356,9 +531,8 @@ export default {
       }
     },
 
-    // ==================== UI METHODS ====================
+    // UI METHODS
     goBack() {
-      // ✅ BẢO MẬT: Sanitize URL parameters
       const parentId = this.form.parent_folder_id;
       const safeParentId = parentId ? this.sanitizeUrlParam(parentId) : '';
       const backUrl = parentId 
@@ -367,12 +541,17 @@ export default {
       window.location.href = backUrl;
     },
 
-    // ✅ BẢO MẬT: Reset form an toàn
     resetForm() {
       this.form = {
         name: '',
-        status: '',
-        parent_folder_id: this.form.parent_folder_id // Giữ parent_id
+        parent_folder_id: this.form.parent_folder_id
+      };
+      this.shareData = {
+        emailsInput: '',
+        permission: 'view',
+        validEmails: [],
+        emailError: '',
+        loading: false
       };
       this.errors = {};
     }
@@ -411,5 +590,10 @@ select:focus-visible {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Custom styles for email tags */
+.bg-blue-100 {
+  background-color: #dbeafe;
 }
 </style>
