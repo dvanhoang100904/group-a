@@ -340,7 +340,7 @@ class FolderController extends Controller
                     'folder' => [
                         'folder_id' => $updatedFolder->folder_id,
                         'name' => $this->escapeOutput($updatedFolder->name),
-                        'status' => $updatedFolder->status,
+                        // ✅ ĐÃ SỬA: BỎ status
                         'parent_folder_id' => $updatedFolder->parent_folder_id
                     ]
                 ]);

@@ -308,7 +308,7 @@ class FolderController extends Controller
     }
 
     /**
-     * Cập nhật folder (API) - ĐÃ BẢO MẬT
+     * Cập nhật folder (API)
      */
     public function update(UpdateFolderRequest $request, $folder): JsonResponse
     {
@@ -329,6 +329,7 @@ class FolderController extends Controller
                 'data' => [
                     'folder_id' => $updatedFolder->folder_id,
                     'name' => $this->escapeOutput($updatedFolder->name),
+                    // ✅ ĐÃ SỬA: BỎ status
                     'parent_folder_id' => $updatedFolder->parent_folder_id
                 ]
             ]);
