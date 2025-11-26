@@ -1,11 +1,12 @@
-import { createApp } from 'vue'
-import DocumentDetailModal from '../Components/DocumentList/DocumentDetailModal.vue'
+import { createApp } from 'vue';
+import DocumentDetailModal from '../Components/DocumentList/DocumentDetailModal.vue';
+import PreviewFile from '../Components/PreviewFile/PreviewFile.vue'; // đúng đường dẫn
 
 const app = createApp({
   data() {
     return {
       visible: true,
-      documentId: window.location.pathname.split('/').pop(), // lấy ID từ URL
+      documentId: window.location.pathname.split('/').pop(),
     }
   },
   template: `
@@ -15,7 +16,8 @@ const app = createApp({
       @close="visible = false"
     />
   `
-})
+});
 
-app.component('DocumentDetailModal', DocumentDetailModal)
-app.mount('#document-detail-app')
+app.component('DocumentDetailModal', DocumentDetailModal);
+app.component('PreviewFile', PreviewFile);
+app.mount('#document-detail-app');

@@ -11,6 +11,10 @@ use App\Services\DocumentAccess\DocumentAccessService;
 use App\Services\DocumentAccess\DocumentAccessUpdateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\Document;
+use App\Models\DocumentVersion;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DocumentAccessController extends Controller
 {
@@ -28,7 +32,82 @@ class DocumentAccessController extends Controller
     }
 
     /**
-     * Hien thi danh sach truy cap quyen co phan trang
+     *  Xóa document
+     */
+    public function deleteDocument($id): JsonResponse
+    {
+        DB::beginTransaction();
+
+        try {
+            Log::info('=== DOCUMENT DELETE START ===', ['document_id' => $id]);
+
+            if (!auth()->check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $document = Document::find($id);
+
+            if (!$document) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tài liệu không tồn tại'
+                ], 404);
+            }
+
+            // Kiểm tra quyền - sử dụng logic tương tự các method khác
+            $currentUserId = auth()->id();
+            if ($document->user_id !== $currentUserId && !auth()->user()->is_admin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa tài liệu này'
+                ], 403);
+            }
+
+            $documentName = $document->title;
+
+            // Xóa các versions
+            $versions = DocumentVersion::where('document_id', $id)->get();
+
+            foreach ($versions as $version) {
+                if ($version->file_name) {
+                    $filePath = base_path('app/Public_UploadFile/' . $version->file_name);
+                    if (file_exists($filePath)) {
+                        unlink($filePath);
+                        Log::info('File deleted:', ['file' => $version->file_name]);
+                    }
+                }
+                $version->delete();
+            }
+
+            // Xóa document
+            $document->delete();
+
+            DB::commit();
+
+            Log::info('=== DOCUMENT DELETE SUCCESS ===', ['document_id' => $id]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa tài liệu "' . $documentName . '" thành công!'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('DOCUMENT DELETE ERROR: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi hệ thống khi xóa tài liệu: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Hien thi danh sach quyen truy cap tai lieu co phan trang
      */
     public function index(int $documentId): JsonResponse
     {
@@ -41,11 +120,12 @@ class DocumentAccessController extends Controller
             ]);
         }
 
-        $currentUserId = auth()->id();
-        if ($document->uploaded_by !== $currentUserId && !auth()->user()->is_admin) {
+        $user = auth()->user();
+
+        if ($user->role->name !== 'Admin' && $user->user_id !== $document->user_id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn không có quyền truy cập tài liệu này. Vui lòng thử lại.'
+                'message' => 'Bạn không có quyền truy cập trang này.'
             ]);
         }
 
@@ -132,6 +212,15 @@ class DocumentAccessController extends Controller
             ]);
         }
 
+        $user = auth()->user();
+
+        if ($user->role->name !== 'Admin' && $user->user_id !== $document->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền truy cập trang này.'
+            ]);
+        }
+
         $data = $request->only([
             'granted_to_type',
             'granted_to_user_id',
@@ -173,6 +262,15 @@ class DocumentAccessController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+            ]);
+        }
+
+        $user = auth()->user();
+
+        if ($user->role->name !== 'Admin' && $user->user_id !== $document->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền truy cập trang này.'
             ]);
         }
 
@@ -218,6 +316,15 @@ class DocumentAccessController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
+            ]);
+        }
+
+        $user = auth()->user();
+
+        if ($user->role->name !== 'Admin' && $user->user_id !== $document->user_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền truy cập trang này.'
             ]);
         }
 

@@ -32,3 +32,5 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && npm install -g pnpm@latest
 
 WORKDIR /var/www/html
+# Cài LibreOffice
+RUN apt-get update && apt-get install -y libreoffice

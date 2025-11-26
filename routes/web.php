@@ -20,13 +20,11 @@ Route::get('/', [UserController::class, 'login'])->name('login')->middleware('re
 Route::post('/', [UserController::class, 'authLogin'])->name('auth.login')->middleware('redirectIf.auth');
 
 // Logout
-Route::get('logout', function () {
-	return redirect()->route('login');
-});
 Route::post('logout', [UserController::class, 'logout'])->name('logout')->middleware('require.login');
 
-// Dashboard
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('require.login', 'check.role:Admin');
+// Profile
+Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
+Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
 
 // Folder
 Route::prefix('folders')->name('folders.')->group(function () {
@@ -43,13 +41,6 @@ Route::prefix('folders')->name('folders.')->group(function () {
 	Route::delete('/{folder}', [FolderController::class, 'destroy'])->name('destroy');
 });
 
-// Reports
-Route::prefix('reports')->group(function () {
-	Route::get('/', [ReportController::class, 'index'])->name('reports.index');
-	Route::get('/{id}', [ReportController::class, 'show'])->name('reports.show');
-	Route::put('/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
-});
-
 // Uploads
 Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
 Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
@@ -61,96 +52,108 @@ Route::get('/documents/{id}/edit', [DocumentController::class, 'edit'])->name('d
 Route::put('/documents/{id}', [DocumentController::class, 'update'])->name('documents.update');
 Route::delete('/documents/{id}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
+// Trang chi tiết tài liệu (Blade)
+Route::get('/documents/{id}', function ($id) {
+	return view('documents.See_Document_Details.Document_Detail', compact('id'));
+})->name('documents.show');
+
+// Route tải tài liệu tại chi tiết
+Route::get(
+	'/documents/versions/{versionId}/download',
+	[DocumentController::class, 'downloadVersion']
+)->name('documents.version.download');
+
 // Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');;
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login', 'check.role:Admin, Giảng viên');;
 
 // Document Accesses
-Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');;
-Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');;
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login', 'check.role:Admin, Giảng viên');;
+Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login', 'check.role:Admin, Giảng viên');;
 
 // Document Shared
-Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index')->middleware('require.login', 'check.role:Admin,Giảng viên,Sinh viên');;
+Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index')->middleware('require.login');;
 
-// Profile
-Route::get('/profile', [UserController::class, 'showProfile'])->name('profile.view');
-Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
+/** 
+ * Admin 
+ */
+Route::middleware('require.login', 'check.role:Admin')->group(function () {
+	// Dashboard
+	Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-// Khoa/bộ môn
-Route::prefix('khoa')->group(function () {
-	Route::get('/', [KhoaController::class, 'index'])->name('khoa.index');
-	Route::get('/create', [KhoaController::class, 'create'])->name('khoa.create');
-	Route::post('/', [KhoaController::class, 'store'])->name('khoa.store');
-	Route::get('/{id}', [KhoaController::class, 'show'])->name('khoa.show');
-	Route::get('/{id}/edit', [KhoaController::class, 'edit'])->name('khoa.edit');
-	Route::put('/{id}', [KhoaController::class, 'update'])->name('khoa.update');
-	Route::delete('/{id}', [KhoaController::class, 'destroy'])->name('khoa.destroy');
+	Route::prefix('access-logs')->name('access.logs.')->group(function () {
+		Route::get('/', [AccessLogController::class, 'index'])->name('index');
+		Route::get('/{id}', [AccessLogController::class, 'show'])->name('show');
+
+		// ✅ Thêm route thống kê
+		Route::get('/statistics', [AccessLogController::class, 'statistics'])->name('statistics');
+
+		// Route cho nhật ký cá nhân nếu cần
+		Route::get('/my', [AccessLogController::class, 'myLogs'])->name('my');
+	});
+
+	// Khoa/bộ môn
+	Route::prefix('khoa')->group(function () {
+		Route::get('/', [KhoaController::class, 'index'])->name('khoa.index');
+		Route::get('/create', [KhoaController::class, 'create'])->name('khoa.create');
+		Route::post('/', [KhoaController::class, 'store'])->name('khoa.store');
+		Route::get('/{id}', [KhoaController::class, 'show'])->name('khoa.show');
+		Route::get('/{id}/edit', [KhoaController::class, 'edit'])->name('khoa.edit');
+		Route::put('/{id}', [KhoaController::class, 'update'])->name('khoa.update');
+		Route::delete('/{id}', [KhoaController::class, 'destroy'])->name('khoa.destroy');
+	});
+
+	// Môn học
+	Route::prefix('monhoc')->group(function () {
+		Route::get('/', [MonHocController::class, 'index'])->name('monhoc.index');
+		Route::get('/create', [MonHocController::class, 'create'])->name('monhoc.create');
+		Route::post('/', [MonHocController::class, 'store'])->name('monhoc.store');
+		Route::get('/{id}', [MonHocController::class, 'show'])->name('monhoc.show');
+		Route::get('/{id}/edit', [MonHocController::class, 'edit'])->name('monhoc.edit');
+		Route::put('/{id}', [MonHocController::class, 'update'])->name('monhoc.update');
+		Route::delete('/{id}', [MonHocController::class, 'destroy'])->name('monhoc.destroy');
+	});
+
+	// Type documents
+	// Route::prefix('types')->name('types.')->group(function () {
+	// 	Route::get('/', [TypeController::class, 'index'])->name('index');
+	// 	Route::get('/create', [TypeController::class, 'create'])->name('create');
+	// 	Route::post('/', [TypeController::class, 'store'])->name('store');
+	// 	Route::get('/{type}', [TypeController::class, 'show'])->name('show');
+	// 	Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
+	// 	Route::put('/{type}', [TypeController::class, 'update'])->name('update');
+	// 	Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
+
+	// 	// Xuất Excel
+	// 	Route::get('/export-excel', [TypeController::class, 'exportExcel'])->name('exportExcel');
+	// });
+
+	Route::prefix('types')->name('types.')->group(function () {
+		Route::get('/export-excel', [TypesController::class, 'exportExcel'])->name('exportExcel');
+
+		Route::get('/', [TypesController::class, 'index'])->name('index');
+		Route::get('/create', [TypesController::class, 'create'])->name('create');
+		Route::post('/', [TypesController::class, 'store'])->name('store');
+		Route::get('/{type}', [TypesController::class, 'show'])->name('show');
+		Route::get('/{type}/edit', [TypesController::class, 'edit'])->name('edit');
+		Route::put('/{type}', [TypesController::class, 'update'])->name('update');
+		Route::delete('/{type}', [TypesController::class, 'destroy'])->name('destroy');
+	});
+
+	// Tags
+	Route::prefix('tags')->name('tags.')->group(function () {
+		Route::get('/', [App\Http\Controllers\TagController::class, 'index'])->name('index');
+		Route::get('/create', [App\Http\Controllers\TagController::class, 'create'])->name('create');
+		Route::post('/', [App\Http\Controllers\TagController::class, 'store'])->name('store');
+		Route::get('/{tag}', [App\Http\Controllers\TagController::class, 'show'])->name('show');
+		Route::get('/{tag}/edit', [App\Http\Controllers\TagController::class, 'edit'])->name('edit');
+		Route::put('/{tag}', [App\Http\Controllers\TagController::class, 'update'])->name('update');
+		Route::delete('/{tag}', [App\Http\Controllers\TagController::class, 'destroy'])->name('destroy');
+	});
+
+	// Reports
+	Route::prefix('reports')->group(function () {
+		Route::get('/', [ReportController::class, 'index'])->name('reports.index');
+		Route::get('/{id}', [ReportController::class, 'show'])->name('reports.show');
+		Route::put('/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
+	});
 });
-
-// Môn học
-Route::prefix('monhoc')->group(function () {
-	Route::get('/', [MonHocController::class, 'index'])->name('monhoc.index');
-	Route::get('/create', [MonHocController::class, 'create'])->name('monhoc.create');
-	Route::post('/', [MonHocController::class, 'store'])->name('monhoc.store');
-	Route::get('/{id}', [MonHocController::class, 'show'])->name('monhoc.show');
-	Route::get('/{id}/edit', [MonHocController::class, 'edit'])->name('monhoc.edit');
-	Route::put('/{id}', [MonHocController::class, 'update'])->name('monhoc.update');
-	Route::delete('/{id}', [MonHocController::class, 'destroy'])->name('monhoc.destroy');
-});
-
-// Type documents
-
-
-// Route::prefix('types')->name('types.')->group(function () {
-// 	Route::get('/', [TypeController::class, 'index'])->name('index');
-// 	Route::get('/create', [TypeController::class, 'create'])->name('create');
-// 	Route::post('/', [TypeController::class, 'store'])->name('store');
-// 	Route::get('/{type}', [TypeController::class, 'show'])->name('show');
-// 	Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
-// 	Route::put('/{type}', [TypeController::class, 'update'])->name('update');
-// 	Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
-
-// 	// Xuất Excel
-// 	Route::get('/export-excel', [TypeController::class, 'exportExcel'])->name('exportExcel');
-// });
-
-Route::prefix('types')->name('types.')->group(function () {
-    Route::get('/export-excel', [TypesController::class, 'exportExcel'])->name('exportExcel');
-
-    Route::get('/', [TypesController::class, 'index'])->name('index');
-    Route::get('/create', [TypesController::class, 'create'])->name('create');
-    Route::post('/', [TypesController::class, 'store'])->name('store');
-    Route::get('/{type}', [TypesController::class, 'show'])->name('show');
-    Route::get('/{type}/edit', [TypesController::class, 'edit'])->name('edit');
-    Route::put('/{type}', [TypesController::class, 'update'])->name('update');
-    Route::delete('/{type}', [TypesController::class, 'destroy'])->name('destroy');
-});
-
-
-
-// Tags
-Route::prefix('tags')->name('tags.')->group(function () {
-	Route::get('/', [App\Http\Controllers\TagController::class, 'index'])->name('index');
-	Route::get('/create', [App\Http\Controllers\TagController::class, 'create'])->name('create');
-	Route::post('/', [App\Http\Controllers\TagController::class, 'store'])->name('store');
-	Route::get('/{tag}', [App\Http\Controllers\TagController::class, 'show'])->name('show');
-	Route::get('/{tag}/edit', [App\Http\Controllers\TagController::class, 'edit'])->name('edit');
-	Route::put('/{tag}', [App\Http\Controllers\TagController::class, 'update'])->name('update');
-	Route::delete('/{tag}', [App\Http\Controllers\TagController::class, 'destroy'])->name('destroy');
-});
-
-
-Route::prefix('access-logs')->name('access.logs.')->middleware(['web', 'require.login', 'check.role:Admin,Giảng viên'])->group(function () {
-	Route::get('/', [AccessLogController::class, 'index'])->name('index');
-	Route::get('/{id}', [AccessLogController::class, 'show'])->name('show');
-
-	// ✅ Thêm route thống kê
-	Route::get('/statistics', [AccessLogController::class, 'statistics'])->name('statistics');
-
-	// Route cho nhật ký cá nhân nếu cần
-	Route::get('/my', [AccessLogController::class, 'myLogs'])->name('my');
-});
-
-// Trang chi tiết tài liệu (Blade)
-Route::get('/documents/{id}', function($id) {
-    return view('documents.See_Document_Details.Document_Detail', compact('id'));
-})->name('documents.show');

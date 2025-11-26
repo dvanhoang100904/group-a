@@ -27,22 +27,27 @@
               <a
                 v-if="currentVersion"
                 :href="`/documents/versions/${currentVersion.version_id}/download`"
-                class="btn btn-primary btn-block"
+                class="btn btn-primary btn-block mb-2"
               >
-                <i class="fas fa-download"></i> Tải xuống
+                <i class="bi bi-download me-1"></i> Tải xuống
               </a>
 
-              <button v-if="canEdit" class="btn btn-warning btn-block">
-                <i class="fas fa-edit"></i> Chỉnh sửa
+              <!--Document Accesses -->
+              <a :href="`/documents/${document.document_id}/accesses`" class="btn btn-primary btn-block mb-2">
+                <i class="bi bi-shield-lock me-1"></i> Cài đặt chia sẻ
+              </a>
+
+              <!-- Document Versions -->
+              <a :href="`/documents/${document.document_id}/versions`" class="btn btn-outline-primary btn-block mb-2">
+                <i class="bi bi-clock-history me-1"></i> Phiên bản
+              </a>
+
+              <button v-if="canEdit" class="btn btn-outline-primary btn-block mb-2">
+                <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
               </button>
 
-              <!-- Versions -->
-              <a :href="`/documents/${document.document_id}/versions`" class="btn btn-info btn-block">
-                <i class="fas fa-history me-1"></i> Phiên bản
-              </a>
-
-              <a href="/documents" class="btn btn-secondary btn-block">
-                <i class="fas fa-arrow-left"></i> Quay lại
+              <a href="/documents" class="btn btn-outline-secondary btn-block">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại
               </a>
             </div>
           </div>
@@ -51,35 +56,51 @@
         <!-- Preview Section -->
         <div class="col-md-8 col-lg-9">
           <div class="document-preview-card">
-            <h4 class="preview-title"><i class="fas fa-file-alt"></i> Xem trước tài liệu</h4>
+            <h4 class="preview-title">
+              <i class="fas fa-file-alt"></i> Xem trước tài liệu
+              <!-- Debug info - xóa sau khi test -->
+              <small v-if="currentVersion" class="text-muted" style="font-size: 12px; margin-left: 10px;">
+                (Preview: {{ currentVersion.preview_url ? '✓' : '✗' }})
+              </small>
+            </h4>
 
             <div class="preview-container">
+              <!-- Ưu tiên hiển thị preview_url nếu có -->
               <iframe
-                v-if="isPdf(currentVersion?.file_name)"
-                :src="currentVersion?.preview_url"
+                v-if="getPreviewSource()"
+                :src="getPreviewSource()"
                 class="pdf-viewer"
               ></iframe>
 
+              <!-- Image preview (fallback) -->
               <div v-else-if="isImage(currentVersion?.file_name)" class="image-preview">
-                <img :src="currentVersion?.preview_url" alt="Preview" class="img-fluid" />
+                <img 
+                  :src="currentVersion?.file_url" 
+                  alt="Preview" 
+                  class="img-fluid" 
+                  @error="handleImageError"
+                />
               </div>
 
+              <!-- No preview -->
               <div v-else class="no-preview">
                 <i class="fas fa-file-alt fa-5x"></i>
                 <h5>Không có preview</h5>
                 <p>Định dạng này chưa hỗ trợ xem trước. Hãy tải xuống để xem.</p>
+                <!-- Debug info -->
+                <small class="text-muted">File: {{ currentVersion?.file_name }}</small>
               </div>
             </div>
 
             <!-- Tags -->
-            <div v-if="document.tags && document.tags.length > 0" class="document-tags">
+            <div v-if="document.tags && document.tags.length" class="document-tags">
               <label><i class="fas fa-tags"></i> Tags:</label>
               <span v-for="tag in document.tags" :key="tag.id" class="tag-badge">{{ tag.name }}</span>
             </div>
           </div>
 
-          <!-- Related -->
-          <div v-if="relatedDocuments.length > 0" class="related-documents">
+          <!-- Related Documents -->
+          <div v-if="relatedDocuments.length" class="related-documents">
             <h5><i class="fas fa-link"></i> Tài liệu liên quan</h5>
             <div class="row">
               <div v-for="rel in relatedDocuments" :key="rel.document_id" class="col-md-6 col-lg-4">
@@ -93,6 +114,7 @@
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -109,13 +131,10 @@ export default {
       document: null,
       currentVersion: null,
       relatedDocuments: [],
-      canEdit: true, // TODO: kiểm tra quyền user thực tế
+      canEdit: true,
     };
   },
   computed: {
-    sortedVersions() {
-      return [...(this.document?.versions || [])].sort((a, b) => b.version_number - a.version_number);
-    },
     infoItems() {
       if (!this.document) return [];
       return [
@@ -131,28 +150,111 @@ export default {
   },
   methods: {
     async fetchData() {
-      const id = window.location.pathname.split('/').pop();
-      const res = await axios.get(`/api/documents/${id}/detail`);
-      this.document = res.data.document;
-      this.currentVersion = res.data.current_version;
-      this.relatedDocuments = res.data.related_documents;
+      try {
+        const id = window.location.pathname.split('/').filter(Boolean).pop();
+        const res = await axios.get(`/api/documents/${id}/detail`);
+        
+        this.document = res.data.document;
+        this.currentVersion = res.data.current_version;
+        this.relatedDocuments = res.data.related_documents || [];
+        
+        // Debug: Log ra console để kiểm tra
+        console.log('Document ID:', id);
+        console.log('Current Version:', this.currentVersion);
+        console.log('Preview URL:', this.currentVersion?.preview_url);
+        console.log('File URL:', this.currentVersion?.file_url);
+        
+        // Nếu backend chưa trả preview_url, tự tạo
+        if (this.currentVersion && !this.currentVersion.preview_url) {
+          this.buildPreviewUrl();
+        }
+      } catch (error) {
+        console.error('Error fetching document:', error);
+        alert('Không thể tải thông tin tài liệu');
+      }
     },
+    
+    // Tự động tạo preview_url nếu backend chưa có
+    buildPreviewUrl() {
+      const docId = this.document.document_id;
+      const versionNum = this.currentVersion.version_number;
+      const previewUrl = `http://localhost:8080/storage/documents/${docId}/preview_${versionNum}.pdf`;
+      
+      // Kiểm tra file có tồn tại không
+      this.checkFileExists(previewUrl).then(exists => {
+        if (exists) {
+          this.currentVersion.preview_url = previewUrl;
+          console.log('Preview URL created:', previewUrl);
+        }
+      });
+    },
+    
+    // Kiểm tra file preview có tồn tại
+    async checkFileExists(url) {
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        return response.ok;
+      } catch {
+        return false;
+      }
+    },
+    
+    // Lấy nguồn preview (ưu tiên preview_url)
+    getPreviewSource() {
+      if (!this.currentVersion) return null;
+      
+      const fileName = this.currentVersion.file_name;
+      
+      // 1. Ưu tiên preview_url (PDF đã convert)
+      if (this.currentVersion.preview_url) {
+        return this.currentVersion.preview_url;
+      }
+      
+      // 2. Nếu là PDF gốc, dùng file_url
+      if (this.isPdf(fileName)) {
+        return this.currentVersion.file_url;
+      }
+      
+      // 3. Nếu là Office file, dùng Google Docs Viewer
+      if (this.isOffice(fileName) && this.currentVersion.file_url) {
+        return `https://docs.google.com/gview?url=${encodeURIComponent(this.currentVersion.file_url)}&embedded=true`;
+      }
+      
+      return null;
+    },
+    
     isPdf(fileName) {
       return fileName?.toLowerCase().endsWith('.pdf');
     },
+    
     isImage(fileName) {
-      return /\.(jpg|jpeg|png|gif)$/i.test(fileName || '');
+      return /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName || '');
     },
+    
+    isOffice(fileName) {
+      return /\.(docx|doc|xlsx|xls|pptx|ppt)$/i.test(fileName || '');
+    },
+    
+    handleImageError(e) {
+      console.error('Image load error:', e);
+      e.target.src = '/images/no-preview.png'; // Placeholder image
+    },
+    
     formatSize(bytes) {
       if (!bytes) return '';
-      return (bytes / 1024).toFixed(2) + ' KB';
+      if (bytes < 1024) return bytes + ' B';
+      else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+      return (bytes / (1024*1024)).toFixed(2) + ' MB';
     },
+    
     getExtension(file) {
       return file?.split('.').pop()?.toUpperCase() || 'N/A';
     },
+    
     formatDate(date) {
       return new Date(date).toLocaleString('vi-VN');
     },
+    
     truncate(text, len) {
       return text?.length > len ? text.slice(0, len) + '...' : text;
     },
@@ -169,7 +271,6 @@ export default {
   min-height: calc(100vh - 100px);
   background-color: #f9fafb;
 }
-
 .document-info-card {
   background: #fff;
   padding: 25px;
@@ -181,7 +282,6 @@ export default {
 .document-info-card:hover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
-
 .info-title {
   font-size: 18px;
   font-weight: 600;
@@ -190,232 +290,114 @@ export default {
   border-bottom: 2px solid #f1f3f4;
   color: #333;
 }
-
-.info-group {
-  margin-bottom: 15px;
+.info-group { margin-bottom: 15px; }
+.info-group label { font-weight: 600; color: #666; font-size: 13px; display: block; margin-bottom: 5px; }
+.info-value { color: #333; font-size: 14px; margin: 0; word-wrap: break-word; }
+.info-value i { margin-right: 6px; color: #888; }
+.action-buttons { 
+  margin-top: 25px; 
+  padding-top: 20px; 
+  border-top: 2px solid #f0f0f0; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 10px; 
 }
-.info-group label {
-  font-weight: 600;
-  color: #666;
-  font-size: 13px;
-  margin-bottom: 5px;
-  display: block;
+.document-preview-card { 
+  background: #fff; 
+  padding: 25px; 
+  border-radius: 12px; 
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05); 
+  min-height: 600px; 
 }
-.info-value {
-  color: #333;
-  font-size: 14px;
-  margin: 0;
-  word-wrap: break-word;
-}
-.info-value i {
-  margin-right: 6px;
-  color: #888;
-}
-
-.action-buttons {
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 2px solid #f0f0f0;
+.preview-title { 
+  font-size: 18px; 
+  font-weight: 600; 
+  margin-bottom: 20px; 
+  color: #333; 
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.version-history {
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 2px solid #f0f0f0;
-}
-
-.history-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.version-list {
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-.version-list::-webkit-scrollbar {
-  width: 6px;
-}
-.version-list::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-.version-item {
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  transition: all 0.2s ease;
-  background-color: #fff;
-}
-.version-item.current {
-  background: #f0fff0;
-  border-color: #28a745;
-}
-.version-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-.version-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
 }
-.version-number {
-  font-weight: 600;
-  color: #333;
-}
-.version-date {
-  font-size: 12px;
-  color: #999;
-}
-.version-note {
-  font-size: 13px;
-  color: #666;
-  margin: 8px 0;
-}
-.version-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #999;
-  margin-top: 8px;
-}
-
-.document-preview-card {
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  min-height: 600px;
-}
-
-.preview-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #f1f3f4;
-}
-
 .preview-container {
   position: relative;
   min-height: 500px;
 }
-
-.pdf-viewer {
-  width: 100%;
-  height: 700px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+.pdf-viewer { 
+  width: 100%; 
+  height: 700px; 
+  border: 1px solid #ddd; 
+  border-radius: 6px; 
+  background: #f5f5f5;
 }
-
-.image-preview {
-  text-align: center;
+.image-preview { 
+  text-align: center; 
   padding: 20px;
 }
-.image-preview img {
-  max-height: 700px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+.image-preview img { 
+  max-width: 100%;
+  max-height: 700px; 
+  border: 1px solid #ddd; 
+  border-radius: 6px; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-
-.no-preview {
-  text-align: center;
-  padding: 100px 20px;
-  color: #999;
+.no-preview { 
+  text-align: center; 
+  padding: 100px 20px; 
+  color: #999; 
 }
 .no-preview i {
-  color: #ddd;
+  color: #ccc;
   margin-bottom: 20px;
-  font-size: 48px;
 }
-.no-preview h5 {
-  margin-bottom: 10px;
-  font-weight: 600;
+.document-tags { 
+  margin-top: 20px; 
+  padding-top: 20px; 
+  border-top: 1px solid #f0f0f0; 
 }
-
-.preview-note {
-  margin-top: 15px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #555;
+.document-tags label { 
+  font-weight: 600; 
+  color: #666; 
+  margin-right: 10px; 
 }
-.preview-note i {
-  margin-right: 8px;
-  color: #17a2b8;
+.tag-badge { 
+  display:inline-block; 
+  padding:5px 12px; 
+  background:#e9ecef; 
+  border-radius:15px; 
+  font-size:12px; 
+  margin-right:8px; 
+  margin-bottom:8px;
+  color: #495057;
 }
-
-.document-tags {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
+.related-documents { 
+  margin-top:30px; 
+  background:#fff; 
+  padding:25px; 
+  border-radius:12px; 
+  box-shadow:0 2px 6px rgba(0,0,0,0.05); 
 }
-.document-tags label {
-  font-weight: 600;
-  color: #666;
-  margin-right: 10px;
+.related-documents h5 { 
+  font-size: 18px; 
+  font-weight: 600; 
+  margin-bottom: 20px; 
+  color: #333; 
 }
-.tag-badge {
-  display: inline-block;
-  padding: 5px 12px;
-  background: #e9ecef;
-  border-radius: 15px;
-  font-size: 12px;
-  margin-right: 8px;
-  margin-bottom: 8px;
-}
-
-.related-documents {
-  margin-top: 30px;
+.related-card { 
+  padding:15px; 
+  border:1px solid #e0e0e0; 
+  border-radius:8px; 
+  margin-bottom:15px; 
+  transition:all 0.2s ease;
   background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-.related-documents h5 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 20px;
+.related-card:hover { 
+  box-shadow:0 4px 10px rgba(0,0,0,0.08); 
+  transform:translateY(-2px); 
+  border-color: #007bff;
 }
-.related-card {
-  padding: 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  transition: all 0.2s ease;
-}
-.related-card:hover {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
-}
-.related-card h6 {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-@media (max-width: 768px) {
-  .document-info-card {
-    margin-bottom: 20px;
-  }
-  .pdf-viewer {
-    height: 500px;
-  }
-  .document-preview-card {
-    padding: 20px;
-  }
+.related-card h6 { 
+  font-size: 15px; 
+  font-weight: 600; 
+  margin-bottom: 10px; 
+  color: #333; 
 }
 </style>
-

@@ -1,192 +1,296 @@
 <template>
-  <div class="upload-container bg-white rounded-lg shadow-lg p-6">
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">📁 Tải tài liệu lên hệ thống</h2>
+  <div class="upload-container bg-white rounded-3 shadow-sm p-4">
+    <!-- Header -->
+    <div class="mb-4 pb-3 border-bottom">
+      <h2 class="h4 mb-0 d-flex align-items-center gap-2">
+        <i class="bi bi-cloud-upload text-primary fs-3"></i>
+        <span class="fw-bold">Tải tài liệu lên hệ thống</span>
+      </h2>
+    </div>
 
     <!-- Drag & Drop Zone -->
-    <div class="border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300"
-      :class="isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'"
-      @dragover.prevent="isDragging = true" 
-      @dragleave.prevent="isDragging = false" 
-      @drop.prevent="handleDrop">
-      
-      <div class="text-6xl mb-3">{{ isDragging ? '📥' : '📂' }}</div>
-      <p class="text-gray-600 mb-3">
-        {{ isDragging ? 'Thả file tại đây' : 'Kéo thả file vào đây hoặc' }}
+    <div
+      class="upload-zone border border-2 rounded-3 p-4 text-center mb-4 position-relative"
+      :class="isDragging ? 'border-primary bg-primary bg-opacity-10' : 'border-dashed bg-light'"
+      @dragover.prevent="isDragging = true"
+      @dragleave.prevent="isDragging = false"
+      @drop.prevent="handleDrop"
+      style="transition: all 0.3s ease; border-style: dashed;"
+    >
+      <div class="mb-3">
+        <i 
+          :class="isDragging ? 'bi bi-inbox-fill text-primary' : 'bi bi-folder2-open text-secondary'"
+          style="font-size: 4rem;"
+        ></i>
+      </div>
+
+      <p class="text-muted mb-3">
+        {{ isDragging ? 'Thả file vào đây để tải lên' : 'Kéo và thả file vào đây hoặc' }}
       </p>
-      
-      <div class="flex items-center justify-center gap-3">
-        <button @click="triggerFileInput"
-          class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-          Chọn file từ máy tính
+
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <button
+          @click="triggerFileInput"
+          class="btn btn-primary d-flex align-items-center gap-2"
+        >
+          <i class="bi bi-folder-plus"></i>
+          <span>Chọn file</span>
         </button>
-        <button @click="fetchCurrentFolderIndex" 
-          class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
-          Làm mới thư mục lưu
+
+        <button
+          @click="fetchCurrentFolderIndex"
+          class="btn btn-outline-secondary d-flex align-items-center gap-2"
+        >
+          <i class="bi bi-arrow-clockwise"></i>
+          <span>Làm mới</span>
         </button>
       </div>
 
-      <input ref="fileInput" type="file" multiple 
+      <input
+        ref="fileInput"
+        type="file"
+        multiple
         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
-        class="hidden" @change="handleFileSelect" />
+        class="d-none"
+        @change="handleFileSelect"
+      />
 
-      <p class="text-xs text-gray-500 mt-3">
-        Hỗ trợ: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, ZIP (tối đa 50MB/file)
-      </p>
-      <p v-if="currentFolderIndex" class="text-xs text-gray-600 mt-2">
-        Thư mục lưu hiện tại: <b>{{ currentFolderIndex }}</b>
-      </p>
+      <div class="mt-3">
+        <small class="text-muted d-block">
+          <i class="bi bi-info-circle me-1"></i>
+          Hỗ trợ: PDF, Word, Excel, PowerPoint, TXT, ZIP (tối đa 50MB/file)
+        </small>
+        <small v-if="currentFolderIndex" class="text-secondary d-block mt-1">
+          <i class="bi bi-folder me-1"></i>
+          Thư mục: <strong>{{ currentFolderIndex }}</strong>
+        </small>
+      </div>
     </div>
 
     <!-- File List -->
-    <div v-if="files.length" class="mt-6">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold text-gray-700">
-          📋 Danh sách file ({{ files.length }})
-        </h3>
-        <div class="flex items-center gap-3">
-          <button v-if="pendingFiles > 0" @click="uploadAll" :disabled="uploading"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition">
-            {{ uploading ? '⏳ Đang tải...' : `⬆️ Tải lên tất cả (${pendingFiles})` }}
+    <div v-if="files.length">
+      <!-- List Header -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 d-flex align-items-center gap-2">
+          <i class="bi bi-files text-primary"></i>
+          <span>Danh sách file</span>
+          <span class="badge bg-secondary">{{ files.length }}</span>
+        </h5>
+
+        <div class="d-flex gap-2">
+          <button
+            v-if="pendingFiles > 0"
+            @click="uploadAll"
+            :disabled="uploading"
+            class="btn btn-success btn-sm d-flex align-items-center gap-1"
+          >
+            <i :class="uploading ? 'bi bi-hourglass-split' : 'bi bi-upload'"></i>
+            <span>{{ uploading ? 'Đang tải...' : `Tải lên tất cả (${pendingFiles})` }}</span>
           </button>
-          <button @click="clearAll" 
-            class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
-            🗑️ Xóa tất cả
+
+          <button
+            @click="clearAll"
+            class="btn btn-danger btn-sm d-flex align-items-center gap-1"
+          >
+            <i class="bi bi-trash"></i>
+            <span>Xóa tất cả</span>
           </button>
         </div>
       </div>
 
-      <!-- List of Files -->
-      <div class="space-y-3">
-        <div v-for="(file, index) in files" :key="file.uid"
-          class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
-          <div class="flex items-start justify-between gap-4">
-            
-            <!-- File Info Section -->
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-2">
-                <div class="text-2xl">{{ getFileIcon(file.name) }}</div>
-                <div class="flex-1">
+      <!-- Files -->
+      <div class="file-list">
+        <div
+          v-for="(file, index) in files"
+          :key="file.uid"
+          class="file-item card mb-3 shadow-sm hover-shadow"
+        >
+          <div class="card-body">
+            <div class="row align-items-start">
+              
+              <!-- File Icon & Info -->
+              <div class="col-lg-8">
+                <div class="d-flex gap-3 mb-3">
                   
-                  <!-- Editable document name -->
-                  <div class="flex gap-2 items-center">
-                    <input v-model="file.title" 
-                      class="border px-2 py-1 rounded w-64"
-                      :placeholder="file.originalNameNoExt" />
-                    <span class="text-sm text-gray-500">.{{ file.ext }}</span>
-                    <span class="ml-3 text-xs text-gray-500">({{ file.size }})</span>
+                  <!-- Icon -->
+                  <div class="file-icon-wrapper">
+                    <i 
+                      :class="getFileIconClass(file.name)" 
+                      :style="`color: ${getFileColor(file.name)}`"
+                      class="fs-1"
+                    ></i>
                   </div>
 
-                  <!-- Type & Permission Selection -->
-                  <div class="flex items-center gap-3 mt-2">
-                    <select v-model="file.type_id" 
-                      class="border rounded px-2 py-1 text-sm"
-                      :class="{'border-red-500': file.validationErrors?.type_id}">
-                      <option value="">-- Chọn loại (bắt buộc) --</option>
-                      <option v-for="t in types" :key="t.type_id" :value="t.type_id">
-                        {{ t.name }}
-                      </option>
-                    </select>
+                  <!-- Info -->
+                  <div class="flex-grow-1">
+                    <!-- File Name -->
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <input
+                        v-model="file.title"
+                        class="form-control form-control-sm"
+                        :placeholder="file.originalNameNoExt"
+                        style="max-width: 400px;"
+                      />
+                      <span class="text-muted small">.{{ file.ext }}</span>
+                      <small class="text-muted">
+                        <i class="bi bi-hdd"></i>
+                        {{ file.size }}
+                      </small>
+                    </div>
 
-                    <select v-model="file.permission" class="border rounded px-2 py-1 text-sm">
-                      <option v-for="(label, key) in permissionOptions" :key="key" :value="key">
-                        {{ label }}
-                      </option>
-                    </select>
+                    <!-- Selects -->
+                    <div class="row g-2 mb-2">
+                      <div class="col-md-4">
+                        <select
+                          v-model="file.type_id"
+                          class="form-select form-select-sm"
+                          :class="{'is-invalid': file.validationErrors?.type_id}"
+                        >
+                          <option value="">-- Loại tài liệu --</option>
+                          <option v-for="t in types" :key="t.type_id" :value="t.type_id">
+                            {{ t.name }}
+                          </option>
+                        </select>
+                      </div>
 
-                    <div class="text-xs text-gray-500 ml-2">
-                      Thư mục: <b>{{ file.folderIndex || currentFolderIndex || '(chưa xác định)' }}</b>
+                      <div class="col-md-3">
+                        <select v-model="file.subject_id" class="form-select form-select-sm">
+                          <option value="">-- Môn học --</option>
+                          <option v-for="s in subjects" :key="s.subject_id" :value="s.subject_id">
+                            {{ s.name }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div class="col-md-3">
+                        <select v-model="file.permission" class="form-select form-select-sm">
+                          <option v-for="(label, key) in permissionOptions" :key="key" :value="key">
+                            {{ label }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div class="col-md-2 d-flex align-items-center">
+                        <small class="text-muted">
+                          <i class="bi bi-folder2"></i>
+                          {{ file.folderIndex || currentFolderIndex || 'N/A' }}
+                        </small>
+                      </div>
+                    </div>
+
+                    <!-- Validation Errors -->
+                    <div v-if="file.validationErrors" class="alert alert-danger alert-sm py-1 px-2 mb-2">
+                      <small v-for="(errors, field) in file.validationErrors" :key="field">
+                        <i class="bi bi-exclamation-circle"></i>
+                        {{ errors[0] }}
+                      </small>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div v-if="file.progress !== null" class="mb-2">
+                      <div class="progress" style="height: 8px;">
+                        <div
+                          class="progress-bar"
+                          :class="{
+                            'bg-danger': file.status === 'error',
+                            'bg-warning': file.status === 'done' && file.errorMessage,
+                            'bg-primary': file.status === 'uploading',
+                            'bg-success': file.status === 'done' && !file.errorMessage
+                          }"
+                          :style="{ width: file.progress + '%' }"
+                        ></div>
+                      </div>
+                      <small class="text-muted">{{ file.progress }}%</small>
+                    </div>
+
+                    <!-- Status Badge -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      <span
+                        class="badge d-flex align-items-center gap-1"
+                        :class="{
+                          'bg-secondary': file.status === 'pending',
+                          'bg-primary': file.status === 'uploading',
+                          'bg-success': file.status === 'done' && !file.errorMessage && file.preview_ready,
+                          'bg-warning': file.status === 'done' && file.errorMessage,
+                          'bg-danger': file.status === 'error',
+                          'bg-info': file.is_converting
+                        }"
+                      >
+                        <i
+                          :class="{
+                            'bi bi-pause-circle': file.status === 'pending',
+                            'bi bi-hourglass-split': file.status === 'uploading',
+                            'bi bi-arrow-repeat spin': file.is_converting,
+                            'bi bi-check-circle-fill': file.status === 'done' && file.preview_ready,
+                            'bi bi-check-circle': file.status === 'done' && !file.errorMessage && !file.preview_ready,
+                            'bi bi-exclamation-triangle-fill': file.status === 'done' && file.errorMessage,
+                            'bi bi-x-circle-fill': file.status === 'error'
+                          }"
+                        ></i>
+                        <span>{{
+                          file.status === 'pending' ? 'Chờ tải' :
+                          file.status === 'uploading' ? 'Đang tải...' :
+                          file.is_converting ? 'Tạo preview...' :
+                          file.status === 'done' && file.preview_ready ? 'Hoàn tất' :
+                          file.status === 'done' && file.errorMessage ? 'Cảnh báo' :
+                          file.status === 'done' ? 'Hoàn tất' :
+                          'Lỗi'
+                        }}</span>
+                      </span>
+
+                      <small v-if="file.errorMessage" class="text-danger">
+                        <i class="bi bi-info-circle"></i>
+                        {{ file.errorMessage }}
+                      </small>
                     </div>
                   </div>
-
-                  <!-- Validation Errors -->
-                  <div v-if="file.validationErrors" class="mt-2">
-                    <p v-for="(errors, field) in file.validationErrors" :key="field" 
-                      class="text-xs text-red-600">
-                      • {{ errors[0] }}
-                    </p>
-                  </div>
                 </div>
               </div>
 
-              <!-- Progress Bar -->
-              <div v-if="file.progress !== null" class="mb-2">
-                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                  <div class="h-2.5 rounded-full transition-all duration-300"
-                    :class="{
-                      'bg-red-500': file.status === 'error',
-                      'bg-yellow-500': file.status === 'done' && file.errorMessage,
-                      'bg-blue-600': file.status === 'uploading',
-                      'bg-green-600': file.status === 'done' && !file.errorMessage
-                    }"
-                    :style="{ width: file.progress + '%' }"></div>
+              <!-- Action Buttons -->
+              <div class="col-lg-4 text-lg-end">
+                <div class="d-flex flex-column gap-2 d-lg-inline-flex">
+                  <button
+                    v-if="file.status === 'pending'"
+                    @click="uploadSingle(file, index)"
+                    :disabled="!file.type_id"
+                    class="btn btn-sm d-flex align-items-center gap-1 justify-content-center"
+                    :class="file.type_id ? 'btn-primary' : 'btn-secondary disabled'"
+                  >
+                    <i class="bi bi-upload"></i>
+                    <span>Tải lên</span>
+                  </button>
+
+                  <button
+                    v-else-if="file.status === 'done' && file.preview_url"
+                    @click="downloadPreview(file)"
+                    class="btn btn-info btn-sm d-flex align-items-center gap-1 justify-content-center"
+                  >
+                    <i class="bi bi-eye"></i>
+                    <span>Xem preview</span>
+                  </button>
+
+                  <button
+                    @click="removeFile(index)"
+                    class="btn btn-danger btn-sm d-flex align-items-center gap-1 justify-content-center"
+                  >
+                    <i class="bi bi-trash"></i>
+                    <span>Xóa</span>
+                  </button>
                 </div>
-                <p class="text-xs text-gray-600 mt-1">{{ file.progress }}%</p>
               </div>
 
-              <!-- Status Badge -->
-              <div class="flex items-center gap-3 mt-2 flex-wrap">
-                <span class="px-3 py-1 rounded-full text-xs font-medium" :class="{
-                  'bg-gray-200 text-gray-700': file.status === 'pending',
-                  'bg-blue-200 text-blue-700': file.status === 'uploading',
-                  'bg-green-200 text-green-700': file.status === 'done' && !file.errorMessage && file.preview_ready,
-                  'bg-green-100 text-green-800': file.status === 'done' && !file.errorMessage && !file.preview_ready,
-                  'bg-yellow-200 text-yellow-800': file.status === 'done' && file.errorMessage,
-                  'bg-indigo-200 text-indigo-700': file.is_converting,
-                  'bg-red-200 text-red-700': file.status === 'error'
-                }">
-                  {{
-                    file.status === 'pending' ? '⏸️ Chờ tải' :
-                    file.status === 'uploading' ? '⏳ Đang tải...' :
-                    file.is_converting ? '🔄 Đang tạo preview...' :
-                    file.status === 'done' && file.preview_ready ? '✅ Hoàn tất (có preview)' :
-                    file.status === 'done' && file.errorMessage ? '⚠️ Đã tải lên (preview lỗi)' :
-                    file.status === 'done' ? '✅ Hoàn tất' :
-                    '❌ Lỗi tải lên'
-                  }}
-                </span>
-
-                <!-- Error/Warning Message -->
-                <span v-if="file.errorMessage" 
-                  class="text-xs ml-2"
-                  :class="{
-                    'text-yellow-600': file.status === 'done',
-                    'text-red-600': file.status === 'error'
-                  }">
-                  {{ file.errorMessage }}
-                </span>
-              </div>
             </div>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-col gap-2 items-end">
-              <button v-if="file.status === 'pending'" 
-                @click="uploadSingle(file, index)"
-                :disabled="!file.type_id"
-                :class="file.type_id ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'"
-                class="px-3 py-1 text-white text-sm rounded transition">
-                ⬆️ Tải
-              </button>
-
-              <button v-else-if="file.status === 'done' && file.preview_url" 
-                @click="downloadPreview(file)"
-                class="px-3 py-1 bg-indigo-500 text-white text-sm rounded hover:bg-indigo-600 transition">
-                📄 Xem preview
-              </button>
-
-              <button @click="removeFile(index)"
-                class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition">
-                🗑️ Xóa
-              </button>
-            </div>
-
           </div>
         </div>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div v-else class="text-center py-8 text-gray-500">
-      <p class="text-lg">Chưa có file nào được chọn</p>
+    <div v-else class="text-center py-5">
+      <i class="bi bi-inbox text-muted" style="font-size: 5rem;"></i>
+      <p class="text-muted mt-3 mb-0">Chưa có file nào được chọn</p>
+      <small class="text-muted">Kéo thả hoặc nhấn nút "Chọn file" để bắt đầu</small>
     </div>
   </div>
 </template>
@@ -202,13 +306,14 @@ const isDragging = ref(false)
 const uploading = ref(false)
 const fileInput = ref(null)
 const types = ref([])
+const subjects = ref([])
 const currentFolderIndex = ref(null)
 
 const permissionOptions = {
-  view: '👁️ Chỉ xem',
-  edit: '✏️ Sửa',
-  download: '⬇️ Tải xuống',
-  full: '🛠️ Toàn quyền'
+  view: 'Chỉ xem',
+  edit: 'Chỉnh sửa',
+  download: 'Tải xuống',
+  full: 'Toàn quyền'
 }
 
 // ===== COMPUTED =====
@@ -219,6 +324,7 @@ const pendingFiles = computed(() =>
 // ===== LIFECYCLE =====
 onMounted(async () => {
   await fetchTypes()
+  await fetchSubjects()
   await fetchCurrentFolderIndex()
 })
 
@@ -240,7 +346,7 @@ const prepareFiles = (fileList) => {
     const sizeMB = (f.size / 1024 / 1024).toFixed(2)
     
     if (f.size > 50 * 1024 * 1024) {
-      alert(`❌ File "${f.name}" vượt quá 50MB!`)
+      alert(`File "${f.name}" vượt quá 50MB!`)
       continue
     }
 
@@ -262,6 +368,7 @@ const prepareFiles = (fileList) => {
       errorMessage: null,
       validationErrors: null,
       type_id: '',
+      subject_id: '',
       permission: 'view',
       folderIndex: null,
       is_converting: false,
@@ -279,6 +386,16 @@ const fetchTypes = async () => {
   } catch (err) {
     console.error('Không lấy được types:', err)
     types.value = []
+  }
+}
+
+const fetchSubjects = async () => {
+  try {
+    const res = await axios.get('/api/subjects')
+    subjects.value = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+  } catch (err) {
+    console.error('Không lấy được subjects:', err)
+    subjects.value = []
   }
 }
 
@@ -308,13 +425,11 @@ const downloadPreview = (fileObj) => {
 const uploadSingle = async (fileObj, index) => {
   if (fileObj.status === 'uploading' || fileObj.status === 'done') return
 
-  // ✅ Validate type_id trước khi upload
   if (!fileObj.type_id) {
     fileObj.validationErrors = { type_id: ['Vui lòng chọn loại tài liệu'] }
     return
   }
 
-  // Reset states
   fileObj.status = 'uploading'
   fileObj.progress = 0
   fileObj.errorMessage = null
@@ -322,7 +437,6 @@ const uploadSingle = async (fileObj, index) => {
   fileObj.is_converting = false
   fileObj.preview_ready = false
 
-  // Get folder index
   if (!fileObj.folderIndex) {
     try {
       const resp = await axios.get('/api/folders/current')
@@ -332,11 +446,13 @@ const uploadSingle = async (fileObj, index) => {
     }
   }
 
-  // Build FormData
   const formData = new FormData()
   formData.append('file', fileObj.file)
   formData.append('title', fileObj.title || fileObj.originalNameNoExt)
   formData.append('type_id', fileObj.type_id)
+  if (fileObj.subject_id) {
+    formData.append('subject_id', fileObj.subject_id)
+  }
   formData.append('permission', fileObj.permission)
   if (fileObj.folderIndex) {
     formData.append('folder_index', fileObj.folderIndex)
@@ -354,7 +470,6 @@ const uploadSingle = async (fileObj, index) => {
 
     const data = response.data || {}
 
-    // ✅ CHECK: Backend có trả success = true không?
     if (data.success === true) {
       fileObj.status = 'done'
       fileObj.progress = 100
@@ -362,12 +477,10 @@ const uploadSingle = async (fileObj, index) => {
       fileObj.preview_url = data.preview_url || null
       fileObj.is_converting = !!data.conversion_started
 
-      // ⚠️ Nếu có preview_error → hiển thị warning
       if (data.preview_error) {
         fileObj.errorMessage = data.preview_error
       }
 
-      // 🔄 Poll preview nếu đang convert async
       if (fileObj.is_converting && !fileObj.preview_ready) {
         const documentId = data.document?.document_id || data.document_id
         if (documentId) {
@@ -376,24 +489,20 @@ const uploadSingle = async (fileObj, index) => {
       }
 
     } else {
-      // ❌ Backend trả success = false
       fileObj.status = 'error'
       fileObj.progress = 0
       fileObj.errorMessage = data.message || 'Upload thất bại'
     }
 
   } catch (error) {
-    // ❌ Axios error
     fileObj.status = 'error'
     fileObj.progress = 0
 
-    // Handle Laravel validation errors (422)
     if (error.response?.status === 422 && error.response?.data?.errors) {
       fileObj.validationErrors = error.response.data.errors
       const firstError = Object.values(error.response.data.errors)[0]
       fileObj.errorMessage = Array.isArray(firstError) ? firstError[0] : firstError
     }
-    // Handle other errors
     else if (error.response?.data?.message) {
       fileObj.errorMessage = error.response.data.message
     }
@@ -401,7 +510,7 @@ const uploadSingle = async (fileObj, index) => {
       fileObj.errorMessage = error.response.data.error
     }
     else if (error.code === 'ECONNABORTED') {
-      fileObj.errorMessage = '⏱️ Quá thời gian kết nối'
+      fileObj.errorMessage = 'Quá thời gian kết nối'
     }
     else {
       fileObj.errorMessage = error.message || 'Lỗi không xác định'
@@ -441,7 +550,7 @@ const pollPreviewStatus = async (documentId, fileObj, attempt = 0) => {
       fileObj.preview_ready = true
       fileObj.preview_url = res.data.preview_url
       fileObj.is_converting = false
-      fileObj.errorMessage = null // Clear error nếu có
+      fileObj.errorMessage = null
     } else {
       setTimeout(() => pollPreviewStatus(documentId, fileObj, attempt + 1), 2000)
     }
@@ -452,26 +561,87 @@ const pollPreviewStatus = async (documentId, fileObj, attempt = 0) => {
 }
 
 // ===== UTILITY =====
-const getFileIcon = (filename) => {
+const getFileIconClass = (filename) => {
   const ext = filename.split('.').pop().toLowerCase()
   const icons = {
-    pdf: '📕', 
-    doc: '📘', 
-    docx: '📘',
-    xls: '📗', 
-    xlsx: '📗',
-    ppt: '📙', 
-    pptx: '📙',
-    txt: '📄', 
-    zip: '🗜️'
+    pdf: 'bi bi-file-earmark-pdf-fill',
+    doc: 'bi bi-file-earmark-word-fill',
+    docx: 'bi bi-file-earmark-word-fill',
+    xls: 'bi bi-file-earmark-excel-fill',
+    xlsx: 'bi bi-file-earmark-excel-fill',
+    ppt: 'bi bi-file-earmark-ppt-fill',
+    pptx: 'bi bi-file-earmark-ppt-fill',
+    txt: 'bi bi-file-earmark-text-fill',
+    zip: 'bi bi-file-earmark-zip-fill'
   }
-  return icons[ext] || '📄'
+  return icons[ext] || 'bi bi-file-earmark-fill'
+}
+
+const getFileColor = (filename) => {
+  const ext = filename.split('.').pop().toLowerCase()
+  const colors = {
+    pdf: '#dc3545',     // Red
+    doc: '#2b579a',     // Blue (Word)
+    docx: '#2b579a',
+    xls: '#217346',     // Green (Excel)
+    xlsx: '#217346',
+    ppt: '#d24726',     // Orange (PowerPoint)
+    pptx: '#d24726',
+    txt: '#6c757d',     // Gray
+    zip: '#ffc107'      // Yellow
+  }
+  return colors[ext] || '#6c757d'
 }
 </script>
 
 <style scoped>
 .upload-container {
-  max-width: 980px;
+  max-width: 1200px;
   margin: 0 auto;
+}
+
+.upload-zone {
+  cursor: pointer;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.file-item {
+  transition: all 0.2s ease;
+}
+
+.file-item:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.hover-shadow:hover {
+  transform: translateY(-2px);
+}
+
+.border-dashed {
+  border-style: dashed !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.alert-sm {
+  font-size: 0.875rem;
+}
+
+.file-icon-wrapper {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

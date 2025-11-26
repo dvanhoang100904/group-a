@@ -24,11 +24,22 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('documents', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropForeign(['folder_id']);
-            $table->dropForeign(['subject_id']);
-            $table->dropForeign(['type_id']);
-        });
+        if (Schema::hasTable('documents')) {
+            Schema::table('documents', function (Blueprint $table) {
+                // Kiểm tra và xóa từng foreign key
+                if (Schema::hasColumn('documents', 'user_id')) {
+                    $table->dropForeign(['user_id']);
+                }
+                if (Schema::hasColumn('documents', 'folder_id')) {
+                    $table->dropForeign(['folder_id']);
+                }
+                if (Schema::hasColumn('documents', 'subject_id')) {
+                    $table->dropForeign(['subject_id']);
+                }
+                if (Schema::hasColumn('documents', 'type_id')) {
+                    $table->dropForeign(['type_id']);
+                }
+            });
+        }
     }
 };
