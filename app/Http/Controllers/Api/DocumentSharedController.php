@@ -21,13 +21,6 @@ class DocumentSharedController extends Controller
     {
         $userId = auth()->id() ?? 1;
 
-        if (!$userId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn chưa đăng nhập.',
-            ]);
-        }
-
         $filters = $request->only([
             'keyword',
             'user_id',
@@ -55,13 +48,6 @@ class DocumentSharedController extends Controller
     public function listUsers()
     {
         $userId = auth()->id() ?? 1;
-
-        if (!$userId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn chưa đăng nhập.',
-            ]);
-        }
 
         $users = $this->sharedService->getSharedForUser($userId);
 

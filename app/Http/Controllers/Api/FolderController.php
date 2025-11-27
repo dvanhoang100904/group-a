@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Models\User;
+use App\Models\FolderShare;
 
 class FolderController extends Controller
 {
@@ -33,7 +35,6 @@ class FolderController extends Controller
         $validator = Validator::make($params, [
             'name' => 'nullable|string|max:255',
             'date' => 'nullable|date_format:Y-m-d',
-            'status' => 'nullable|in:public,private',
             'file_type' => 'nullable|string|max:100',
             'parent_id' => 'nullable|integer|min:0',
             'per_page' => 'nullable|integer|min:1|max:100',
@@ -97,8 +98,6 @@ class FolderController extends Controller
 
             // Validate và sanitize input
             $validatedData = $this->validateApiParams($request->all());
-
-            \Log::info('📦 API Request Data:', $validatedData);
 
             // Gọi service với tất cả params
             $result = $this->folderService->getFoldersAndDocuments($validatedData);
@@ -290,7 +289,6 @@ class FolderController extends Controller
                 'data' => [
                     'folder_id' => $folder->folder_id,
                     'name' => $this->escapeOutput($folder->name),
-                    'status' => $folder->status,
                     'parent_folder_id' => $folder->parent_folder_id
                 ]
             ], 201);
@@ -310,7 +308,7 @@ class FolderController extends Controller
     }
 
     /**
-     * Cập nhật folder (API) - ĐÃ BẢO MẬT
+     * Cập nhật folder (API)
      */
     public function update(UpdateFolderRequest $request, $folder): JsonResponse
     {
@@ -331,7 +329,7 @@ class FolderController extends Controller
                 'data' => [
                     'folder_id' => $updatedFolder->folder_id,
                     'name' => $this->escapeOutput($updatedFolder->name),
-                    'status' => $updatedFolder->status,
+                    // ✅ ĐÃ SỬA: BỎ status
                     'parent_folder_id' => $updatedFolder->parent_folder_id
                 ]
             ]);
@@ -527,6 +525,205 @@ class FolderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error searching folders: ' . $this->escapeOutput($e->getMessage())
+            ], 500);
+        }
+    }
+
+
+    /**
+     * Chia sẻ folder với nhiều user
+     */
+    public function shareFolder(Request $request, $folderId): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $folder = Folder::findOrFail($folderId);
+
+            // Kiểm tra quyền sở hữu
+            if ($folder->user_id !== $user->user_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền chia sẻ folder này'
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'emails' => 'required|array|min:1',
+                'emails.*' => 'required|email|exists:users,email',
+                'permission' => 'required|in:view,edit'
+            ]);
+
+            $sharedUsers = [];
+            $alreadyShared = [];
+
+            foreach ($validated['emails'] as $email) {
+                $sharedUser = User::where('email', $email)->first();
+
+                // Không cho phép chia sẻ cho chính mình
+                if ($sharedUser->user_id === $user->user_id) {
+                    continue;
+                }
+
+                // Kiểm tra đã chia sẻ chưa
+                $existingShare = FolderShare::where('folder_id', $folderId)
+                    ->where('shared_with_id', $sharedUser->user_id)
+                    ->first();
+
+                if ($existingShare) {
+                    $alreadyShared[] = $email;
+                    continue;
+                }
+
+                // Tạo chia sẻ mới
+                $share = FolderShare::create([
+                    'folder_id' => $folderId,
+                    'owner_id' => $user->user_id,
+                    'shared_with_id' => $sharedUser->user_id,
+                    'permission' => $validated['permission']
+                ]);
+
+                $sharedUsers[] = [
+                    'user_id' => $sharedUser->user_id,
+                    'name' => $sharedUser->name,
+                    'email' => $sharedUser->email,
+                    'permission' => $validated['permission']
+                ];
+            }
+
+            $message = 'Chia sẻ folder thành công';
+            if (!empty($alreadyShared)) {
+                $message .= '. Một số email đã được chia sẻ trước đó: ' . implode(', ', $alreadyShared);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'shared_users' => $sharedUsers,
+                    'already_shared' => $alreadyShared
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dữ liệu không hợp lệ',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Share folder error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi chia sẻ folder: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Hủy chia sẻ folder
+     */
+    public function unshareFolder(Request $request, $folderId): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $folder = Folder::findOrFail($folderId);
+
+            // Kiểm tra quyền sở hữu
+            if ($folder->user_id !== $user->user_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền hủy chia sẻ folder này'
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'user_ids' => 'required|array|min:1',
+                'user_ids.*' => 'required|integer|exists:users,user_id'
+            ]);
+
+            $deletedCount = FolderShare::where('folder_id', $folderId)
+                ->whereIn('shared_with_id', $validated['user_ids'])
+                ->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã hủy chia sẻ folder với ' . $deletedCount . ' người dùng'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Unshare folder error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi hủy chia sẻ folder'
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy danh sách người được chia sẻ folder
+     */
+    public function getSharedUsers($folderId): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $folder = Folder::findOrFail($folderId);
+
+            // Kiểm tra quyền truy cập
+            if (!$folder->canAccess($user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền truy cập folder này'
+                ], 403);
+            }
+
+            $sharedUsers = FolderShare::where('folder_id', $folderId)
+                ->with('sharedWith')
+                ->get()
+                ->map(function ($share) {
+                    return [
+                        'share_id' => $share->share_id,
+                        'user_id' => $share->sharedWith->user_id,
+                        'name' => $share->sharedWith->name,
+                        'email' => $share->sharedWith->email,
+                        'permission' => $share->permission,
+                        'shared_at' => $share->created_at
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $sharedUsers
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get shared users error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi tải danh sách chia sẻ'
+            ], 500);
+        }
+    }
+
+    /**
+     * Tìm kiếm user theo email để chia sẻ
+     */
+    public function searchUsers(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'email' => 'required|string|min:2'
+            ]);
+
+            $users = User::where('email', 'like', '%' . $validated['email'] . '%')
+                ->where('user_id', '!=', Auth::id()) // Loại trừ chính mình
+                ->limit(10)
+                ->get(['user_id', 'name', 'email']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $users
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi tìm kiếm user'
             ], 500);
         }
     }

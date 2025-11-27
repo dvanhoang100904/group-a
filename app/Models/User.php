@@ -30,7 +30,6 @@ class User extends Authenticatable
         'password' => 'hashed',
         'status' => 'boolean',
         'role_id' => 'integer',
-
     ];
 
     /** Role */
@@ -116,5 +115,32 @@ class User extends Authenticatable
     public function reports(): HasMany
     {
         return $this->hasMany(Report::class, 'user_id', 'user_id');
+    }
+
+    // =========================
+    // 🆕 QUAN HỆ MỚI CHO FOLDER SHARES
+    // =========================
+
+    /** Folder được chia sẻ cho user này */
+    public function sharedFolders(): HasMany
+    {
+        return $this->hasMany(FolderShare::class, 'shared_with_id', 'user_id');
+    }
+
+    /** Folder mà user này đã chia sẻ cho người khác */
+    public function sharedByMe(): HasMany
+    {
+        return $this->hasMany(FolderShare::class, 'owner_id', 'user_id');
+    }
+
+    /** Lấy tất cả folder user có quyền truy cập (sở hữu + được chia sẻ) */
+    public function accessibleFolders()
+    {
+        $ownedFolderIds = $this->folders()->pluck('folder_id');
+        $sharedFolderIds = $this->sharedFolders()->pluck('folder_id');
+
+        $allFolderIds = $ownedFolderIds->merge($sharedFolderIds)->unique();
+
+        return Folder::whereIn('folder_id', $allFolderIds);
     }
 }
