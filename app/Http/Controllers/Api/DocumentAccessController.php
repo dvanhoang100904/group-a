@@ -120,15 +120,6 @@ class DocumentAccessController extends Controller
             ]);
         }
 
-        $user = auth()->user();
-
-        if ($user->role->name !== 'Admin' && $user->user_id !== $document->user_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn không có quyền truy cập trang này.'
-            ]);
-        }
-
         $data = $this->documentAccessService->getDocumentAccessesHasPaginated($documentId);
 
         return response()->json([
@@ -212,15 +203,6 @@ class DocumentAccessController extends Controller
             ]);
         }
 
-        $user = auth()->user();
-
-        if ($user->role->name !== 'Admin' && $user->user_id !== $document->user_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn không có quyền truy cập trang này.'
-            ]);
-        }
-
         $data = $request->only([
             'granted_to_type',
             'granted_to_user_id',
@@ -262,15 +244,6 @@ class DocumentAccessController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
-            ]);
-        }
-
-        $user = auth()->user();
-
-        if ($user->role->name !== 'Admin' && $user->user_id !== $document->user_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn không có quyền truy cập trang này.'
             ]);
         }
 
@@ -316,15 +289,6 @@ class DocumentAccessController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Tài liệu không tồn tại. Vui lòng thử lại'
-            ]);
-        }
-
-        $user = auth()->user();
-
-        if ($user->role->name !== 'Admin' && $user->user_id !== $document->user_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn không có quyền truy cập trang này.'
             ]);
         }
 
