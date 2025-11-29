@@ -4,14 +4,14 @@ namespace App\Http\Requests\DocumentVersion;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CompareDocumentVersionRequest extends FormRequest
+class DocumentVersionCompareRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        return false;
     }
 
     /**
@@ -27,6 +27,7 @@ class CompareDocumentVersionRequest extends FormRequest
 
         ];
     }
+
     public function messages(): array
     {
         return [

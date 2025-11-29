@@ -14,7 +14,7 @@ class DocumentVersionSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_VERSION_PER_DOCUMENT = 5; // Giảm để seed nhanh
+    const MAX_VERSION_PER_DOCUMENT = 15; // Giảm để seed nhanh
 
     public function run(): void
     {
@@ -30,13 +30,17 @@ class DocumentVersionSeeder extends Seeder
 
             for ($v = 1; $v <= $numVersions; $v++) {
                 $userId = $users[array_rand($users)];
-
                 $filePath = "documents/$documentId/version_$v.pdf";
+
+                // Chỉ seed metadata, file giả lập nhẹ (1KB)
+                if (!Storage::disk('public')->exists($filePath)) {
+                    Storage::disk('public')->put($filePath, 'PDF placeholder content');
+                }
 
                 $versions[] = [
                     'version_number' => $v,
                     'file_path' => $filePath,
-                    'file_size' => 1024, // giả lập
+                    'file_size' => 1024,
                     'mime_type' => 'application/pdf',
                     'is_current_version' => $v === $numVersions ? 1 : 0,
                     'change_note' => $v === 1 ? 'Initial version' : 'Updated version',
@@ -48,7 +52,6 @@ class DocumentVersionSeeder extends Seeder
             }
         }
 
-        // Bulk insert
         foreach (array_chunk($versions, 500) as $chunk) {
             DB::table('document_versions')->insert($chunk);
         }

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\DocumentVersion\CompareDocumentVersionRequest;
+use App\Http\Requests\DocumentVersion\DocumentVersionCompareRequest;
 use App\Http\Requests\DocumentVersion\DocumentVersionFilterRequest;
-use App\Http\Requests\DocumentVersion\UploadDocumentVersionRequest;
+use App\Http\Requests\DocumentVersion\DocumentVersionUploadRequest;
 use App\Services\DocumentVersion\DocumentVersionCompareService;
 use App\Services\DocumentVersion\DocumentVersionPreviewService;
 use App\Services\DocumentVersion\DocumentVersionService;
@@ -157,7 +157,7 @@ class DocumentVersionController extends Controller
     /**
      * Upload tai lieu phen ban moi
      */
-    public function store(UploadDocumentVersionRequest $request, $documentId)
+    public function store(DocumentVersionUploadRequest $request, $documentId)
     {
         $document = $this->documentVersionService->getDocumentById($documentId);
 
@@ -279,7 +279,7 @@ class DocumentVersionController extends Controller
     /**
      * So sanh hai phien ban tai lieu
      */
-    public function compare(CompareDocumentVersionRequest $request, $documentId)
+    public function compare(DocumentVersionCompareRequest $request, $documentId)
     {
         $document = $this->documentVersionService->getDocumentById($documentId);
 

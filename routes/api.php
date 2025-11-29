@@ -1,6 +1,5 @@
 <?php
 
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentController;
@@ -18,7 +17,7 @@ use App\Http\Controllers\Api\DocumentSharedController;
 
 
 // Document Versions
-Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index']);
+Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index'])->middleware('auth:sanctum');;
 Route::get('/documents/{documentId}/versions/compare', [DocumentVersionController::class, 'compare']);
 Route::get('/documents/{documentId}/versions/users', [DocumentVersionController::class, 'listUsers']);
 Route::get('/documents/{documentId}/versions/{versionId}', [DocumentVersionController::class, 'show']);
