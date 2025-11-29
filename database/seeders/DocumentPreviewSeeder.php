@@ -20,24 +20,19 @@ class DocumentPreviewSeeder extends Seeder
 
         $previews = [];
 
-        // Tạo folder mẫu nếu chưa tồn tại
-        if (!Storage::disk('public')->exists('documents')) {
-            Storage::disk('public')->makeDirectory('documents');
-        }
-
         foreach ($versions as $version) {
+            $originalFilePath = storage_path("app/public/{$version->file_path}");
             $previewFilePath = "documents/{$version->document_id}/preview_{$version->version_number}.pdf";
 
-            // Copy file mẫu nhỏ thay vì PDF gốc
-            if (!Storage::disk('public')->exists($previewFilePath)) {
-                $sampleFile = storage_path('app/public/sample_preview.pdf'); // tạo sẵn file nhỏ
-                Storage::disk('public')->put($previewFilePath, file_exists($sampleFile) ? file_get_contents($sampleFile) : '');
+            // Nếu file gốc tồn tại, tạo preview (copy)
+            if (Storage::disk('public')->exists($version->file_path)) {
+                Storage::disk('public')->put($previewFilePath, Storage::disk('public')->get($version->file_path));
             }
 
             $previews[] = [
                 'preview_path' => $previewFilePath,
-                'expires_at' => now()->addDays(rand(7, 30)),
-                'generated_by' => 1, // admin/system
+                'expires_at' => now()->addDays(rand(7, 30)), // random để realistic hơn
+                'generated_by' => $version->user_id,
                 'document_id' => $version->document_id,
                 'version_id' => $version->version_id,
                 'created_at' => now(),
@@ -45,7 +40,6 @@ class DocumentPreviewSeeder extends Seeder
             ];
         }
 
-        // Bulk insert theo chunk
         foreach (array_chunk($previews, 500) as $chunk) {
             DB::table('document_previews')->insert($chunk);
         }
