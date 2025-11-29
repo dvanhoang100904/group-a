@@ -16,20 +16,19 @@ class UpdateFolderRequest extends FormRequest
         $folderId = $this->route('folder');  // Get {folder} from route
 
         return [
-            'name' => 'required|string|max:255|unique:folders,name,' . $folderId . ',folder_id',  // FIX: Ignore current for unique
-            'status' => 'required|in:public,private',
-            'parent_folder_id' => 'nullable|exists:folders,folder_id'
+            'name' => 'required|string|max:255',
+            'parent_folder_id' => 'nullable|integer|min:1'
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required' => 'Tên thư mục là bắt buộc.',
-            'name.unique' => 'Tên thư mục đã tồn tại.',
-            'status.required' => 'Trạng thái là bắt buộc.',
-            'status.in' => 'Trạng thái không hợp lệ.',
-            'parent_folder_id.exists' => 'Thư mục cha không tồn tại.'
+            'name.required' => 'Tên thư mục là bắt buộc',
+            'name.string' => 'Tên thư mục phải là chuỗi ký tự',
+            'name.max' => 'Tên thư mục không được vượt quá 255 ký tự',
+            'parent_folder_id.integer' => 'ID thư mục cha phải là số nguyên',
+            'parent_folder_id.min' => 'ID thư mục cha không hợp lệ'
         ];
     }
 

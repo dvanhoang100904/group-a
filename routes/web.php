@@ -157,3 +157,5 @@ Route::middleware('require.login', 'check.role:Admin')->group(function () {
 		Route::put('/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 	});
 });
+Route::get('/monhoc/export/excel', [MonHocController::class, 'exportExcel'])->name('monhoc.export.excel');
+Route::get('/monhoc/export/pdf', [MonHocController::class, 'exportPDF'])->name('monhoc.export.pdf');

@@ -12,30 +12,34 @@
         @csrf
         @method('PUT')
 
-        {{-- Mã môn học (không cho phép chỉnh sửa) --}}
+        {{-- Mã môn học --}}
         <div class="mb-3">
-            <label for="code" class="form-label">Mã môn học</label>
-            <input type="text" id="code" class="form-control bg-light" value="{{ $monhoc->code }}" readonly>
+            <label class="form-label">Mã môn học</label>
+            <input type="text" class="form-control bg-light" value="{{ $monhoc->code }}" readonly>
         </div>
 
+        {{-- Hidden code to ensure value sent --}}
+        <input type="hidden" name="code" value="{{ $monhoc->code }}">
+
         <div class="mb-3">
-            <label for="name" class="form-label">Tên môn học</label>
-            <input type="text" name="name" id="name" class="form-control"
+            <label class="form-label">Tên môn học</label>
+            <input type="text" name="name" class="form-control"
                    value="{{ old('name', $monhoc->name) }}" required>
         </div>
 
         <div class="mb-3">
-            <label for="credits" class="form-label">Số tín chỉ</label>
-            <input type="number" name="credits" id="credits" class="form-control"
-                   value="{{ old('credits', $monhoc->credits) }}" min="1" required>
+            <label class="form-label">Số tín chỉ</label>
+            <input type="number" name="credits" class="form-control"
+                   value="{{ old('credits', $monhoc->credits) }}"
+                   min="1" max="10" required>
         </div>
 
         <div class="mb-3">
-            <label for="department_id" class="form-label">Khoa / Bộ môn</label>
-            <select name="department_id" id="department_id" class="form-select" required>
+            <label class="form-label">Khoa / Bộ môn</label>
+            <select name="department_id" class="form-select" required>
                 @foreach($departments as $dept)
                     <option value="{{ $dept->department_id }}"
-                        {{ $monhoc->department_id == $dept->department_id ? 'selected' : '' }}>
+                        {{ old('department_id', $monhoc->department_id) == $dept->department_id ? 'selected' : '' }}>
                         {{ $dept->name }}
                     </option>
                 @endforeach
@@ -43,15 +47,15 @@
         </div>
 
         <div class="mb-3">
-            <label for="description" class="form-label">Mô tả</label>
-            <textarea name="description" id="description" class="form-control" rows="3">{{ old('description', $monhoc->description) }}</textarea>
+            <label class="form-label">Mô tả</label>
+            <textarea name="description" class="form-control" rows="3">{{ old('description', $monhoc->description) }}</textarea>
         </div>
 
         <div class="mb-3">
-            <label for="status" class="form-label">Trạng thái</label>
-            <select name="status" id="status" class="form-select">
-                <option value="1" {{ $monhoc->status ? 'selected' : '' }}>Đang hoạt động</option>
-                <option value="0" {{ !$monhoc->status ? 'selected' : '' }}>Ngừng hoạt động</option>
+            <label class="form-label">Trạng thái</label>
+            <select name="status" class="form-select">
+                <option value="1" {{ old('status', $monhoc->status) == 1 ? 'selected' : '' }}>Đang hoạt động</option>
+                <option value="0" {{ old('status', $monhoc->status) == 0 ? 'selected' : '' }}>Ngừng hoạt động</option>
             </select>
         </div>
 
