@@ -17,20 +17,26 @@ class DocumentAccessSeeder extends Seeder
     public function run(): void
     {
         $documents = DB::table('documents')->pluck('document_id')->toArray();
-        $users = DB::table('users')->pluck('user_id')->toArray();
+        $documents = DB::table('documents')->pluck('document_id')->toArray();
+        $users = DB::table('users')->pluck('user_id', 'role_id')->toArray();
         $roles = DB::table('roles')->pluck('role_id')->toArray();
 
         if (empty($documents) || empty($users) || empty($roles)) {
-            return; // Tránh lỗi nếu table rỗng
+            return;
         }
 
-        $accesses = [];
+        // Chỉ admin/giảng viên có thể cấp quyền
+        $adminsAndLecturers = DB::table('users')
+            ->whereIn('role_id', [1, 2]) // giả sử 1=admin, 2=giảng viên
+            ->pluck('user_id')
+            ->toArray();
 
+        $accesses = [];
         $grantedToTypes = ['user', 'role', 'link'];
 
         for ($i = 1; $i <= self::MAX_RECORD; $i++) {
             $documentId = $documents[array_rand($documents)];
-            $grantedBy = $users[array_rand($users)];
+            $grantedBy = $adminsAndLecturers[array_rand($adminsAndLecturers)];
 
             $grantedToType = $grantedToTypes[array_rand($grantedToTypes)];
 
@@ -39,18 +45,20 @@ class DocumentAccessSeeder extends Seeder
             $shareLink = null;
 
             if ($grantedToType === 'user') {
-                // Tránh cấp quyền cho chính mình
-                do {
-                    $grantedToUser = $users[array_rand($users)];
-                } while ($grantedToUser === $grantedBy);
+                // Chỉ cấp quyền cho sinh viên (role_id = 3)
+                $students = DB::table('users')->where('role_id', 3)->pluck('user_id')->toArray();
+                if (!empty($students)) {
+                    $grantedToUser = $students[array_rand($students)];
+                }
             } elseif ($grantedToType === 'role') {
-                $grantedToRole = $roles[array_rand($roles)];
+                // Chọn role sinh viên
+                $grantedToRole = 3;
             } elseif ($grantedToType === 'link') {
                 $shareLink = "https://share.test/$i";
             }
 
             $noExpiry = rand(0, 1);
-            $expirationDate = $noExpiry ? null : (rand(0, 9) < 7 ? now()->addDays(rand(1, 30)) : null);
+            $expirationDate = $noExpiry ? null : now()->addDays(rand(1, 30));
 
             $accesses[] = [
                 'share_link' => $shareLink,
@@ -72,7 +80,6 @@ class DocumentAccessSeeder extends Seeder
             ];
         }
 
-        // Bulk insert theo chunk 500 record/lần
         foreach (array_chunk($accesses, 500) as $chunk) {
             DB::table('document_accesses')->insert($chunk);
         }

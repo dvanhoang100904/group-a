@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Report extends Model
 {
-
     protected $table = 'reports';
     protected $primaryKey = 'report_id';
 
@@ -20,7 +19,7 @@ class Report extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'status' => 'string',
         'document_id' => 'integer',
         'user_id' => 'integer',
         'resolved_at' => 'datetime',
