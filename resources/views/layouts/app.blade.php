@@ -67,6 +67,8 @@
     {{-- My JS --}}
     <script src="{{ asset('assets/js/script.js') }}"></script>
 
+    @stack('scripts')
+
     {{-- sweetalert2 --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.23.0/sweetalert2.min.js"
         integrity="sha512-pnPZhx5S+z5FSVwy62gcyG2Mun8h6R+PG01MidzU+NGF06/ytcm2r6+AaWMBXAnDHsdHWtsxS0dH8FBKA84FlQ=="
@@ -100,7 +102,6 @@
         </script>
     @endif
 
-    @stack('scripts')
 </body>
 
 </html>

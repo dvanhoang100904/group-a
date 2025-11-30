@@ -217,7 +217,9 @@ class DocumentAccessController extends Controller
             'can_share',
         ]);
 
-        $access = $this->addService->addAccess($data, $documentId, auth()->id() ?? 1);
+        $userId = auth()->id() ?? 1;
+
+        $access = $this->addService->addAccess($data, $documentId, $userId);
 
         if (!$access) {
             return response()->json([

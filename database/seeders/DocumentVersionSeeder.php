@@ -5,8 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class DocumentVersionSeeder extends Seeder
 {
@@ -14,7 +12,7 @@ class DocumentVersionSeeder extends Seeder
      * Run the database seeds.
      */
 
-    const MAX_VERSION_PER_DOCUMENT = 5; // Giảm để seed nhanh
+    const MAX_VERSION_PER_DOCUMENT = 5;
 
     public function run(): void
     {
