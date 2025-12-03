@@ -727,4 +727,27 @@ class FolderController extends Controller
             ], 500);
         }
     }
+    //Ngọc Dân - Lấy cấu trúc cây thư mục
+    public function indexViewTree()
+    {
+        $folders = Folder::whereNull('parent_folder_id')
+            ->with('childFolders.childFolders') // load 2 cấp, có thể lặp lại nếu muốn sâu hơn
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->buildTree($folders)
+        ]);
+    }
+
+    private function buildTree($folders)
+    {
+        return $folders->map(function ($folder) {
+            return [
+                'id' => $folder->id,
+                'name' => $folder->name,
+                'children' => $this->buildTree($folder->childFolders)
+            ];
+        });
+    }
 }
