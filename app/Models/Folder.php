@@ -132,8 +132,22 @@ class Folder extends Model
     public function scopeAccessibleBy($query, $userId)
     {
         return $query->where(function ($q) use ($userId) {
+            // Folder của chính user
             $q->where('user_id', $userId)
+                // Hoặc được chia sẻ trực tiếp
                 ->orWhereHas('shares', function ($shareQuery) use ($userId) {
+                    $shareQuery->where('shared_with_id', $userId);
+                })
+                // HOẶC folder con của folder được chia sẻ (kế thừa quyền)
+                ->orWhereHas('parentFolder.shares', function ($shareQuery) use ($userId) {
+                    $shareQuery->where('shared_with_id', $userId);
+                })
+                // HOẶC folder cháu (đệ quy) của folder được chia sẻ
+                ->orWhereHas('parentFolder.parentFolder.shares', function ($shareQuery) use ($userId) {
+                    $shareQuery->where('shared_with_id', $userId);
+                })
+                // Có thể thêm nhiều cấp độ hơn nếu cần
+                ->orWhereHas('parentFolder.parentFolder.parentFolder.shares', function ($shareQuery) use ($userId) {
                     $shareQuery->where('shared_with_id', $userId);
                 });
         });

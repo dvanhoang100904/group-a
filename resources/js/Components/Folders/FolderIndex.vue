@@ -237,27 +237,41 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="item in (items.data || [])" 
+         <tr v-for="item in (items.data || [])" 
               :key="getItemKey(item)" 
               class="hover:bg-gray-50 transition-colors cursor-pointer"
               @contextmenu.prevent="showContextMenu($event, item)">
             
             <!-- Tên -->
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center" 
-                   @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-                <i :class="getItemIcon(item)" class="text-lg mr-3"></i>
-                <div>
-                  <div class="text-sm font-medium text-gray-900">{{ sanitizeOutput(item?.name) || 'Unknown' }}</div>
-                  <!-- Chỉ hiển thị thông tin con khi không ở chế độ tìm kiếm -->
-                  <div v-if="!isSearchMode && item && item.item_type === 'folder' && (item.child_folders_count > 0 || item.documents_count > 0)" 
-                       class="text-xs text-gray-500 flex items-center">
-                    <i class="fas fa-folder-open mr-1"></i>
-                    {{ item.child_folders_count }} thư mục, {{ item.documents_count }} file
-                  </div>
-                </div>
-              </div>
-            </td>
+<td class="px-6 py-4 whitespace-nowrap">
+      <div class="flex items-center" 
+           @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
+        <i :class="getItemIcon(item)" class="text-lg mr-3"></i>
+        <div>
+          <div class="text-sm font-medium text-gray-900">
+            {{ sanitizeOutput(item?.name) || 'Unknown' }}
+            <!-- Hiển thị badge chia sẻ -->
+            <span v-if="item.shared_info && !item.is_owner" 
+                  class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <i class="fas fa-share-alt mr-1"></i>
+              Được chia sẻ
+            </span>
+          </div>
+          <!-- Hiển thị quyền của user -->
+          <div v-if="item.shared_info && !item.is_owner" 
+               class="text-xs text-gray-500 flex items-center mt-1">
+            <i class="fas fa-key mr-1"></i>
+            Quyền: {{ item.user_permission === 'edit' ? 'Chỉnh sửa' : 'Chỉ xem' }}
+          </div>
+          <!-- Chỉ hiển thị thông tin con khi không ở chế độ tìm kiếm -->
+          <div v-if="!isSearchMode && item && item.item_type === 'folder' && (item.child_folders_count > 0 || item.documents_count > 0)" 
+               class="text-xs text-gray-500 flex items-center">
+            <i class="fas fa-folder-open mr-1"></i>
+            {{ item.child_folders_count }} thư mục, {{ item.documents_count }} file
+          </div>
+        </div>
+      </div>
+    </td>
 
             <!-- Cột Vị trí - chỉ hiển thị khi tìm kiếm -->
             <td v-if="isSearchMode" class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -319,73 +333,98 @@
     </div>
 
     <!-- Action Dropdown (fixed positioning) -->
-    <div v-if="activeMenu" 
-         class="fixed bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 w-56 z-[10001] action-dropdown-fixed"
-         :style="actionDropdownStyle">
-      <div class="py-1">
-        <!-- THÊM NÚT CHIA SẺ CHO FOLDER -->
-        <button v-if="activeMenu.item_type === 'folder' && activeMenu.is_owner" 
-                @click.stop="shareFolder(activeMenu)"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-          <i class="fas fa-share-alt mr-3 text-green-500"></i>Chia sẻ
-        </button> 
-        <button v-if="activeMenu.item_type === 'folder'" 
-                @click.stop="editFolder(activeMenu)"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-          <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa
-        </button>
-        <button v-if="activeMenu.item_type === 'document'" 
-                @click.stop="downloadDocument(activeMenu)"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-          <i class="fas fa-download mr-3 text-green-500"></i>Tải xuống
-        </button>
-        <button @click.stop="showDeleteConfirmation(activeMenu)"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-          <i class="fas fa-trash mr-3 text-red-500"></i>Xóa
-        </button>
-      </div>
+   <div v-if="activeMenu" class="fixed bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 w-56 z-[10001] action-dropdown-fixed"
+     :style="actionDropdownStyle">
+  <div class="py-1">
+    <!-- Hiển thị quyền hiện tại -->
+    <div class="px-4 py-2 text-xs text-gray-500 border-b">
+      Quyền: {{ getUserPermissionText(activeMenu) }}
     </div>
+    
+    <!-- Nút Chia sẻ - CHỈ chủ sở hữu -->
+    <button v-if="shouldShowShareButton(activeMenu)" 
+            @click.stop="shareFolder(activeMenu)"
+            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+      <i class="fas fa-share-alt mr-3 text-green-500"></i>Chia sẻ
+    </button>
+    
+    <!-- Nút Chỉnh sửa - THEO ĐÚNG PHÂN QUYỀN -->
+    <button v-if="shouldShowEditButton(activeMenu)" 
+            @click.stop="editFolder(activeMenu)"
+            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+      <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa
+    </button>
+    
+    <!-- Nút Xóa - THEO ĐÚNG PHÂN QUYỀN -->
+    <button v-if="shouldShowDeleteButton(activeMenu)" 
+            @click.stop="showDeleteConfirmation(activeMenu)"
+            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+      <i class="fas fa-trash mr-3 text-red-500"></i>Xóa
+    </button>
+    
+    <!-- Thông báo khi chỉ có quyền xem -->
+    <div v-if="!shouldShowEditButton(activeMenu) && activeMenu.user_permission === 'view'" 
+         class="px-4 py-2 text-sm text-gray-500 text-center">
+      Chỉ có quyền xem
+    </div>
+    
+    <!-- Thông báo đặc biệt cho folder được share -->
+    <div v-if="activeMenu.is_shared_folder && !activeMenu.is_owner" 
+         class="px-4 py-2 text-sm text-yellow-600 text-center bg-yellow-50">
+      <i class="fas fa-info-circle mr-1"></i>
+      Chỉ được sửa nội dung bên trong
+    </div>
+  </div>
+</div>
 
     <!-- Context Menu -->
     <div v-if="contextMenu.visible" class="context-menu" :style="contextMenuStyle">
-      <div class="context-menu-header">
-        <i :class="getItemIcon(contextMenu.item)" class="mr-2"></i>
-        <span class="font-medium text-sm truncate">{{ sanitizeOutput(contextMenu.item.name) }}</span>
-            <!-- HIỂN THỊ THÔNG TIN CHIA SẺ -->
-        <span v-if="contextMenu.item.shared_info && !contextMenu.item.is_owner" 
-              class="text-xs text-blue-600 ml-2">
-              (Được chia sẻ)
-        </span>
-      </div>
-      <div class="py-2">
-        <button @click="openContextItem" class="context-menu-item">
-          <i :class="contextMenu.item.item_type === 'folder' ? 'fas fa-folder-open' : 'fas fa-eye'" 
-             class="text-blue-500 mr-3" style="width: 16px;"></i>
-          {{ contextMenu.item.item_type === 'folder' ? 'Mở thư mục' : 'Xem file' }}
-        </button>
-        <!-- ✅ THÊM: Nút Sửa cho folder -->
-        <button v-if="contextMenu.item.item_type === 'folder'" 
-                @click="editFolder(contextMenu.item)" 
-                class="context-menu-item">
-          <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa
-        </button>
-          <!-- THÊM NÚT CHIA SẺ CHO FOLDER -->
-        <button v-if="contextMenu.item.item_type === 'folder' && contextMenu.item.is_owner" 
-                @click="shareFolder(contextMenu.item)" 
-                class="context-menu-item">
-          <i class="fas fa-share-alt text-green-500 mr-3" style="width: 16px;"></i>Chia sẻ
-        </button>
-        <button v-if="contextMenu.item.item_type === 'document'" 
-                @click="downloadDocument(contextMenu.item)" 
-                class="context-menu-item">
-          <i class="fas fa-download text-green-500 mr-3" style="width: 16px;"></i>Tải xuống
-        </button>
-        <div class="context-menu-divider"></div>
-        <button @click="showDeleteConfirmation(contextMenu.item)" class="context-menu-item context-menu-item-danger w-full text-left">
-          <i class="fas fa-trash text-red-500 mr-3" style="width: 16px;"></i>Xóa
-        </button>
-      </div>
-    </div>
+  <div class="context-menu-header">
+    <i :class="getItemIcon(contextMenu.item)" class="mr-2"></i>
+    <span class="font-medium text-sm truncate">{{ sanitizeOutput(contextMenu.item.name) }}</span>
+    <!-- HIỂN THỊ THÔNG TIN CHIA SẺ -->
+    <span v-if="contextMenu.item.shared_info && !contextMenu.item.is_owner" 
+          class="text-xs text-blue-600 ml-2">
+      (Được chia sẻ)
+    </span>
+  </div>
+  <div class="py-2">
+    <button @click="openContextItem" class="context-menu-item">
+      <i :class="contextMenu.item.item_type === 'folder' ? 'fas fa-folder-open' : 'fas fa-eye'" 
+         class="text-blue-500 mr-3" style="width: 16px;"></i>
+      {{ contextMenu.item.item_type === 'folder' ? 'Mở thư mục' : 'Xem file' }}
+    </button>
+    
+    <!-- ✅ SỬA: Nút Sửa cho folder - ÁP DỤNG PHÂN QUYỀN -->
+    <button v-if="contextMenu.item.item_type === 'folder' && shouldShowEditButton(contextMenu.item)" 
+            @click="editFolder(contextMenu.item)" 
+            class="context-menu-item">
+      <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa
+    </button>
+    
+    <!-- ✅ SỬA: Nút Chia sẻ - CHỈ chủ sở hữu -->
+    <button v-if="contextMenu.item.item_type === 'folder' && shouldShowShareButton(contextMenu.item)" 
+            @click="shareFolder(contextMenu.item)" 
+            class="context-menu-item">
+      <i class="fas fa-share-alt text-green-500 mr-3" style="width: 16px;"></i>Chia sẻ
+    </button>
+    
+    <button v-if="contextMenu.item.item_type === 'document'" 
+            @click="downloadDocument(contextMenu.item)" 
+            class="context-menu-item">
+      <i class="fas fa-download text-green-500 mr-3" style="width: 16px;"></i>Tải xuống
+    </button>
+    
+    <div class="context-menu-divider"></div>
+    
+    <!-- ✅ SỬA: Nút Xóa - CHỈ chủ sở hữu -->
+    <button v-if="shouldShowDeleteButton(contextMenu.item)" 
+            @click="showDeleteConfirmation(contextMenu.item)" 
+            class="context-menu-item context-menu-item-danger w-full text-left">
+      <i class="fas fa-trash text-red-500 mr-3" style="width: 16px;"></i>Xóa
+    </button>
+  </div>
+</div>
 
     <div v-if="contextMenu.visible" class="context-menu-overlay" @click="hideContextMenu"></div>
 
@@ -756,6 +795,45 @@ export default {
     window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
+    shouldShowEditButton(item) {
+    if (item.item_type === 'folder') {
+        // ✅ BUG 2: User có quyền "edit" nhưng KHÔNG được sửa folder được share trực tiếp
+        if (item.is_shared_folder && !item.is_owner) {
+            return false; // ❌ KHÔNG được sửa folder được share
+        }
+        return item.user_permission === 'edit' || item.is_owner;
+    }
+    return item.is_owner; // Document chỉ chủ sở hữu được sửa
+},
+
+   shouldShowDeleteButton(item) {
+    if (item.item_type === 'folder') {
+        // ✅ BUG 2: User có quyền "edit" nhưng KHÔNG được xóa folder được share trực tiếp
+        if (item.is_shared_folder && !item.is_owner) {
+            return false; // ❌ KHÔNG được xóa folder được share
+        }
+        return item.is_owner || item.user_permission === 'edit';
+    }
+    return item.is_owner; // Document chỉ chủ sở hữu được xóa
+},
+
+shouldShowShareButton(item) {
+    // ✅ CHỈ chủ sở hữu được chia sẻ (áp dụng cho cả Bug 1 và Bug 2)
+    return item.is_owner && item.item_type === 'folder';
+},
+
+getUserPermissionText(item) {
+    if (item.is_owner) {
+        return 'Chủ sở hữu';
+    }
+    if (item.is_shared_folder) {
+        return `Được chia sẻ (${item.user_permission === 'edit' ? 'Chỉnh sửa' : 'Chỉ xem'})`;
+    }
+    if (item.user_permission === 'edit') {
+        return 'Chỉnh sửa (kế thừa)';
+    }
+    return 'Chỉ xem (kế thừa)';
+},
     /**
    * Mở modal chia sẻ folder
    */
