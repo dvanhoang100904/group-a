@@ -152,4 +152,11 @@ class Folder extends Model
                 });
         });
     }
+    /**
+     * Accessor để Vue Tree hiển thị đúng ID
+     */
+    public function getIdAttribute()
+    {
+        return $this->folder_id;
+    }
 }

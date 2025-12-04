@@ -6,21 +6,6 @@
 <div class="container py-4">
     <div class="row">
         <div class="col-12">
-            <!-- Breadcrumb -->
-            <nav aria-label="breadcrumb" class="mb-4">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="{{ url('/folders') }}">Trang chủ</a>
-                    </li>
-                    <li class="breadcrumb-item">
-                        <a href="{{ route('documents.index', [], false) }}">Tài liệu</a>
-                    </li>
-                    <li class="breadcrumb-item active" aria-current="page">
-                        Upload
-                    </li>
-                </ol>
-            </nav>
-
             <!-- Vue Component Mount Point -->
             <div id="document-upload"></div>
         </div>
