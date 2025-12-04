@@ -228,11 +228,8 @@
         <thead class="bg-gray-100">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
-            <!-- Thêm cột Vị trí khi ở chế độ tìm kiếm -->
-            <th v-if="isSearchMode" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vị trí</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kích cỡ</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
           </tr>
         </thead>
@@ -243,43 +240,47 @@
               @contextmenu.prevent="showContextMenu($event, item)">
             
             <!-- Tên -->
-<td class="px-6 py-4 whitespace-nowrap">
-      <div class="flex items-center" 
-           @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-        <i :class="getItemIcon(item)" class="text-lg mr-3"></i>
-        <div>
-          <div class="text-sm font-medium text-gray-900">
-            {{ sanitizeOutput(item?.name) || 'Unknown' }}
-            <!-- Hiển thị badge chia sẻ -->
-            <span v-if="item.shared_info && !item.is_owner" 
-                  class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              <i class="fas fa-share-alt mr-1"></i>
-              Được chia sẻ
-            </span>
-          </div>
-          <!-- Hiển thị quyền của user -->
-          <div v-if="item.shared_info && !item.is_owner" 
-               class="text-xs text-gray-500 flex items-center mt-1">
-            <i class="fas fa-key mr-1"></i>
-            Quyền: {{ item.user_permission === 'edit' ? 'Chỉnh sửa' : 'Chỉ xem' }}
-          </div>
-          <!-- Chỉ hiển thị thông tin con khi không ở chế độ tìm kiếm -->
-          <div v-if="!isSearchMode && item && item.item_type === 'folder' && (item.child_folders_count > 0 || item.documents_count > 0)" 
-               class="text-xs text-gray-500 flex items-center">
-            <i class="fas fa-folder-open mr-1"></i>
-            {{ item.child_folders_count }} thư mục, {{ item.documents_count }} file
-          </div>
-        </div>
-      </div>
-    </td>
-
-            <!-- Cột Vị trí - chỉ hiển thị khi tìm kiếm -->
-            <td v-if="isSearchMode" class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-              <div class="flex items-center">
-                <i class="fas fa-folder text-yellow-500 mr-2"></i>
-                <span class="truncate max-w-xs">{{ sanitizeOutput(item.folder_path) || 'Thư mục gốc' }}</span>
+ <td class="px-6 py-4">
+            <div class="flex items-center" 
+                 @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
+              <i :class="getItemIcon(item)" class="text-lg mr-3 flex-shrink-0"></i>
+              <div class="min-w-0">
+                <div class="text-sm font-medium text-gray-900 truncate">
+                  {{ sanitizeOutput(item?.name) || 'Unknown' }}
+                </div>
+                
+                <!-- Vị trí thông minh: Hiển thị khác nhau tùy chế độ -->
+                <div class="text-xs text-gray-500 mt-1">
+                  <!-- Chế độ tìm kiếm: Hiển thị đường dẫn folder gọn -->
+                  <div v-if="isSearchMode && item?.folder_path" 
+                       class="flex items-center truncate">
+                    <i class="fas fa-folder mr-1 text-yellow-500"></i>
+                    <span class="truncate">
+                      {{ formatFolderPath(item.folder_path) }}
+                    </span>
+                  </div>
+                  
+                  <!-- Chế độ bình thường: Hiển thị thông tin con cho folder -->
+                  <div v-else-if="!isSearchMode && item && item.item_type === 'folder'" 
+                       class="flex items-center space-x-3">
+                    <span v-if="item.child_folders_count > 0 || item.documents_count > 0" 
+                          class="flex items-center">
+                      <i class="fas fa-folder-open mr-1"></i>
+                      {{ item.child_folders_count }} thư mục, {{ item.documents_count }} file
+                    </span>
+                  </div>
+                  
+                  <!-- Chế độ bình thường: Hiển thị loại file cho document -->
+                  <div v-else-if="!isSearchMode && item && item.item_type === 'document'">
+                    <span class="flex items-center">
+                      <i class="fas fa-file-alt mr-1"></i>
+                      {{ sanitizeOutput(item?.type_name) || 'File' }}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </td>
+            </div>
+          </td>
 
             <!-- Các cột khác giữ nguyên -->
             <td class="px-6 py-4 whitespace-nowrap" @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
@@ -290,12 +291,7 @@
                 @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
               {{ item ? formatDateTime(item.created_at) : '' }}
             </td>
-
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
-                @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-              {{ item && item.item_type === 'folder' ? '-' : formatFileSize(item?.size) }}
-            </td>
-
+            
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
               <div class="relative inline-block text-left action-dropdown-container">
                 <button @click.stop="item && toggleMenu(item, $event)"
@@ -795,6 +791,26 @@ export default {
     window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
+     formatFolderPath(fullPath) {
+      if (!fullPath) return 'Thư mục gốc';
+      
+      const pathParts = fullPath.split('/').filter(part => part.trim());
+      
+      if (pathParts.length <= 2) {
+        return pathParts.join('/');
+      }
+      
+      return `${pathParts[0]}/.../${pathParts[pathParts.length - 1]}`;
+    },
+    getItemTypeDisplay(item) {
+      if (!item) return 'Unknown';
+      
+      if (item.item_type === 'folder') {
+        return 'Thư mục';
+      }
+      
+      return sanitizeOutput(item?.type_name) || 'Tài liệu';
+    },
     shouldShowEditButton(item) {
     if (item.item_type === 'folder') {
         // ✅ BUG 2: User có quyền "edit" nhưng KHÔNG được sửa folder được share trực tiếp
