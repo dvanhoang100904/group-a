@@ -73,11 +73,11 @@
                 <option value="">Tất cả loại file</option>
                 <option value="folder">Thư mục</option>
                 <option v-for="docType in documentTypes" 
-                        :key="docType.type_id" 
-                        :value="sanitizeInput(docType.name)"
-                        class="truncate">
-                  {{ sanitizeOutput(docType.name) }}
-                </option>
+        :key="docType.type_id" 
+        :value="docType.name"  
+        class="truncate">
+  {{ sanitizeOutput(docType.name) }}  <!-- Chỉ sanitize hiển thị -->
+</option>
               </select>
               <i class="fas fa-file-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
               <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
@@ -120,13 +120,6 @@
               {{ sanitizeOutput(crumb.name) }}
             </button>
             <span v-else class="text-gray-600 font-medium">{{ sanitizeOutput(crumb.name) }}</span>
-          </li>
-        </template>
-        
-        <!-- Breadcrumbs khi tìm kiếm (chỉ hiển thị kết quả tìm kiếm) -->
-        <template v-else>
-          <li class="text-gray-600 font-medium">
-            Kết quả tìm kiếm
           </li>
         </template>
       </ol>
@@ -1027,21 +1020,17 @@ getUserPermissionText(item) {
     async loadDocumentTypes() {
       this.loadingDocumentTypes = true;
       try {
-        const response = await axios.get('/api/types');
-        
-        // ✅ BẢO MẬT: Sanitize document type names
-        this.documentTypes = (response.data || []).map(docType => ({
-          ...docType,
-          name: this.sanitizeInput(docType.name)
-        }));
-        
-      } catch (error) {
-        // Fallback to empty array if API fails
-        this.documentTypes = [];
-        console.error('Error loading document types:', error);
-      } finally {
-        this.loadingDocumentTypes = false;
-      }
+    const response = await axios.get('/api/types');
+    
+    this.documentTypes = response.data || [];
+    
+  } catch (error) {
+    // Fallback to empty array if API fails
+    this.documentTypes = [];
+    console.error('Error loading document types:', error);
+  } finally {
+    this.loadingDocumentTypes = false;
+  }
     },
 
     getItemKey(item) {
@@ -1082,7 +1071,7 @@ getUserPermissionText(item) {
         const params = {
           name: this.sanitizeInput(this.searchParams.name || ''),
           date: this.searchParams.date || '',
-          file_type: this.sanitizeInput(this.searchParams.file_type || ''),
+          file_type: this.searchParams.file_type || '',
           per_page: this.perPage,
           page: this.items.current_page,
         };
@@ -1389,14 +1378,11 @@ getUserPermissionText(item) {
     },
 
     handleSearch() {
-      this.items.current_page = 1;
-      
-      // ✅ BẢO MẬT: Sanitize search parameters
-      this.searchParams.name = this.sanitizeInput(this.searchParams.name);
-      this.searchParams.file_type = this.sanitizeInput(this.searchParams.file_type);
-      
-      if (this.searchParams.name || this.searchParams.date || this.searchParams.file_type) {
+       this.items.current_page = 1;
+  
+      if (this.hasActiveFilters) {
         this.currentFolder = null;
+        this.isSearchMode = true;
       }
       
       this.loadData();
