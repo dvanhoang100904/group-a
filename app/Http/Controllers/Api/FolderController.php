@@ -299,7 +299,6 @@ class FolderController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('API Folder Store Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error creating folder: ' . $this->escapeOutput($e->getMessage())

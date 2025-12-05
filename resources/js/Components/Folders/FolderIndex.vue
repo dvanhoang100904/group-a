@@ -327,7 +327,8 @@
   <div class="py-1">
     <!-- Hiển thị quyền hiện tại -->
     <div class="px-4 py-2 text-xs text-gray-500 border-b">
-      Quyền: {{ getUserPermissionText(activeMenu) }}
+      <div class="font-medium">{{ getUserPermissionText(activeMenu) }}</div>
+      <div class="text-xs mt-1">{{ getPermissionDetails(activeMenu) }}</div>
     </div>
     
     <!-- Nút Chia sẻ - CHỈ chủ sở hữu -->
@@ -337,31 +338,25 @@
       <i class="fas fa-share-alt mr-3 text-green-500"></i>Chia sẻ
     </button>
     
-    <!-- Nút Chỉnh sửa - THEO ĐÚNG PHÂN QUYỀN -->
+    <!-- Nút Chỉnh sửa - CHỈ khi có quyền sửa thông tin -->
     <button v-if="shouldShowEditButton(activeMenu)" 
             @click.stop="editFolder(activeMenu)"
             class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-      <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa
+      <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa thông tin
     </button>
     
-    <!-- Nút Xóa - THEO ĐÚNG PHÂN QUYỀN -->
+    <!-- Nút Xóa - CHỈ khi có quyền xóa -->
     <button v-if="shouldShowDeleteButton(activeMenu)" 
             @click.stop="showDeleteConfirmation(activeMenu)"
             class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
       <i class="fas fa-trash mr-3 text-red-500"></i>Xóa
     </button>
     
-    <!-- Thông báo khi chỉ có quyền xem -->
-    <div v-if="!shouldShowEditButton(activeMenu) && activeMenu.user_permission === 'view'" 
-         class="px-4 py-2 text-sm text-gray-500 text-center">
-      Chỉ có quyền xem
-    </div>
-    
-    <!-- Thông báo đặc biệt cho folder được share -->
-    <div v-if="activeMenu.is_shared_folder && !activeMenu.is_owner" 
-         class="px-4 py-2 text-sm text-yellow-600 text-center bg-yellow-50">
+    <!-- Thông báo đặc biệt cho folder được share với quyền edit -->
+    <div v-if="activeMenu.is_shared_folder && !activeMenu.is_owner && activeMenu.user_permission === 'edit'" 
+         class="px-4 py-2 text-sm text-blue-600 text-center bg-blue-50">
       <i class="fas fa-info-circle mr-1"></i>
-      Chỉ được sửa nội dung bên trong
+      Bạn có thể: Tạo folder con, upload file
     </div>
   </div>
 </div>
@@ -371,10 +366,9 @@
   <div class="context-menu-header">
     <i :class="getItemIcon(contextMenu.item)" class="mr-2"></i>
     <span class="font-medium text-sm truncate">{{ sanitizeOutput(contextMenu.item.name) }}</span>
-    <!-- HIỂN THỊ THÔNG TIN CHIA SẺ -->
-    <span v-if="contextMenu.item.shared_info && !contextMenu.item.is_owner" 
+    <span v-if="contextMenu.item.is_shared_folder && !contextMenu.item.is_owner" 
           class="text-xs text-blue-600 ml-2">
-      (Được chia sẻ)
+      ({{ contextMenu.item.user_permission === 'edit' ? 'Chỉnh sửa nội dung' : 'Chỉ xem' }})
     </span>
   </div>
   <div class="py-2">
@@ -384,11 +378,11 @@
       {{ contextMenu.item.item_type === 'folder' ? 'Mở thư mục' : 'Xem file' }}
     </button>
     
-    <!-- ✅ SỬA: Nút Sửa cho folder - ÁP DỤNG PHÂN QUYỀN -->
+    <!-- ✅ SỬA: Nút Sửa cho folder - CHỈ khi có quyền sửa thông tin -->
     <button v-if="contextMenu.item.item_type === 'folder' && shouldShowEditButton(contextMenu.item)" 
             @click="editFolder(contextMenu.item)" 
             class="context-menu-item">
-      <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa
+      <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa thông tin
     </button>
     
     <!-- ✅ SỬA: Nút Chia sẻ - CHỈ chủ sở hữu -->
@@ -406,7 +400,7 @@
     
     <div class="context-menu-divider"></div>
     
-    <!-- ✅ SỬA: Nút Xóa - CHỈ chủ sở hữu -->
+    <!-- ✅ SỬA: Nút Xóa - CHỈ khi có quyền xóa -->
     <button v-if="shouldShowDeleteButton(contextMenu.item)" 
             @click="showDeleteConfirmation(contextMenu.item)" 
             class="context-menu-item context-menu-item-danger w-full text-left">
@@ -805,45 +799,81 @@ export default {
       return sanitizeOutput(item?.type_name) || 'Tài liệu';
     },
     shouldShowEditButton(item) {
-    if (item.item_type === 'folder') {
-        // ✅ BUG 2: User có quyền "edit" nhưng KHÔNG được sửa folder được share trực tiếp
-        if (item.is_shared_folder && !item.is_owner) {
-            return false; // ❌ KHÔNG được sửa folder được share
+        if (item.item_type === 'folder') {
+            // ✅ SỬA: Chỉ hiển thị nút chỉnh sửa khi có quyền sửa THÔNG TIN
+            if (item.is_shared_folder && !item.is_owner) {
+                return false; // ❌ KHÔNG được sửa thông tin folder được share
+            }
+            return item.user_permission === 'edit' || item.is_owner;
         }
-        return item.user_permission === 'edit' || item.is_owner;
-    }
-    return item.is_owner; // Document chỉ chủ sở hữu được sửa
-},
+        return item.is_owner;
+    },
 
-   shouldShowDeleteButton(item) {
-    if (item.item_type === 'folder') {
-        // ✅ BUG 2: User có quyền "edit" nhưng KHÔNG được xóa folder được share trực tiếp
-        if (item.is_shared_folder && !item.is_owner) {
-            return false; // ❌ KHÔNG được xóa folder được share
+    shouldShowDeleteButton(item) {
+        if (item.item_type === 'folder') {
+            // ✅ SỬA: Chỉ hiển thị nút xóa khi có quyền xóa
+            if (item.is_shared_folder && !item.is_owner) {
+                return false; // ❌ KHÔNG được xóa folder được share
+            }
+            return item.is_owner || item.user_permission === 'edit';
         }
-        return item.is_owner || item.user_permission === 'edit';
-    }
-    return item.is_owner; // Document chỉ chủ sở hữu được xóa
-},
+        return item.is_owner;
+    },
 
-shouldShowShareButton(item) {
-    // ✅ CHỈ chủ sở hữu được chia sẻ (áp dụng cho cả Bug 1 và Bug 2)
-    return item.is_owner && item.item_type === 'folder';
-},
 
-getUserPermissionText(item) {
-    if (item.is_owner) {
-        return 'Chủ sở hữu';
-    }
-    if (item.is_shared_folder) {
-        return `Được chia sẻ (${item.user_permission === 'edit' ? 'Chỉnh sửa' : 'Chỉ xem'})`;
-    }
-    if (item.user_permission === 'edit') {
-        return 'Chỉnh sửa (kế thừa)';
-    }
-    return 'Chỉ xem (kế thừa)';
-},
-    /**
+   shouldShowShareButton(item) {
+        // ✅ CHỈ chủ sở hữu được chia sẻ
+        return item.is_owner && item.item_type === 'folder';
+    },
+
+    getUserPermissionText(item) {
+        if (item.is_owner) {
+            return 'Chủ sở hữu';
+        }
+        if (item.is_shared_folder) {
+            if (item.user_permission === 'edit') {
+                return 'Được chia sẻ (Chỉnh sửa nội dung)'; // ✅ SỬA: Thêm "nội dung"
+            }
+            return 'Được chia sẻ (Chỉ xem)';
+        }
+        if (item.user_permission === 'edit') {
+            return 'Chỉnh sửa (kế thừa)';
+        }
+        return 'Chỉ xem (kế thừa)';
+    },
+
+ // Thêm method kiểm tra quyền tạo folder con
+    shouldShowNewFolderButton() {
+        if (!this.currentFolder) {
+            return true; // Root folder - chỉ chủ sở hữu
+        }
+        
+        // Kiểm tra currentFolder có phải được share không
+        if (this.currentFolder.is_shared_folder && !this.currentFolder.is_owner) {
+            return this.currentFolder.user_permission === 'edit'; // ✅ Được tạo folder con
+        }
+        
+        return true;
+    },
+
+    // Thêm method hiển thị thông báo quyền hạn chi tiết
+    getPermissionDetails(item) {
+        if (item.is_owner) {
+            return 'Bạn có toàn quyền với folder này';
+        }
+        if (item.is_shared_folder) {
+            if (item.user_permission === 'edit') {
+                return 'Bạn được phép: Xem, tạo folder con, upload file, sửa/xóa nội dung bên trong. KHÔNG được: Sửa tên folder, xóa folder, chia sẻ folder.';
+            }
+            return 'Bạn chỉ có quyền xem folder này';
+        }
+        if (item.user_permission === 'edit') {
+            return 'Bạn có quyền chỉnh sửa folder này (kế thừa từ folder cha)';
+        }
+        return 'Bạn chỉ có quyền xem folder này (kế thừa từ folder cha)';
+    },
+
+  /**
    * Mở modal chia sẻ folder
    */
   shareFolder(item) {
