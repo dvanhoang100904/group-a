@@ -128,15 +128,8 @@ class FolderController extends Controller
                 ]
             ];
 
-            \Log::info('📤 API Response Summary:', [
-                'items_count' => count($responseData['data']['items']->items() ?? []),
-                'isSearchMode' => $responseData['data']['isSearchMode'],
-                'total' => $responseData['data']['total']
-            ]);
-
             return response()->json($responseData);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('API Validation Error: ' . json_encode($e->errors()));
 
             return response()->json([
                 'success' => false,
@@ -144,7 +137,7 @@ class FolderController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('API Folder Index Error: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error loading folders: ' . $this->escapeOutput($e->getMessage())
@@ -226,7 +219,7 @@ class FolderController extends Controller
                 'data' => $folders
             ]);
         } catch (\Exception $e) {
-            \Log::error('API Get Folder Error: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error loading folders'
@@ -284,7 +277,6 @@ class FolderController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            \Log::error('API Folder Show Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error loading folder: ' . $this->escapeOutput($e->getMessage())
@@ -349,7 +341,6 @@ class FolderController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            \Log::error('API Folder Update Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error updating folder: ' . $this->escapeOutput($e->getMessage())
@@ -536,14 +527,12 @@ class FolderController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('API Folder Search Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error searching folders: ' . $this->escapeOutput($e->getMessage())
             ], 500);
         }
     }
-
 
     /**
      * Chia sẻ folder với nhiều user

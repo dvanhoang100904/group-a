@@ -10,12 +10,9 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
-use App\Models\FolderShare;
 
 class FolderService
 {
-// Trong FolderService.php - THÊM METHODS KIỂM TRA QUYỀN
-
     /**
      * Kiểm tra user có quyền chỉnh sửa folder không
      */
@@ -38,7 +35,7 @@ class FolderService
             $parentFolder = Folder::with('shares')->find($folder->parent_folder_id);
             if ($parentFolder) {
                 $parentShare = $parentFolder->shares->where('shared_with_id', $userId)->first();
-                // ✅ Chỉ được sửa nếu folder CHA được share với quyền edit
+                // Chỉ được sửa nếu folder CHA được share với quyền edit
                 return $parentShare && $parentShare->permission === 'edit';
             }
         }
@@ -58,8 +55,6 @@ class FolderService
         if ($folder->user_id === $userId) {
             return true;
         }
-
-        // ✅ SỬA: CHỈ được sửa folder được share nếu có quyền edit TRỰC TIẾP
         $directShare = $folder->shares->where('shared_with_id', $userId)->first();
         return $directShare && $directShare->permission === 'edit';
     }
@@ -77,7 +72,7 @@ class FolderService
             return true;
         }
 
-        // Kiểm tra chia sẻ TRỰC TIẾP (view hoặc edit)
+        // Kiểm tra chia sẻ (view hoặc edit)
         $directShare = $folder->shares->where('shared_with_id', $userId)->first();
         if ($directShare) {
             return in_array($directShare->permission, ['view', 'edit']);
@@ -109,7 +104,6 @@ class FolderService
             return in_array($parentShare->permission, ['view', 'edit']);
         }
 
-        // Đệ quy kiểm tra lên cấp cao hơn
         return $this->checkParentFolderViewAccess($parentFolder, $userId, $depth + 1);
     }
 
@@ -145,7 +139,6 @@ class FolderService
 
         $validated = $validator->validated();
 
-        // Sanitize inputs
         if (isset($validated['name'])) {
             $validated['name'] = $this->sanitizeInput($validated['name']);
         }
@@ -165,7 +158,6 @@ class FolderService
         if ($value === null) {
             return null;
         }
-
         return htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
     }
 
@@ -187,7 +179,6 @@ class FolderService
     public function getFoldersWithFilters(array $filters = [])
     {
         try {
-            // Validate input
             $validatedFilters = $this->validateSearchParams($filters);
         } catch (ValidationException $e) {
             throw new \Exception('Tham số tìm kiếm không hợp lệ: ' . $e->getMessage());
@@ -196,23 +187,19 @@ class FolderService
         $perPage = $validatedFilters['per_page'] ?? 10;
         $page = $validatedFilters['page'] ?? 1;
 
-        // Lấy user_id của người dùng đăng nhập
         $userId = Auth::id();
         if (!$userId) {
             throw new \Exception('User not authenticated');
         }
 
-        // Bắt đầu query với điều kiện user_id
         $query = Folder::withCount(['childFolders', 'documents'])
             ->where('user_id', $userId);
 
-        // Xử lý parent_id với validation
         $parentId = $validatedFilters['parent_id'] ?? null;
         if ($parentId !== null) {
             $parentId = $this->validateFolderId($parentId);
             $query->where('parent_folder_id', $parentId);
 
-            // Lấy thông tin folder hiện tại
             $currentFolder = Folder::where('folder_id', $parentId)
                 ->where('user_id', $userId)
                 ->first();
@@ -234,7 +221,6 @@ class FolderService
         $folders = $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        // Xây dựng breadcrumbs nếu có currentFolder
         $breadcrumbs = [];
         if (isset($currentFolder)) {
             $breadcrumbs = $this->buildBreadcrumbs($currentFolder);
@@ -286,8 +272,6 @@ class FolderService
      */
     public function createFolder(array $data): Folder
     {
-        Log::info('FolderService - createFolder called with data:', $data);
-
         return DB::transaction(function () use ($data) {
             try {
                 $validator = Validator::make($data, [
@@ -303,7 +287,6 @@ class FolderService
                 $validatedData['name'] = $this->sanitizeInput($validatedData['name']);
 
                 $parentFolderId = $validatedData['parent_folder_id'] ?? null;
-                Log::info('Processing parent_folder_id:', ['raw' => $parentFolderId]);
 
                 $userId = Auth::id();
                 if (!$userId) {
@@ -330,34 +313,22 @@ class FolderService
                     if (!$parentFolder->canUserEditContent($userId)) {
                         throw new \Exception('Bạn không có quyền tạo thư mục trong thư mục này');
                     }
-
-                    // 🔥 QUAN TRỌNG: Xác định xem parent folder có được SHARE không
-                    // Nếu parent folder được share, folder con cần được chủ sở hữu parent folder nhìn thấy
                     if ($parentFolder->user_id !== $userId) {
                         $isSharedParent = true;
                         $sharedOwnerId = $parentFolder->user_id;
                     }
                 }
-
-                // 🔥 QUAN TRỌNG: Xác định owner của folder mới
-                // Nếu tạo folder trong folder được share THÌ folder con phải thuộc về CHỦ SỞ HỮU của folder cha
                 if ($isSharedParent && $sharedOwnerId) {
-                    $folderOwnerId = $sharedOwnerId; // Folder con thuộc về chủ sở hữu folder cha
+                    $folderOwnerId = $sharedOwnerId;
                 } else {
-                    $folderOwnerId = $userId; // Folder con thuộc về người tạo
+                    $folderOwnerId = $userId;
                 }
 
                 $folderData = [
                     'name' => $validatedData['name'],
                     'parent_folder_id' => $parentFolderId,
-                    'user_id' => $folderOwnerId, // 🔥 SỬA: Dùng folderOwnerId thay vì userId
+                    'user_id' => $folderOwnerId,
                 ];
-
-                Log::info('Final folder data for creation:', array_merge($folderData, [
-                    'is_shared_parent' => $isSharedParent,
-                    'shared_owner_id' => $sharedOwnerId,
-                    'current_user_id' => $userId
-                ]));
 
                 $folder = new Folder();
                 $folder->name = $folderData['name'];
@@ -365,19 +336,10 @@ class FolderService
                 $folder->user_id = $folderData['user_id'];
                 $folder->save();
 
-                Log::info('Folder saved successfully:', [
-                    'folder_id' => $folder->folder_id,
-                    'name' => $folder->name,
-                    'parent_folder_id' => $folder->parent_folder_id,
-                    'user_id' => $folder->user_id,
-                    'created_by_user_id' => $userId
-                ]);
-
                 return $folder;
             } catch (ValidationException $e) {
                 throw $e;
             } catch (\Exception $e) {
-                Log::error('Error in createFolder transaction: ' . $e->getMessage());
                 throw new \Exception('Không thể tạo thư mục: ' . $e->getMessage());
             }
         });
@@ -389,11 +351,9 @@ class FolderService
     private function getDescendantIdsSecure(string $folderId, int $userId): array
     {
         try {
-            // Sửa tên phương thức từ getAllDescendantIds thành getAllDescendantIdsStatic
             $result = [];
             return Folder::getAllDescendantIdsStatic($folderId, $result);
         } catch (\Exception $e) {
-            Log::error('Error in getDescendantIdsSecure: ' . $e->getMessage());
             return [];
         }
     }
@@ -419,7 +379,6 @@ class FolderService
 
             $hierarchical[] = $folder;
 
-            // Recursive for sub-children với giới hạn độ sâu
             $sub = $this->buildHierarchicalFoldersSecure($folders, $folder->folder_id, $level + 1, $maxLevel);
             $hierarchical = array_merge($hierarchical, $sub);
         }
@@ -452,7 +411,6 @@ class FolderService
                 $validatedData['name'] = $this->sanitizeInput($validatedData['name']);
                 $folderId = $this->validateFolderId($folderId);
 
-                // ✅ SỬA: Kiểm tra quyền CHỈNH SỬA THÔNG TIN
                 $permission = $this->getUserFolderPermission($folderId, $userId);
 
                 if (!$permission['can_edit_info']) {
@@ -473,7 +431,6 @@ class FolderService
                         throw new \Exception('Không thể chọn thư mục con làm thư mục cha!');
                     }
 
-                    // Verify parent folder exists and user has access
                     if ($validatedData['parent_folder_id']) {
                         $parentFolder = Folder::accessibleBy($userId)
                             ->where('folder_id', $validatedData['parent_folder_id'])
@@ -518,7 +475,6 @@ class FolderService
                 throw new \Exception('Thư mục không tồn tại');
             }
 
-            // ✅ FIX BUG1: Kiểm tra quyền xóa đúng cách
             if (!$folder->canUserDelete($userId)) {
                 throw new \Exception('Bạn không có quyền xóa thư mục này');
             }
@@ -537,7 +493,6 @@ class FolderService
 
             return $folderName;
         } catch (\Exception $e) {
-            Log::error('Delete folder error: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -560,7 +515,6 @@ class FolderService
     public function getFoldersAndDocuments(array $params = [])
     {
         try {
-            // Validate input parameters
             $validatedParams = $this->validateSearchParams($params);
         } catch (ValidationException $e) {
             throw new \Exception('Tham số không hợp lệ: ' . $e->getMessage());
@@ -569,7 +523,6 @@ class FolderService
         $perPage = $validatedParams['per_page'] ?? 20;
         $currentFolderId = $validatedParams['parent_id'] ?? null;
 
-        // Convert "null" string to null
         if ($currentFolderId === 'null' || $currentFolderId === '') {
             $currentFolderId = null;
         } else if ($currentFolderId) {
@@ -580,7 +533,6 @@ class FolderService
         $searchDate = $validatedParams['date'] ?? '';
         $searchFileType = $validatedParams['file_type'] ?? '';
 
-        // Phân biệt chế độ tìm kiếm
         $isSearchMode = !empty($searchName) || !empty($searchDate) || !empty($searchFileType);
 
         if ($isSearchMode) {
@@ -605,9 +557,7 @@ class FolderService
         $foldersQuery = Folder::visibleToUser($userId)
             ->where('parent_folder_id', $currentFolderId);
 
-        // Filter cho folders
         if ($searchFileType && $searchFileType !== 'folder') {
-            // Nếu tìm loại file khác folder, bỏ qua folders
             $foldersQuery->whereRaw('1 = 0');
         } else {
             if ($searchName) {
@@ -640,7 +590,6 @@ class FolderService
 
         // Filter cho documents
         if ($searchFileType === 'folder') {
-            // Nếu chỉ tìm folder, bỏ qua documents
             $documentsQuery->whereRaw('1 = 0');
         } else {
             if ($searchName) {
@@ -655,7 +604,6 @@ class FolderService
                 });
             }
         }
-
         $documents = $documentsQuery->orderByDesc('created_at')->get();
 
         // Xử lý thông tin file cho documents
@@ -665,10 +613,8 @@ class FolderService
 
         // ==================== GỘP FOLDERS + DOCUMENTS ====================
         $folderItems = $folders->map(function ($folder) use ($userId) {
-            // ... (giữ nguyên phần xử lý folder từ code cũ)
             $isOwner = $folder->user_id === $userId;
 
-            // Kiểm tra các loại share
             $directShare = $folder->shares()
                 ->where('shared_with_id', $userId)
                 ->first();
@@ -676,30 +622,25 @@ class FolderService
             $isDirectlyShared = $directShare !== null;
             $isDescendantOfShared = $folder->isDescendantOfSharedFolder($userId);
 
-            // Xác định quyền
             $canEditContent = false;
             $canEditInfo = false;
             $canDelete = false;
             $userPermission = 'view';
 
             if ($isOwner) {
-                // Chủ sở hữu: toàn quyền
                 $canEditContent = true;
                 $canEditInfo = true;
                 $canDelete = true;
                 $userPermission = 'edit';
             } elseif ($isDirectlyShared) {
-                // Folder được share trực tiếp (folder1)
                 $userPermission = $directShare->permission;
-                $canEditContent = $directShare->permission === 'edit'; // Được thêm folder con, upload
-                $canEditInfo = false; // KHÔNG được sửa tên folder1
-                $canDelete = false;   // KHÔNG được xóa folder1
+                $canEditContent = $directShare->permission === 'edit';
+                $canEditInfo = false;
+                $canDelete = false;
             } elseif ($isDescendantOfShared) {
-                // Folder con trong folder được share (folder1.1, 1.1.1, 1.3)
-                // Kiểm tra parent có quyền edit không
                 $canEditContent = $folder->canUserEditContent($userId);
-                $canEditInfo = $canEditContent; // Được sửa tên folder con
-                $canDelete = $folder->canUserDelete($userId); // Được xóa folder con
+                $canEditInfo = $canEditContent;
+                $canDelete = $folder->canUserDelete($userId);
                 $userPermission = $canEditContent ? 'edit' : 'view';
             }
 
@@ -715,24 +656,20 @@ class FolderService
                 'type_name' => 'Thư mục',
                 'folder_path' => $this->getFolderPath($folder),
 
-                // Quyền và ownership
                 'is_owner' => $isOwner,
                 'owner_id' => $folder->user_id,
                 'owner_name' => $folder->user->name ?? 'Unknown',
 
-                // Share info
                 'is_shared_folder' => $isDirectlyShared,
                 'is_directly_shared' => $isDirectlyShared,
                 'is_descendant_of_shared' => $isDescendantOfShared && !$isDirectlyShared,
                 'user_permission' => $userPermission,
 
-                // Quyền cụ thể
                 'can_edit_content' => $canEditContent,
                 'can_edit_info' => $canEditInfo,
                 'can_delete' => $canDelete,
                 'can_create_subfolder' => $canEditContent,
 
-                // Thông tin share (nếu có)
                 'shared_info' => $directShare ? [
                     'shared_by' => $directShare->owner->name ?? 'Unknown',
                     'permission' => $directShare->permission,
@@ -762,15 +699,13 @@ class FolderService
                 'folder_name' => $doc->folder->name ?? 'Thư mục gốc',
                 'is_owner' => $isOwner,
                 'owner_name' => $doc->user->name ?? 'Unknown',
-                'can_edit' => $isOwner, // Document: chỉ owner được sửa
-                'can_delete' => $isOwner  // Document: chỉ owner được xóa
+                'can_edit' => $isOwner,
+                'can_delete' => $isOwner
             ];
         });
 
-        // Gộp và phân trang
         $items = $folderItems->concat($documentItems);
 
-        // Nếu đang filter theo loại file
         if ($searchFileType === 'folder') {
             $items = $items->filter(function ($item) {
                 return $item['item_type'] === 'folder';
@@ -894,14 +829,12 @@ class FolderService
         if (!$searchFileType || $searchFileType !== 'folder') {
             $documentsQuery = Document::with(['type', 'subject', 'tags', 'folder'])
                 ->where(function ($query) use ($userId) {
-                    // Documents của user hoặc trong folder mà user có quyền xem
                     $query->where('user_id', $userId)
                         ->orWhereHas('folder', function ($folderQuery) use ($userId) {
                             $folderQuery->visibleToUser($userId);
                         });
                 });
 
-            // Filter cho documents
             if ($searchName) {
                 $documentsQuery->where('title', 'like', "%{$searchName}%");
             }
@@ -916,7 +849,6 @@ class FolderService
 
             $documents = $documentsQuery->orderByDesc('created_at')->get();
 
-            // Xử lý thông tin file cho documents
             foreach ($documents as $doc) {
                 $this->processDocumentInfo($doc);
             }
@@ -942,8 +874,8 @@ class FolderService
                     'is_search_result' => true,
                     'is_owner' => $isOwner,
                     'owner_name' => $doc->user->name ?? 'Unknown',
-                    'can_edit' => $isOwner, // Document: chỉ owner được sửa
-                    'can_delete' => $isOwner  // Document: chỉ owner được xóa
+                    'can_edit' => $isOwner,
+                    'can_delete' => $isOwner
                 ];
             });
 
@@ -953,7 +885,6 @@ class FolderService
         // ==================== SẮP XẾP VÀ PHÂN TRANG ====================
         $allItems = $allItems->sortByDesc('created_at');
 
-        // Lọc theo file_type nếu chỉ tìm folder hoặc document
         if ($searchFileType === 'folder') {
             $allItems = $allItems->filter(function ($item) {
                 return $item['item_type'] === 'folder';
@@ -980,24 +911,19 @@ class FolderService
         if (!$userId) {
             throw new \Exception('User not authenticated');
         }
-
         try {
             $folderId = $this->validateFolderId($folderId);
 
-            // ✅ SỬA: Kiểm tra quyền CHỈNH SỬA THÔNG TIN
             $permission = $this->getUserFolderPermission($folderId, $userId);
 
             if (!$permission['can_edit_info']) {
                 throw new \Exception('Bạn không có quyền chỉnh sửa thông tin thư mục này');
             }
 
-            // Lấy folder
             $folder = Folder::accessibleBy($userId)->findOrFail($folderId);
 
-            // Sử dụng phương thức an toàn để lấy descendant IDs
             $descendantIds = $this->getDescendantIdsSecure($folderId, $userId);
 
-            // Lấy parent folders với điều kiện user có quyền truy cập
             $parentFolders = Folder::accessibleBy($userId)
                 ->where('folder_id', '!=', $folderId)
                 ->whereNotIn('folder_id', $descendantIds)
@@ -1011,12 +937,11 @@ class FolderService
                 'parentFolders' => $hierarchicalFolders,
                 'descendantIds' => $descendantIds,
                 'breadcrumbs' => $breadcrumbs,
-                'user_permission' => $permission // ✅ THÊM thông tin quyền
+                'user_permission' => $permission
             ];
         } catch (ModelNotFoundException $e) {
             throw new \Exception('Thư mục không tồn tại');
         } catch (\Exception $e) {
-            Log::error('FolderService getFolderForEdit Error: ' . $e->getMessage());
             throw new \Exception('Lỗi khi tải thông tin thư mục: ' . $e->getMessage());
         }
     }
@@ -1049,23 +974,8 @@ class FolderService
             $current = $current->parentFolder;
             $depth++;
         }
-
         return implode(' / ', array_reverse($path));
     }
-
-    /**
-     * Lấy đường dẫn thư mục cho document
-     */
-    private function getDocumentFolderPath(Document $document)
-    {
-        if (!$document->folder_id) {
-            return 'Thư mục gốc';
-        }
-
-        $folder = Folder::find($document->folder_id);
-        return $folder ? $this->getFolderPath($folder) : 'Thư mục gốc';
-    }
-
     /**
      * Xử lý thông tin document
      */
@@ -1082,7 +992,7 @@ class FolderService
             $doc->file_path = file_exists($filePath)
                 ? asset('app/Public_UploadFile/' . $latestVersion->file_name)
                 : null;
-            $doc->version_id = $latestVersion->version_id; // ✅ THÊM: Lưu version_id để download
+            $doc->version_id = $latestVersion->version_id;
         } else {
             $doc->size = 0;
             $doc->file_name = null;
@@ -1093,17 +1003,6 @@ class FolderService
         $doc->type_name = $doc->type->name ?? 'Unknown';
         $doc->item_type = 'document';
     }
-
-    /**
-     * Kiểm tra có filter tìm kiếm không
-     */
-    private function hasSearchFilters(Request $request): bool
-    {
-        return $request->filled('name') ||
-            $request->filled('date') ||
-            $request->filled('file_type');
-    }
-
     /**
      * Phân trang items
      */
@@ -1139,7 +1038,6 @@ class FolderService
             $current = $current->parentFolder;
             $depth++;
         }
-
         return array_reverse($breadcrumbs);
     }
 
@@ -1151,17 +1049,12 @@ class FolderService
         $folder = Folder::find($folderId);
         if (!$folder) return false;
 
-        // Kiểm tra chủ sở hữu
         if ($folder->user_id === $userId) {
             return true;
         }
-
-        // Kiểm tra chia sẻ trực tiếp
         if ($folder->shares()->where('shared_with_id', $userId)->exists()) {
             return true;
         }
-
-        // Kiểm tra kế thừa từ folder cha
         return $this->checkParentFolderAccess($folder, $userId);
     }
 
@@ -1170,7 +1063,7 @@ class FolderService
      */
     private function checkParentFolderAccess(Folder $folder, $userId, $depth = 0): bool
     {
-        if ($depth > 10) return false; // Giới hạn độ sâu
+        if ($depth > 10) return false;
 
         if (!$folder->parent_folder_id) {
             return false;
@@ -1180,13 +1073,9 @@ class FolderService
         if (!$parentFolder) {
             return false;
         }
-
-        // Kiểm tra parent folder có được chia sẻ không
         if ($parentFolder->shares()->where('shared_with_id', $userId)->exists()) {
             return true;
         }
-
-        // Đệ quy kiểm tra lên cấp cao hơn
         return $this->checkParentFolderAccess($parentFolder, $userId, $depth + 1);
     }
 
@@ -1206,16 +1095,12 @@ class FolderService
         $document = Document::find($documentId);
         if (!$document) return false;
 
-        // Document của chính user
         if ($document->user_id === $userId) {
             return true;
         }
-
-        // Document trong folder mà user có quyền truy cập
         if ($document->folder_id) {
             return $this->canAccessFolderThroughInheritance($document->folder_id, $userId);
         }
-
         return false;
     }
     /**
@@ -1226,18 +1111,15 @@ class FolderService
         $folder = Folder::with('shares')->find($folderId);
         if (!$folder) return false;
 
-        // Chủ sở hữu có toàn quyền
         if ($folder->user_id === $userId) {
             return true;
         }
 
-        // ✅ Kiểm tra chia sẻ TRỰC TIẾP với quyền edit
         $directShare = $folder->shares->where('shared_with_id', $userId)->first();
         if ($directShare && $directShare->permission === 'edit') {
-            return true; // ✅ Được sửa nội dung folder được share
+            return true;
         }
 
-        // ✅ Kiểm tra kế thừa từ folder cha
         if ($folder->parent_folder_id) {
             $parentFolder = Folder::with('shares')->find($folder->parent_folder_id);
             if ($parentFolder) {
@@ -1245,7 +1127,6 @@ class FolderService
                 return $parentShare && $parentShare->permission === 'edit';
             }
         }
-
         return false;
     }
 
@@ -1257,18 +1138,14 @@ class FolderService
         $folder = Folder::with('shares')->find($folderId);
         if (!$folder) return false;
 
-        // Chủ sở hữu có toàn quyền
         if ($folder->user_id === $userId) {
             return true;
         }
-
-        // ✅ NGƯỜI ĐƯỢC CHIA SẺ: KHÔNG được sửa thông tin folder được share
         $directShare = $folder->shares->where('shared_with_id', $userId)->first();
         if ($directShare) {
-            return false; // ❌ KHÔNG được sửa tên folder được share
+            return false;
         }
 
-        // ✅ Chỉ được sửa folder con BÊN TRONG folder được share
         if ($folder->parent_folder_id) {
             $parentFolder = Folder::with('shares')->find($folder->parent_folder_id);
             if ($parentFolder) {
@@ -1276,7 +1153,6 @@ class FolderService
                 return $parentShare && $parentShare->permission === 'edit';
             }
         }
-
         return false;
     }
 
@@ -1288,18 +1164,14 @@ class FolderService
         $folder = Folder::with('shares')->find($folderId);
         if (!$folder) return false;
 
-        // Chủ sở hữu có toàn quyền
         if ($folder->user_id === $userId) {
             return true;
         }
-
-        // ✅ NGƯỜI ĐƯỢC CHIA SẺ: KHÔNG được xóa folder được share TRỰC TIẾP
         $directShare = $folder->shares->where('shared_with_id', $userId)->first();
         if ($directShare) {
-            return false; // ❌ KHÔNG được xóa folder được chia sẻ trực tiếp
+            return false;
         }
 
-        // ✅ Được xóa folder con BÊN TRONG folder được share (nếu có quyền edit)
         if ($folder->parent_folder_id) {
             $parentFolder = Folder::with('shares')->find($folder->parent_folder_id);
             if ($parentFolder) {
@@ -1316,7 +1188,6 @@ class FolderService
      */
     public function canCreateFolderIn($parentFolderId, $userId): bool
     {
-        // ✅ SỬA: Tạo folder gốc - CHỈ chủ sở hữu của folder đó
         if (!$parentFolderId || $parentFolderId === 0) {
             return true; // 
         }
@@ -1324,12 +1195,10 @@ class FolderService
         $parentFolder = Folder::with('shares')->find($parentFolderId);
         if (!$parentFolder) return false;
 
-        // Chủ sở hữu có toàn quyền
         if ($parentFolder->user_id === $userId) {
             return true;
         }
 
-        // ✅ Được tạo folder con nếu folder cha được share với quyền edit
         $parentShare = $parentFolder->shares->where('shared_with_id', $userId)->first();
         return $parentShare && $parentShare->permission === 'edit';
     }
@@ -1390,8 +1259,8 @@ class FolderService
 
         return [
             'can_view' => $isOwner || $directShare || $canEditContent,
-            'can_edit_content' => $canEditContent,  // Quyền sửa nội dung
-            'can_edit_info' => $canEditInfo,        // Quyền sửa thông tin (tên, parent)
+            'can_edit_content' => $canEditContent,
+            'can_edit_info' => $canEditInfo,
             'can_delete' => $canDelete,
             'can_create_subfolder' => $canCreateSubfolder,
             'is_owner' => $isOwner,
@@ -1401,7 +1270,6 @@ class FolderService
         ];
     }
 
-
     /**
      * Kiểm tra user có quyền chỉnh sửa folder con bên trong folder được share
      */
@@ -1410,18 +1278,15 @@ class FolderService
         $folder = Folder::with('shares')->find($folderId);
         if (!$folder) return false;
 
-        // Chủ sở hữu có toàn quyền
         if ($folder->user_id === $userId) {
             return true;
         }
 
-        // ✅ Folder này được share TRỰC TIẾP với user -> KHÔNG được sửa (là folder1)
         $directShare = $folder->shares->where('shared_with_id', $userId)->first();
         if ($directShare) {
-            return false; // ❌ KHÔNG được sửa folder được share trực tiếp
+            return false;
         }
 
-        // ✅ Kiểm tra folder này có phải là descendant của folder được share không
         return $folder->isDescendantOfSharedFolder($userId);
     }
 
@@ -1433,18 +1298,15 @@ class FolderService
         $folder = Folder::with('shares')->find($folderId);
         if (!$folder) return false;
 
-        // Chủ sở hữu có toàn quyền
         if ($folder->user_id === $userId) {
             return true;
         }
 
-        // ❌ Folder được share trực tiếp -> KHÔNG được xóa
         $directShare = $folder->shares->where('shared_with_id', $userId)->first();
         if ($directShare) {
             return false;
         }
 
-        // ✅ Folder con bên trong folder được share -> ĐƯỢC xóa
         return $folder->isDescendantOfSharedFolder($userId);
     }
 }
