@@ -115,9 +115,9 @@ class Folder extends Model
     /**
      * Scope: Lấy folders của user hiện tại
      */
-    public function scopeCurrentUser($query)
+    public function scopeForUser($query, $userId)
     {
-        return $query->where('user_id', auth()->id());
+        return $query->where('user_id', $userId);
     }
 
     /**
@@ -125,8 +125,24 @@ class Folder extends Model
      */
     public function scopeSecure($query, $userId = null)
     {
-        $userId = $userId ?: auth()->id();
-        return $query->where('user_id', $userId);
+        // Ưu tiên userId được truyền vào
+        if ($userId !== null) {
+            return $query->where('user_id', $userId);
+        }
+
+        // Thử lấy user đăng nhập
+        try {
+            // Sử dụng Auth facade thay vì helper
+            if (\Illuminate\Support\Facades\Auth::hasUser()) {
+                $userId = \Illuminate\Support\Facades\Auth::id();
+                if ($userId) {
+                    return $query->where('user_id', $userId);
+                }
+            }
+        } catch (\Exception $e) {
+            // Auth không khả dụng
+        }
+        return $query->where('user_id', -1); // Hoặc whereRaw('1=0')
     }
 
     /**
@@ -535,7 +551,6 @@ class Folder extends Model
 
             return $result;
         } catch (\Exception $e) {
-            \Log::error('Error in getAllDescendantIdsStatic: ' . $e->getMessage());
             return [];
         }
     }
