@@ -430,71 +430,75 @@ export default {
       this.shareData.emailsInput = this.shareData.validEmails.join(', ');
     },
 
-    async loadSharedUsers() {
-      try {
-        const folderId = this.validateFolderId(this.folder.folder_id);
-        const response = await axios.get(`/api/folders/${folderId}/shared-users`);
-        
-        if (response.data.success) {
-          this.sharedUsers = response.data.data || [];
-        }
-      } catch (error) {
-        console.error('Lỗi khi tải danh sách chia sẻ:', error);
-      }
-    },
+async loadSharedUsers() {
+  try {
+    const folderId = this.validateFolderId(this.folder.folder_id);
+    // ✅ Sửa: Bỏ /api/
+    const response = await axios.get(`/folders/${folderId}/shared-users`);
+    
+    if (response.data.success) {
+      this.sharedUsers = response.data.data || [];
+    }
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách chia sẻ:', error);
+  }
+},
 
-    async shareFolder() {
-      if (this.shareData.validEmails.length === 0) return;
 
-      this.shareData.loading = true;
-      try {
-        const folderId = this.validateFolderId(this.folder.folder_id);
-        const response = await axios.post(`/api/folders/${folderId}/share`, {
-          emails: this.shareData.validEmails,
-          permission: this.shareData.permission
-        });
+   async shareFolder() {
+  if (this.shareData.validEmails.length === 0) return;
 
-        if (response.data.success) {
-          this.shareSuccessMessage = `Đã chia sẻ thành công với ${this.shareData.validEmails.length} người dùng`;
-          this.showShareSuccessModal = true;
-          
-          // Reset form share
-          this.shareData.emailsInput = '';
-          this.shareData.validEmails = [];
-          this.shareData.permission = 'view';
-          
-          // Reload danh sách chia sẻ
-          this.loadSharedUsers();
-        } else {
-          this.showError(response.data.message || 'Lỗi khi chia sẻ folder');
-        }
-      } catch (error) {
-        const message = error.response?.data?.message || 'Lỗi khi chia sẻ folder';
-        this.showError(message);
-      } finally {
-        this.shareData.loading = false;
-      }
-    },
+  this.shareData.loading = true;
+  try {
+    const folderId = this.validateFolderId(this.folder.folder_id);
+    // ✅ Sửa: Bỏ /api/
+    const response = await axios.post(`/folders/${folderId}/share`, {
+      emails: this.shareData.validEmails,
+      permission: this.shareData.permission
+    });
 
-    async unshareUser(userId) {
-      if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
-        return;
-      }
+    if (response.data.success) {
+      this.shareSuccessMessage = `Đã chia sẻ thành công với ${this.shareData.validEmails.length} người dùng`;
+      this.showShareSuccessModal = true;
+      
+      // Reset form share
+      this.shareData.emailsInput = '';
+      this.shareData.validEmails = [];
+      this.shareData.permission = 'view';
+      
+      // Reload danh sách chia sẻ
+      this.loadSharedUsers();
+    } else {
+      this.showError(response.data.message || 'Lỗi khi chia sẻ folder');
+    }
+  } catch (error) {
+    const message = error.response?.data?.message || 'Lỗi khi chia sẻ folder';
+    this.showError(message);
+  } finally {
+    this.shareData.loading = false;
+  }
+},
 
-      try {
-        const folderId = this.validateFolderId(this.folder.folder_id);
-        const response = await axios.post(`/api/folders/${folderId}/unshare`, {
-          user_ids: [userId]
-        });
+   async unshareUser(userId) {
+  if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
+    return;
+  }
 
-        if (response.data.success) {
-          this.loadSharedUsers();
-          this.showSuccess('Hủy chia sẻ thành công');
-        }
-      } catch (error) {
-        this.showError('Lỗi khi hủy chia sẻ');
-      }
-    },
+  try {
+    const folderId = this.validateFolderId(this.folder.folder_id);
+    // ✅ Sửa: Bỏ /api/
+    const response = await axios.post(`/folders/${folderId}/unshare`, {
+      user_ids: [userId]
+    });
+
+    if (response.data.success) {
+      this.loadSharedUsers();
+      this.showSuccess('Hủy chia sẻ thành công');
+    }
+  } catch (error) {
+    this.showError('Lỗi khi hủy chia sẻ');
+  }
+},
 
     // Modal methods
     continueAfterSuccess() {

@@ -2,23 +2,38 @@
   <div class="container mx-auto px-4 py-8">
     <!-- Header với nút Mới -->
     <div class="flex items-center justify-between mb-6">
-      <!-- Nút Mới ở vị trí header cũ -->
-      <div class="flex-shrink-0 relative">
-        <button @click="toggleNewDropdown"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
-          <i class="fas fa-plus mr-2"></i>Mới
-          <i class="fas fa-chevron-down ml-2 text-xs"></i>
-        </button>
-        
-        <div v-if="showNewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
-          <button @click="openCreateFolder" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
+      <!-- Nút Mới ở vị trí header -->
+<!-- Nút Mới -->
+<div class="flex-shrink-0 relative">
+    <button @click="toggleNewDropdown"
+            :disabled="!shouldShowNewFolderButton()"
+            :title="!shouldShowNewFolderButton() ? 'Bạn không có quyền tạo thư mục/file trong folder này' : ''"
+            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="fas fa-plus mr-2"></i>Mới
+        <i class="fas fa-chevron-down ml-2 text-xs"></i>
+    </button>
+    
+    <!-- Dropdown menu -->
+    <div v-if="showNewDropdown && shouldShowNewFolderButton()" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
+        <button @click="openCreateFolder" 
+                class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
             <i class="fas fa-folder-plus text-blue-500 mr-3"></i>Tạo thư mục
-          </button>
-          <a :href="sanitizeUrl(uploadFileUrl)" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
+        </button>
+        <a :href="sanitizeUrl(uploadFileUrl)" 
+           class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
             <i class="fas fa-file-upload text-green-500 mr-3"></i>Tải file lên
-          </a>
+        </a>
+    </div>
+    
+    <!-- Thông báo khi không có quyền -->
+    <div v-if="showNewDropdown && !shouldShowNewFolderButton()" 
+         class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
+        <div class="px-4 py-2 text-sm text-gray-500 italic">
+            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+            Bạn chỉ có quyền xem folder này
         </div>
-      </div>
+    </div>
+</div>
 
       <!-- Controls -->
       <div class="flex items-center gap-3">
@@ -327,7 +342,8 @@
   <div class="py-1">
     <!-- Hiển thị quyền hiện tại -->
     <div class="px-4 py-2 text-xs text-gray-500 border-b">
-      Quyền: {{ getUserPermissionText(activeMenu) }}
+      <div class="font-medium">{{ getUserPermissionText(activeMenu) }}</div>
+      <div class="text-xs mt-1">{{ getPermissionDetails(activeMenu) }}</div>
     </div>
     
     <!-- Nút Chia sẻ - CHỈ chủ sở hữu -->
@@ -337,31 +353,25 @@
       <i class="fas fa-share-alt mr-3 text-green-500"></i>Chia sẻ
     </button>
     
-    <!-- Nút Chỉnh sửa - THEO ĐÚNG PHÂN QUYỀN -->
+    <!-- Nút Chỉnh sửa - CHỈ khi có quyền sửa thông tin -->
     <button v-if="shouldShowEditButton(activeMenu)" 
             @click.stop="editFolder(activeMenu)"
             class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-      <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa
+      <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa thông tin
     </button>
     
-    <!-- Nút Xóa - THEO ĐÚNG PHÂN QUYỀN -->
+    <!-- Nút Xóa - CHỈ khi có quyền xóa -->
     <button v-if="shouldShowDeleteButton(activeMenu)" 
             @click.stop="showDeleteConfirmation(activeMenu)"
             class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
       <i class="fas fa-trash mr-3 text-red-500"></i>Xóa
     </button>
     
-    <!-- Thông báo khi chỉ có quyền xem -->
-    <div v-if="!shouldShowEditButton(activeMenu) && activeMenu.user_permission === 'view'" 
-         class="px-4 py-2 text-sm text-gray-500 text-center">
-      Chỉ có quyền xem
-    </div>
-    
-    <!-- Thông báo đặc biệt cho folder được share -->
-    <div v-if="activeMenu.is_shared_folder && !activeMenu.is_owner" 
-         class="px-4 py-2 text-sm text-yellow-600 text-center bg-yellow-50">
+    <!-- Thông báo đặc biệt cho folder được share với quyền edit -->
+    <div v-if="activeMenu.is_shared_folder && !activeMenu.is_owner && activeMenu.user_permission === 'edit'" 
+         class="px-4 py-2 text-sm text-blue-600 text-center bg-blue-50">
       <i class="fas fa-info-circle mr-1"></i>
-      Chỉ được sửa nội dung bên trong
+      Bạn có thể: Tạo folder con, upload file
     </div>
   </div>
 </div>
@@ -371,10 +381,9 @@
   <div class="context-menu-header">
     <i :class="getItemIcon(contextMenu.item)" class="mr-2"></i>
     <span class="font-medium text-sm truncate">{{ sanitizeOutput(contextMenu.item.name) }}</span>
-    <!-- HIỂN THỊ THÔNG TIN CHIA SẺ -->
-    <span v-if="contextMenu.item.shared_info && !contextMenu.item.is_owner" 
+    <span v-if="contextMenu.item.is_shared_folder && !contextMenu.item.is_owner" 
           class="text-xs text-blue-600 ml-2">
-      (Được chia sẻ)
+      ({{ contextMenu.item.user_permission === 'edit' ? 'Chỉnh sửa nội dung' : 'Chỉ xem' }})
     </span>
   </div>
   <div class="py-2">
@@ -384,11 +393,11 @@
       {{ contextMenu.item.item_type === 'folder' ? 'Mở thư mục' : 'Xem file' }}
     </button>
     
-    <!-- ✅ SỬA: Nút Sửa cho folder - ÁP DỤNG PHÂN QUYỀN -->
+    <!-- ✅ SỬA: Nút Sửa cho folder - CHỈ khi có quyền sửa thông tin -->
     <button v-if="contextMenu.item.item_type === 'folder' && shouldShowEditButton(contextMenu.item)" 
             @click="editFolder(contextMenu.item)" 
             class="context-menu-item">
-      <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa
+      <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa thông tin
     </button>
     
     <!-- ✅ SỬA: Nút Chia sẻ - CHỈ chủ sở hữu -->
@@ -406,7 +415,7 @@
     
     <div class="context-menu-divider"></div>
     
-    <!-- ✅ SỬA: Nút Xóa - CHỈ chủ sở hữu -->
+    <!-- ✅ SỬA: Nút Xóa - CHỈ khi có quyền xóa -->
     <button v-if="shouldShowDeleteButton(contextMenu.item)" 
             @click="showDeleteConfirmation(contextMenu.item)" 
             class="context-menu-item context-menu-item-danger w-full text-left">
@@ -670,12 +679,16 @@ export default {
     hasActiveFilters() {
       return this.searchParams.name || this.searchParams.date || this.searchParams.file_type;
     },
-    uploadFileUrl() {
-      const folderId = this.currentFolder?.folder_id || null;
-      // ✅ BẢO MẬT: Sanitize folder ID trong URL
-      const safeFolderId = folderId ? encodeURIComponent(folderId) : '';
-      return `/upload?folder_id=${safeFolderId}`;
-    },
+uploadFileUrl() {
+    if (!this.shouldShowNewFolderButton()) {
+        return ''; // Không hiển thị link upload nếu không có quyền
+    }
+    
+    const folderId = this.currentFolder?.folder_id || null;
+    // ✅ BẢO MẬT: Sanitize folder ID trong URL
+    const safeFolderId = folderId ? encodeURIComponent(folderId) : '';
+    return `/upload?folder_id=${safeFolderId}`;
+},
     pages() {
       const pages = [];
       const current = this.items.current_page;
@@ -805,45 +818,107 @@ export default {
       return sanitizeOutput(item?.type_name) || 'Tài liệu';
     },
     shouldShowEditButton(item) {
-    if (item.item_type === 'folder') {
-        // ✅ BUG 2: User có quyền "edit" nhưng KHÔNG được sửa folder được share trực tiếp
-        if (item.is_shared_folder && !item.is_owner) {
-            return false; // ❌ KHÔNG được sửa folder được share
+        if (item.item_type === 'folder') {
+            // ✅ SỬA: Chỉ hiển thị nút chỉnh sửa khi có quyền sửa THÔNG TIN
+            if (item.is_shared_folder && !item.is_owner) {
+                return false; // ❌ KHÔNG được sửa thông tin folder được share
+            }
+            return item.user_permission === 'edit' || item.is_owner;
         }
-        return item.user_permission === 'edit' || item.is_owner;
-    }
-    return item.is_owner; // Document chỉ chủ sở hữu được sửa
-},
+        return item.is_owner;
+    },
 
-   shouldShowDeleteButton(item) {
+    shouldShowDeleteButton(item) {
+    if (!item) return false;
+    
+    // Document: chỉ owner được xóa
+    if (item.item_type === 'document') {
+        return item.is_owner;
+    }
+    
+    // Folder: logic mới
     if (item.item_type === 'folder') {
-        // ✅ BUG 2: User có quyền "edit" nhưng KHÔNG được xóa folder được share trực tiếp
-        if (item.is_shared_folder && !item.is_owner) {
-            return false; // ❌ KHÔNG được xóa folder được share
+        // Sử dụng permission từ backend (item.can_delete)
+        if (typeof item.can_delete !== 'undefined') {
+            return item.can_delete;
         }
-        return item.is_owner || item.user_permission === 'edit';
+        
+        // Fallback logic cũ
+        if (item.is_shared_folder && !item.is_owner) {
+            // Folder được chia sẻ trực tiếp - KHÔNG được xóa
+            return false;
+        }
+        
+        // Folder con trong folder được share - ĐƯỢC xóa nếu có quyền edit
+        if (item.user_permission === 'edit') {
+            return true;
+        }
+        
+        return item.is_owner;
     }
-    return item.is_owner; // Document chỉ chủ sở hữu được xóa
+    
+    return false;
 },
 
-shouldShowShareButton(item) {
-    // ✅ CHỈ chủ sở hữu được chia sẻ (áp dụng cho cả Bug 1 và Bug 2)
-    return item.is_owner && item.item_type === 'folder';
+
+   shouldShowShareButton(item) {
+        // ✅ CHỈ chủ sở hữu được chia sẻ
+        return item.is_owner && item.item_type === 'folder';
+    },
+
+    getUserPermissionText(item) {
+        if (item.is_owner) {
+            return 'Chủ sở hữu';
+        }
+        if (item.is_shared_folder) {
+            if (item.user_permission === 'edit') {
+                return 'Được chia sẻ (Chỉnh sửa nội dung)'; // ✅ SỬA: Thêm "nội dung"
+            }
+            return 'Được chia sẻ (Chỉ xem)';
+        }
+        if (item.user_permission === 'edit') {
+            return 'Chỉnh sửa (kế thừa)';
+        }
+        return 'Chỉ xem (kế thừa)';
+    },
+
+ // Thêm method kiểm tra quyền tạo folder con
+shouldShowNewFolderButton() {
+    // Luôn hiển thị nút "Mới" ở root (không có currentFolder)
+    if (!this.currentFolder) {
+        return true;
+    }
+    
+    // Kiểm tra currentFolder
+    if (this.currentFolder.is_shared_folder && !this.currentFolder.is_owner) {
+        // ✅ SỬA: Chỉ được tạo folder con nếu có quyền edit
+        // Kiểm tra cả user_permission và can_edit_content
+        return this.currentFolder.user_permission === 'edit' || 
+               this.currentFolder.can_edit_content === true;
+    }
+    
+    // Folder của chính mình - luôn được phép
+    return true;
 },
 
-getUserPermissionText(item) {
-    if (item.is_owner) {
-        return 'Chủ sở hữu';
-    }
-    if (item.is_shared_folder) {
-        return `Được chia sẻ (${item.user_permission === 'edit' ? 'Chỉnh sửa' : 'Chỉ xem'})`;
-    }
-    if (item.user_permission === 'edit') {
-        return 'Chỉnh sửa (kế thừa)';
-    }
-    return 'Chỉ xem (kế thừa)';
-},
-    /**
+    // Thêm method hiển thị thông báo quyền hạn chi tiết
+    getPermissionDetails(item) {
+        if (item.is_owner) {
+            return 'Bạn có toàn quyền với folder này';
+        }
+        if (item.is_shared_folder) {
+            if (item.user_permission === 'edit') {
+                return 'Bạn được phép: Xem, tạo folder con, upload file, sửa/xóa nội dung bên trong. KHÔNG được: Sửa tên folder, xóa folder, chia sẻ folder.';
+            }
+            return 'Bạn chỉ có quyền xem folder này';
+        }
+        if (item.user_permission === 'edit') {
+            return 'Bạn có quyền chỉnh sửa folder này (kế thừa từ folder cha)';
+        }
+        return 'Bạn chỉ có quyền xem folder này (kế thừa từ folder cha)';
+    },
+
+  /**
    * Mở modal chia sẻ folder
    */
   shareFolder(item) {
@@ -865,74 +940,72 @@ getUserPermissionText(item) {
   /**
    * Tải danh sách người được chia sẻ
    */
-  async loadSharedUsers() {
-    if (!this.selectedFolder) return;
-    
-    try {
-      const response = await axios.get(`/api/folders/${this.selectedFolder.id}/shared-users`);
-      if (response.data.success) {
-        this.shareModalData.sharedUsers = response.data.data;
-      }
-    } catch (error) {
-      console.error('Lỗi khi tải danh sách chia sẻ:', error);
+async loadSharedUsers() {
+  try {
+    // ✅ THÊM /api/ prefix
+    const response = await axios.get(`/api/folders/${this.selectedFolder.id}/shared-users`);
+    if (response.data.success) {
+      this.shareModalData.sharedUsers = response.data.data;
     }
-  },
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách chia sẻ:', error);
+  }
+},
   /**
    * Chia sẻ folder với nhiều user
    */
   async shareFolderAction() {
-    if (!this.shareModalData.emailsInput.trim()) {
-      this.showError('Vui lòng nhập ít nhất một email');
-      return;
+  if (!this.shareModalData.emailsInput.trim()) {
+    this.showError('Vui lòng nhập ít nhất một email');
+    return;
+  }
+  const emails = this.shareModalData.emailsInput.split(',')
+    .map(email => email.trim())
+    .filter(email => email);
+
+  console.log('Emails input:', this.shareModalData.emailsInput);
+  console.log('Emails array:', emails);
+  
+  this.shareModalData.loading = true;
+  try {
+    const response = await axios.post(`/api/folders/${this.selectedFolder.id}/share`, {
+      emails: emails,
+      permission: this.shareModalData.permission
+    });
+
+    if (response.data.success) {
+      this.showSuccess(response.data.message);
+      this.shareModalData.emailsInput = '';
+      this.loadSharedUsers();
     }
-
-    this.shareModalData.loading = true;
-    try {
-      const emails = this.shareModalData.emailsInput.split(',')
-        .map(email => email.trim())
-        .filter(email => email);
-
-      // ✅ BẢO MẬT: Sanitize emails
-      const sanitizedEmails = emails.map(email => this.sanitizeInput(email));
-
-      const response = await axios.post(`/api/folders/${this.selectedFolder.id}/share`, {
-        emails: sanitizedEmails,
-        permission: this.shareModalData.permission
-      });
-
-      if (response.data.success) {
-        this.showSuccess(response.data.message);
-        this.shareModalData.emailsInput = '';
-        this.loadSharedUsers(); // Reload danh sách
-      }
-    } catch (error) {
-      const message = error.response?.data?.message || 'Lỗi khi chia sẻ folder';
-      this.showError(message);
-    } finally {
-      this.shareModalData.loading = false;
-    }
-  },
+  } catch (error) {
+    const message = error.response?.data?.message || 'Lỗi khi chia sẻ folder';
+    this.showError(message);
+  } finally {
+    this.shareModalData.loading = false;
+  }
+},
    /**
    * Hủy chia sẻ với user
    */
   async unshareUser(userId) {
-    if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
-      return;
-    }
+  if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
+    return;
+  }
 
-    try {
-      const response = await axios.post(`/api/folders/${this.selectedFolder.id}/unshare`, {
-        user_ids: [userId]
-      });
+  try {
+     const response = await axios.post(`/api/folders/${this.selectedFolder.id}/unshare`, {
+      user_ids: [userId]
+    });
 
-      if (response.data.success) {
-        this.loadSharedUsers();
-        this.showSuccess('Hủy chia sẻ thành công');
-      }
-    } catch (error) {
-      this.showError('Lỗi khi hủy chia sẻ');
+    if (response.data.success) {
+      this.loadSharedUsers();
+      this.showSuccess('Hủy chia sẻ thành công');
     }
-  },
+  } catch (error) {
+    this.showError('Lỗi khi hủy chia sẻ');
+  }
+},
    /**
    * Đóng modal chia sẻ
    */
@@ -1179,13 +1252,26 @@ getUserPermissionText(item) {
       this.loadData();
     },
 
-    openCreateFolder() {
-      const parentId = this.currentFolder?.folder_id || null;
-      // ✅ BẢO MẬT: Sanitize URL
-      const safeParentId = parentId ? encodeURIComponent(parentId) : '';
-      window.location.href = `/folders/create?parent_id=${safeParentId}`;
-      this.showNewDropdown = false;
-    },
+openCreateFolder() {
+    // ✅ FIX: Lấy parent_id từ currentFolder (folder hiện tại đang xem)
+    const parentId = this.currentFolder?.folder_id || null;
+    
+    console.log('📁 Creating folder with parent_id:', {
+        currentFolder: this.currentFolder,
+        parentId: parentId,
+        currentFolderId: this.currentFolder?.folder_id
+    });
+    
+    // ✅ BẢO MẬT: Sanitize URL
+    const safeParentId = parentId ? encodeURIComponent(parentId) : '';
+    
+    // ✅ Tạo URL với parent_id
+    const url = `/folders/create?parent_id=${safeParentId}`;
+    console.log('📁 Redirecting to:', url);
+    
+    window.location.href = url;
+    this.showNewDropdown = false;
+},
 
     editFolder(item) {
       // ✅ BẢO MẬT: Validate item ID

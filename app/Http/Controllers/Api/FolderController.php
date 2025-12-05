@@ -235,11 +235,18 @@ class FolderController extends Controller
     }
 
     /**
-     * Lấy chi tiết folder (API) - ĐÃ BẢO MẬT
+     * Lấy thông tin folder (cho API) - ĐÃ BẢO MẬT
      */
     public function show($folder): JsonResponse
     {
         try {
+            if (!Auth::check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
             // Validate folder ID
             if (!is_numeric($folder) || $folder <= 0) {
                 return response()->json([
@@ -248,23 +255,33 @@ class FolderController extends Controller
                 ], 400);
             }
 
-            $folderData = $this->folderService->getFolderForEdit($folder);
+            $userId = Auth::id();
+
+            // Lấy folder với kiểm tra quyền truy cập
+            $folderData = Folder::accessibleBy($userId)->find($folder);
+
+            if (!$folderData) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thư mục không tồn tại hoặc không có quyền truy cập'
+                ], 404);
+            }
+
+            // Lấy thông tin breadcrumbs
+            $breadcrumbs = $this->folderService->getBreadcrumbs($folderData);
 
             // Escape output
-            $folderData['folder']->name = $this->escapeOutput($folderData['folder']->name);
-            foreach ($folderData['parentFolders'] as &$parentFolder) {
-                $parentFolder->name = $this->escapeOutput($parentFolder->name);
-                if (isset($parentFolder->indented_name)) {
-                    $parentFolder->indented_name = $this->escapeOutput($parentFolder->indented_name);
-                }
-            }
-            foreach ($folderData['breadcrumbs'] as &$breadcrumb) {
+            $folderData->name = $this->escapeOutput($folderData->name);
+            foreach ($breadcrumbs as &$breadcrumb) {
                 $breadcrumb['name'] = $this->escapeOutput($breadcrumb['name']);
             }
 
             return response()->json([
                 'success' => true,
-                'data' => $folderData
+                'data' => [
+                    'folder' => $folderData,
+                    'breadcrumbs' => $breadcrumbs
+                ]
             ]);
         } catch (\Exception $e) {
             \Log::error('API Folder Show Error: ' . $e->getMessage());
@@ -274,7 +291,6 @@ class FolderController extends Controller
             ], 500);
         }
     }
-
     /**
      * Tạo folder mới (API) - ĐÃ BẢO MẬT
      */
@@ -299,7 +315,6 @@ class FolderController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('API Folder Store Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error creating folder: ' . $this->escapeOutput($e->getMessage())
@@ -549,7 +564,17 @@ class FolderController extends Controller
 
             $validated = $request->validate([
                 'emails' => 'required|array|min:1',
-                'emails.*' => 'required|email|exists:users,email',
+                'emails.*' => [
+                    'required',
+                    'email',
+                    'exists:users,email',
+                    function ($attribute, $value, $fail) use ($user) {
+                        // Không cho phép chia sẻ với chính mình
+                        if (User::where('email', $value)->first()?->user_id === $user->user_id) {
+                            $fail('Không thể chia sẻ với chính mình');
+                        }
+                    }
+                ],
                 'permission' => 'required|in:view,edit'
             ]);
 
@@ -749,5 +774,42 @@ class FolderController extends Controller
                 'children' => $this->buildTree($folder->childFolders)
             ];
         });
+    }
+    /**
+     * API đơn giản để lấy tên folder
+     */
+    public function getFolderName($id): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $folder = Folder::accessibleBy($userId)->find($id);
+
+            if (!$folder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Folder not found or no permission'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $folder->folder_id,
+                    'name' => htmlspecialchars($folder->name, ENT_QUOTES, 'UTF-8')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error'
+            ], 500);
+        }
     }
 }
