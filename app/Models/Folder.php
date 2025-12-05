@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Folder extends Model
 {
@@ -158,5 +161,173 @@ class Folder extends Model
     public function getIdAttribute()
     {
         return $this->folder_id;
+    }
+
+    /**
+     * Scope để lấy tất cả folder user có quyền truy cập (bao gồm kế thừa)
+     */
+    public function scopeAccessibleByWithInheritance(Builder $query, $userId)
+    {
+        return $query->where(function ($query) use ($userId) {
+            // 1. Folder của chính user
+            $query->where('user_id', $userId);
+
+            // 2. Folder được chia sẻ TRỰC TIẾP với user
+            $query->orWhereHas('shares', function ($q) use ($userId) {
+                $q->where('shared_with_id', $userId);
+            });
+
+            // 3. Folder có ANCESTOR được chia sẻ với user
+            $query->orWhere(function ($subQuery) use ($userId) {
+                // Lấy tất cả folders mà user được chia sẻ
+                $sharedFolderIds = FolderShare::where('shared_with_id', $userId)
+                    ->pluck('folder_id')
+                    ->toArray();
+
+                if (!empty($sharedFolderIds)) {
+                    // Tìm tất cả descendants của các folder được chia sẻ
+                    foreach ($sharedFolderIds as $sharedFolderId) {
+                        $descendantIds = $this->getAllDescendantIds($sharedFolderId);
+                        if (!empty($descendantIds)) {
+                            $subQuery->orWhereIn('folder_id', $descendantIds);
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Lấy tất cả descendant IDs của một folder
+     */
+    private function getAllDescendantIds($folderId)
+    {
+        $descendantIds = [];
+        $currentLevel = [$folderId];
+
+        while (!empty($currentLevel)) {
+            $descendantIds = array_merge($descendantIds, $currentLevel);
+            $currentLevel = Folder::whereIn('parent_folder_id', $currentLevel)
+                ->pluck('folder_id')
+                ->toArray();
+        }
+
+        // Loại bỏ folder gốc
+        if (($key = array_search($folderId, $descendantIds)) !== false) {
+            unset($descendantIds[$key]);
+        }
+
+        return $descendantIds;
+    }
+
+    /**
+     * Kiểm tra user có quyền truy cập folder (bao gồm kế thừa)
+     */
+    public function isAccessibleBy($userId, $permission = 'view'): bool
+    {
+        if ($this->user_id == $userId) {
+            return true;
+        }
+
+        // Kiểm tra chia sẻ trực tiếp
+        $directShare = $this->shares()
+            ->where('shared_with_id', $userId)
+            ->when($permission, function ($q) use ($permission) {
+                $q->where('permission', $permission);
+            })
+            ->exists();
+
+        if ($directShare) {
+            return true;
+        }
+
+        // Kiểm tra chia sẻ kế thừa từ folder cha
+        return $this->hasInheritedAccess($userId, $permission);
+    }
+
+    /**
+     * Kiểm tra quyền truy cập kế thừa
+     */
+    private function hasInheritedAccess($userId, $permission = 'view'): bool
+    {
+        // Lấy tất cả ancestors của folder này
+        $ancestors = $this->getAncestors();
+
+        foreach ($ancestors as $ancestor) {
+            $share = $ancestor->shares()
+                ->where('shared_with_id', $userId)
+                ->when($permission, function ($q) use ($permission) {
+                    $q->where('permission', $permission);
+                })
+                ->exists();
+
+            if ($share) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Lấy tất cả ancestors của folder
+     */
+    public function getAncestors()
+    {
+        $ancestors = collect();
+        $current = $this;
+        $maxDepth = 10;
+        $depth = 0;
+
+        while ($current->parentFolder && $depth < $maxDepth) {
+            $ancestors->push($current->parentFolder);
+            $current = $current->parentFolder;
+            $depth++;
+        }
+
+        return $ancestors;
+    }
+
+    /**
+     * Kiểm tra user có quyền edit nội dung folder (bao gồm kế thừa)
+     */
+    public function canUserEditContent($userId): bool
+    {
+        if ($this->user_id == $userId) {
+            return true;
+        }
+
+        // Kiểm tra chia sẻ trực tiếp với quyền edit
+        $directShare = $this->shares()
+            ->where('shared_with_id', $userId)
+            ->where('permission', 'edit')
+            ->exists();
+
+        if ($directShare) {
+            return true;
+        }
+
+        // Kiểm tra ancestors có được chia sẻ với quyền edit không
+        return $this->hasInheritedEditAccess($userId);
+    }
+    /**
+     * Kiểm tra quyền edit kế thừa
+     */
+    private function hasInheritedEditAccess($userId): bool
+    {
+        $ancestors = $this->getAncestors();
+
+        foreach ($ancestors as $ancestor) {
+            $share = $ancestor->shares()
+                ->where('shared_with_id', $userId)
+                ->where('permission', 'edit')
+                ->exists();
+
+            if ($share) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
