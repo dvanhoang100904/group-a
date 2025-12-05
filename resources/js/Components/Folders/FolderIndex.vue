@@ -819,23 +819,30 @@ uploadFileUrl() {
     },
 shouldShowEditButton(item) {
     if (item.item_type === 'folder') {
-        // ✅ FIX BUG1: Được sửa folder con trong folder được share
-        return item.can_edit_content === true;
+        // ✅ Được sửa folder con bên trong folder được share
+        // KHÔNG được sửa folder được share trực tiếp (trừ khi là owner)
+        if (item.is_directly_shared && !item.is_owner) {
+            return false; // ❌ KHÔNG được sửa folder1
+        }
+        return item.can_edit_info === true;
     }
     // Document: chỉ owner được sửa
     return item.is_owner;
 },
 
-    shouldShowDeleteButton(item) {
+shouldShowDeleteButton(item) {
     if (!item) return false;
     
     if (item.item_type === 'document') {
         return item.is_owner;
     }
     
-    // Folder: 
     if (item.item_type === 'folder') {
-        // ✅ FIX BUG1: Được xóa folder con trong folder được share
+        // ✅ Được xóa folder con bên trong folder được share
+        // KHÔNG được xóa folder được share trực tiếp (trừ khi là owner)
+        if (item.is_directly_shared && !item.is_owner) {
+            return false; // ❌ KHÔNG được xóa folder1
+        }
         return item.can_delete === true;
     }
     
@@ -843,11 +850,8 @@ shouldShowEditButton(item) {
 },
 
 
- shouldShowShareButton(item) {
-    if (item.item_type === 'folder' && item.is_owner) {
-        return true; 
-    }
-    return false;
+shouldShowShareButton(item) {
+    return item.is_owner && item.item_type === 'folder';
 },
 
     getUserPermissionText(item) {

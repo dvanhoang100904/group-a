@@ -660,21 +660,41 @@ class FolderService
         $folderItems = $folders->map(function ($folder) use ($userId) {
             $isOwner = $folder->user_id === $userId;
 
-            // ✅ FIX BUG1: Kiểm tra quyền edit đúng cách
-            $canEditContent = $folder->canUserEdit($userId);
-            $canDelete = $folder->canUserDelete($userId);
+            // ✅ SỬA: Kiểm tra quyền đúng
+            $isDirectlyShared = $folder->shares()->where('shared_with_id', $userId)->exists();
+            $isDescendantOfShared = $folder->isDescendantOfSharedFolder($userId);
 
-            // Kiểm tra đây có phải folder được share trực tiếp không
-            $directShare = $folder->shares()
-                ->where('shared_with_id', $userId)
-                ->first();
+            // Quyền cho folder:
+            // - Folder của chính mình: toàn quyền
+            // - Folder được share trực tiếp (folder1): chỉ xem, KHÔNG sửa/xóa
+            // - Folder con bên trong folder được share (folder1.1, 1.1.1): được sửa/xóa
 
-            $isDirectlyShared = $directShare !== null;
+            $canEditContent = false;
+            $canEditInfo = false;
+            $canDelete = false;
+
+            if ($isOwner) {
+                // Chủ sở hữu: toàn quyền
+                $canEditContent = true;
+                $canEditInfo = true;
+                $canDelete = true;
+            } elseif ($isDirectlyShared) {
+                // Folder được share trực tiếp (folder1): chỉ xem
+                $share = $folder->shares()->where('shared_with_id', $userId)->first();
+                if ($share && $share->permission === 'edit') {
+                    $canEditContent = true; // Được tạo folder con, upload file
+                    $canEditInfo = false;   // KHÔNG được sửa tên folder1
+                    $canDelete = false;     // KHÔNG được xóa folder1
+                }
+            } elseif ($isDescendantOfShared) {
+                // Folder con bên trong folder được share: được sửa/xóa
+                $canEditContent = true;
+                $canEditInfo = true;    // Được sửa tên folder con
+                $canDelete = true;      // Được xóa folder con
+            }
+
             $userPermission = 'view';
-
-            if ($directShare) {
-                $userPermission = $directShare->permission;
-            } elseif ($canEditContent) {
+            if ($canEditContent) {
                 $userPermission = 'edit';
             }
 
@@ -690,22 +710,17 @@ class FolderService
                 'type_name' => 'Thư mục',
                 'folder_path' => $this->getFolderPath($folder),
 
-                // ✅ FIX BUG1: Sửa logic quyền
+                // Quyền
                 'is_owner' => $isOwner,
-                'shared_info' => $directShare ? [
-                    'shared_by' => $directShare->owner->name ?? 'Unknown',
-                    'permission' => $directShare->permission,
-                    'shared_at' => $directShare->created_at,
-                    'is_direct' => true
-                ] : null,
+                'is_directly_shared' => $isDirectlyShared,
+                'is_descendant_of_shared' => $isDescendantOfShared,
                 'user_permission' => $userPermission,
-                'is_shared_folder' => $isDirectlyShared,
 
-                // ✅ FIX BUG1: Cập nhật quyền đúng
+                // Quyền cụ thể
                 'can_edit_content' => $canEditContent,
-                'can_edit_info' => $isOwner, // Chỉ owner được sửa thông tin folder
+                'can_edit_info' => $canEditInfo,
                 'can_delete' => $canDelete,
-                'can_create_subfolder' => $canEditContent, // Được tạo folder con nếu có quyền edit
+                'can_create_subfolder' => $canEditContent,
 
                 'owner_name' => $folder->user->name ?? 'Unknown',
                 'owner_id' => $folder->user_id
@@ -1324,5 +1339,52 @@ class FolderService
             'permission' => $directShare ? $directShare->permission : null,
             'user_permission' => $directShare ? $directShare->permission : ($canEditContent ? 'edit' : 'view')
         ];
+    }
+
+
+    /**
+     * Kiểm tra user có quyền chỉnh sửa folder con bên trong folder được share
+     */
+    public function canEditDescendantFolder($folderId, $userId): bool
+    {
+        $folder = Folder::with('shares')->find($folderId);
+        if (!$folder) return false;
+
+        // Chủ sở hữu có toàn quyền
+        if ($folder->user_id === $userId) {
+            return true;
+        }
+
+        // ✅ Folder này được share TRỰC TIẾP với user -> KHÔNG được sửa (là folder1)
+        $directShare = $folder->shares->where('shared_with_id', $userId)->first();
+        if ($directShare) {
+            return false; // ❌ KHÔNG được sửa folder được share trực tiếp
+        }
+
+        // ✅ Kiểm tra folder này có phải là descendant của folder được share không
+        return $folder->isDescendantOfSharedFolder($userId);
+    }
+
+    /**
+     * Kiểm tra user có quyền xóa folder con bên trong folder được share
+     */
+    public function canDeleteDescendantFolder($folderId, $userId): bool
+    {
+        $folder = Folder::with('shares')->find($folderId);
+        if (!$folder) return false;
+
+        // Chủ sở hữu có toàn quyền
+        if ($folder->user_id === $userId) {
+            return true;
+        }
+
+        // ❌ Folder được share trực tiếp -> KHÔNG được xóa
+        $directShare = $folder->shares->where('shared_with_id', $userId)->first();
+        if ($directShare) {
+            return false;
+        }
+
+        // ✅ Folder con bên trong folder được share -> ĐƯỢC xóa
+        return $folder->isDescendantOfSharedFolder($userId);
     }
 }

@@ -198,29 +198,6 @@ class Folder extends Model
     }
 
     /**
-     * Lấy tất cả descendant IDs của một folder
-     */
-    private function getAllDescendantIds($folderId)
-    {
-        $descendantIds = [];
-        $currentLevel = [$folderId];
-
-        while (!empty($currentLevel)) {
-            $descendantIds = array_merge($descendantIds, $currentLevel);
-            $currentLevel = Folder::whereIn('parent_folder_id', $currentLevel)
-                ->pluck('folder_id')
-                ->toArray();
-        }
-
-        // Loại bỏ folder gốc
-        if (($key = array_search($folderId, $descendantIds)) !== false) {
-            unset($descendantIds[$key]);
-        }
-
-        return $descendantIds;
-    }
-
-    /**
      * Kiểm tra user có quyền truy cập folder (bao gồm kế thừa)
      */
     public function isAccessibleBy($userId, $permission = 'view'): bool
@@ -400,9 +377,43 @@ class Folder extends Model
 
         return false;
     }
-
     /**
-     * Scope để lấy tất cả folder mà user có thể xem (bao gồm kế thừa)
+     * Kiểm tra folder này có phải là descendant của folder được share không
+     */
+    public function isDescendantOfSharedFolder($userId): bool
+    {
+        $sharedFolderIds = FolderShare::where('shared_with_id', $userId)
+            ->pluck('folder_id')
+            ->toArray();
+
+        if (empty($sharedFolderIds)) {
+            return false;
+        }
+
+        // Kiểm tra đệ quy: folder này có ancestor nào trong sharedFolderIds không
+        $current = $this;
+        $maxDepth = 10; // Giới hạn độ sâu
+        $depth = 0;
+
+        while ($current->parent_folder_id && $depth < $maxDepth) {
+            $parent = Folder::find($current->parent_folder_id);
+            if (!$parent) {
+                break;
+            }
+
+            // Nếu parent nằm trong danh sách được share -> đây là descendant
+            if (in_array($parent->folder_id, $sharedFolderIds)) {
+                return true;
+            }
+
+            $current = $parent;
+            $depth++;
+        }
+
+        return false;
+    }
+    /**
+     * Scope đơn giản hơn để lấy tất cả folder user có thể xem
      */
     public function scopeVisibleToUser(Builder $query, $userId)
     {
@@ -415,19 +426,71 @@ class Folder extends Model
                     $shareQuery->where('shared_with_id', $userId);
                 })
 
-                // 3. Folder có ANCESTOR được chia sẻ với user (kế thừa)
-                ->orWhereExists(function ($existsQuery) use ($userId) {
-                    $existsQuery->select(DB::raw(1))
-                        ->from('folders as ancestors')
-                        ->join('folder_shares', 'ancestors.folder_id', '=', 'folder_shares.folder_id')
-                        ->where('folder_shares.shared_with_id', $userId)
-                        ->where(function ($q) {
-                            // Sử dụng path hoặc parent chain để kiểm tra kế thừa
-                            // Đây là cách đơn giản, có thể cần tối ưu
-                            $q->whereRaw('folders.parent_folder_id = ancestors.folder_id')
-                                ->orWhereRaw('folders.folder_id = ancestors.folder_id');
-                        });
+                // 3. Folder có ANY ancestor được chia sẻ với user
+                ->orWhere(function ($subQuery) use ($userId) {
+                    // Lấy tất cả folder IDs mà user được chia sẻ
+                    $sharedFolderIds = FolderShare::where('shared_with_id', $userId)
+                        ->pluck('folder_id')
+                        ->toArray();
+
+                    if (!empty($sharedFolderIds)) {
+                        // Lấy tất cả descendants của các folder được share
+                        $allDescendantIds = [];
+                        foreach ($sharedFolderIds as $sharedFolderId) {
+                            $descendantIds = $this->getAllDescendantIds($sharedFolderId);
+                            $allDescendantIds = array_merge($allDescendantIds, $descendantIds);
+                        }
+
+                        if (!empty($allDescendantIds)) {
+                            $subQuery->whereIn('folders.folder_id', $allDescendantIds);
+                        }
+                    }
                 });
         });
+    }
+    /**
+     * Lấy tất cả descendant IDs của một folder (đệ quy)
+     */
+    public function getAllDescendantIds($folderId)
+    {
+        $descendantIds = [];
+
+        // Lấy cấp 1
+        $level1 = Folder::where('parent_folder_id', $folderId)
+            ->pluck('folder_id')
+            ->toArray();
+
+        $descendantIds = array_merge($descendantIds, $level1);
+
+        // Lấy cấp 2 (con của cấp 1)
+        if (!empty($level1)) {
+            $level2 = Folder::whereIn('parent_folder_id', $level1)
+                ->pluck('folder_id')
+                ->toArray();
+
+            $descendantIds = array_merge($descendantIds, $level2);
+        }
+
+        // Lấy cấp 3 (con của cấp 2)
+        if (!empty($level2)) {
+            $level3 = Folder::whereIn('parent_folder_id', $level2)
+                ->pluck('folder_id')
+                ->toArray();
+
+            $descendantIds = array_merge($descendantIds, $level3);
+        }
+
+        // Lấy cấp 4 (con của cấp 3)
+        if (!empty($level3)) {
+            $level4 = Folder::whereIn('parent_folder_id', $level3)
+                ->pluck('folder_id')
+                ->toArray();
+
+            $descendantIds = array_merge($descendantIds, $level4);
+        }
+
+        // Có thể thêm nhiều cấp hơn nếu cần
+
+        return array_unique($descendantIds);
     }
 }
