@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\DocumentPreview;
+use App\Models\DocumentAccess;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
 use Exception;
@@ -114,13 +115,16 @@ class UploadController extends Controller
 
     public function store(Request $request)
     {
-        // ✅ 1. Validate request
+        // Validate: note permissions[] là optional array
         $validated = $request->validate([
-            'file' => 'required|file|max:51200', // max 50MB
+            'file' => 'required|file|max:51200', // 50MB
             'title' => 'nullable|string|max:255',
             'type_id' => 'required|exists:types,type_id',
-            'permission' => 'nullable|string|in:view,edit,download,full',
-            'folder_index' => 'nullable|string',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'in:view,edit,download',
+            'share_user_id' => 'nullable|integer|exists:users,user_id',
+            'folder_id' => 'nullable|integer|exists:folders,folder_id',
+            'subject_id' => 'nullable|integer|exists:subjects,subject_id',
         ]);
 
         $file = $request->file('file');
@@ -129,13 +133,13 @@ class UploadController extends Controller
         $mime = $file->getMimeType();
         $uuid = Str::uuid()->toString();
 
-        // ✅ 2. Lưu file gốc vào versions folder
+        // Save to versions folder
         $versionsFolder = $this->getCurrentVersionsFolder();
         $fileName = pathinfo($originalName, PATHINFO_FILENAME) . '-' . $uuid . '.' . $extension;
         $filePath = $file->storeAs($versionsFolder, $fileName, 'public');
         $fileSize = $file->getSize();
 
-        // ✅ 3. Tạo Document
+        // Create Document
         $document = Document::create([
             'title' => $validated['title'] ?? $originalName,
             'description' => $request->input('description'),
@@ -146,7 +150,7 @@ class UploadController extends Controller
             'subject_id' => $request->input('subject_id', 1),
         ]);
 
-        // ✅ 4. Tạo Version
+        // Create Version
         $versionNumber = 1;
         $version = DocumentVersion::create([
             'version_number' => $versionNumber,
@@ -159,7 +163,7 @@ class UploadController extends Controller
             'user_id' => auth()->id() ?? 1,
         ]);
 
-        // ✅ 5. Convert PDF (nếu là Word)
+        // Convert to PDF if doc/docx
         $conversionResult = null;
         $previewUrl = null;
 
@@ -183,7 +187,31 @@ class UploadController extends Controller
             }
         }
 
-        // ✅ 6. Trả response chính xác
+        // --- NEW: handle permissions & share_user_id ---
+        $permissions = $request->input('permissions', []); // array of 'view','edit','download'
+        $shareUserId = $request->input('share_user_id', null);
+
+        // If permissions provided OR share target provided -> create DocumentAccess entry
+        if ((!empty($permissions) && is_array($permissions)) || $shareUserId) {
+            DocumentAccess::create([
+                'document_id' => $document->document_id,
+                'granted_by' => auth()->id() ?? 1,
+                'granted_to_user_id' => $shareUserId ?: null,
+                'granted_to_role_id' => null,
+                'can_view' => in_array('view', $permissions),
+                'can_edit' => in_array('edit', $permissions),
+                'can_download' => in_array('download', $permissions),
+                'can_delete' => false,
+                'can_upload' => false,
+                'can_share' => false,
+                'no_expiry' => true,
+                'expiration_date' => null,
+                'share_link' => null,
+            ]);
+        }
+        // --- END NEW ---
+
+        // Prepare response
         $responseData = [
             'document' => $document,
             'version' => $version,
@@ -191,16 +219,13 @@ class UploadController extends Controller
             'preview_ready' => $conversionResult && $conversionResult['success'],
             'conversion_started' => false,
             'message' => 'Tải lên thành công!',
+            'success' => true
         ];
 
-        // ❌ Nếu convert thất bại nhưng upload OK
         if ($conversionResult && !$conversionResult['success']) {
-            $responseData['success'] = true; // upload vẫn thành công
             $responseData['preview_ready'] = false;
             $responseData['preview_error'] = $conversionResult['message'];
             $responseData['message'] = 'Tải lên thành công nhưng không tạo được preview PDF';
-        } else {
-            $responseData['success'] = true;
         }
 
         return response()->json($responseData, 201);
