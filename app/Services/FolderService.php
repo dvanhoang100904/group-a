@@ -591,11 +591,6 @@ class FolderService
     }
 
     /**
-     * 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị dạng cây - SỬA LẠI CHO ĐÚNG
-     */
-    // App\Services\FolderService.php
-
-    /**
      * 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị đúng folder con của folder được share
      */
     private function getTreeView($user, $currentFolderId, $params, $perPage)
@@ -612,6 +607,7 @@ class FolderService
 
         // Filter cho folders
         if ($searchFileType && $searchFileType !== 'folder') {
+            // Nếu tìm loại file khác folder, bỏ qua folders
             $foldersQuery->whereRaw('1 = 0');
         } else {
             if ($searchName) {
@@ -644,6 +640,7 @@ class FolderService
 
         // Filter cho documents
         if ($searchFileType === 'folder') {
+            // Nếu chỉ tìm folder, bỏ qua documents
             $documentsQuery->whereRaw('1 = 0');
         } else {
             if ($searchName) {
@@ -668,6 +665,7 @@ class FolderService
 
         // ==================== GỘP FOLDERS + DOCUMENTS ====================
         $folderItems = $folders->map(function ($folder) use ($userId) {
+            // ... (giữ nguyên phần xử lý folder từ code cũ)
             $isOwner = $folder->user_id === $userId;
 
             // Kiểm tra các loại share
@@ -746,6 +744,7 @@ class FolderService
 
         $documentItems = collect($documents)->map(function ($doc) use ($userId) {
             $isOwner = $doc->user_id === $userId;
+            $folderPath = $doc->folder ? $this->getFolderPath($doc->folder) : 'Thư mục gốc';
 
             return [
                 'id' => $doc->document_id,
@@ -753,12 +752,14 @@ class FolderService
                 'created_at' => $doc->created_at,
                 'updated_at' => $doc->updated_at,
                 'item_type' => 'document',
-                'size' => $doc->size,
+                'size' => $doc->size ?? 0,
                 'file_path' => $doc->file_path,
                 'file_name' => $this->escapeOutput($doc->file_name ?? ''),
                 'type_name' => $this->escapeOutput($doc->type_name ?? 'Unknown'),
                 'description' => $this->escapeOutput($doc->description ?? ''),
-                'folder_path' => $this->getDocumentFolderPath($doc),
+                'folder_path' => $folderPath,
+                'folder_id' => $doc->folder_id,
+                'folder_name' => $doc->folder->name ?? 'Thư mục gốc',
                 'is_owner' => $isOwner,
                 'owner_name' => $doc->user->name ?? 'Unknown',
                 'can_edit' => $isOwner, // Document: chỉ owner được sửa
@@ -769,6 +770,7 @@ class FolderService
         // Gộp và phân trang
         $items = $folderItems->concat($documentItems);
 
+        // Nếu đang filter theo loại file
         if ($searchFileType === 'folder') {
             $items = $items->filter(function ($item) {
                 return $item['item_type'] === 'folder';
@@ -835,7 +837,7 @@ class FolderService
                 $isDirectlyShared = $directShare !== null;
                 $isDescendantOfShared = $folder->isDescendantOfSharedFolder($userId);
 
-                // Logic quyền tương tự getTreeView
+                // Logic quyền
                 $canEditContent = false;
                 $canEditInfo = false;
                 $canDelete = false;
@@ -888,8 +890,76 @@ class FolderService
             $allItems = $allItems->concat($folderItems);
         }
 
-        // Sắp xếp và phân trang
+        // ==================== TÌM DOCUMENTS ====================
+        if (!$searchFileType || $searchFileType !== 'folder') {
+            $documentsQuery = Document::with(['type', 'subject', 'tags', 'folder'])
+                ->where(function ($query) use ($userId) {
+                    // Documents của user hoặc trong folder mà user có quyền xem
+                    $query->where('user_id', $userId)
+                        ->orWhereHas('folder', function ($folderQuery) use ($userId) {
+                            $folderQuery->visibleToUser($userId);
+                        });
+                });
+
+            // Filter cho documents
+            if ($searchName) {
+                $documentsQuery->where('title', 'like', "%{$searchName}%");
+            }
+            if ($searchDate) {
+                $documentsQuery->whereDate('created_at', $searchDate);
+            }
+            if ($searchFileType && $searchFileType !== 'folder') {
+                $documentsQuery->whereHas('type', function ($query) use ($searchFileType) {
+                    $query->where('name', $searchFileType);
+                });
+            }
+
+            $documents = $documentsQuery->orderByDesc('created_at')->get();
+
+            // Xử lý thông tin file cho documents
+            foreach ($documents as $doc) {
+                $this->processDocumentInfo($doc);
+            }
+
+            $documentItems = $documents->map(function ($doc) use ($userId) {
+                $isOwner = $doc->user_id === $userId;
+                $folderPath = $doc->folder ? $this->getFolderPath($doc->folder) : 'Thư mục gốc';
+
+                return [
+                    'id' => $doc->document_id,
+                    'name' => $this->escapeOutput($doc->title),
+                    'created_at' => $doc->created_at,
+                    'updated_at' => $doc->updated_at,
+                    'item_type' => 'document',
+                    'size' => $doc->size ?? 0,
+                    'file_path' => $doc->file_path ?? null,
+                    'file_name' => $this->escapeOutput($doc->file_name ?? ''),
+                    'type_name' => $this->escapeOutput($doc->type_name ?? 'Unknown'),
+                    'description' => $this->escapeOutput($doc->description ?? ''),
+                    'folder_path' => $folderPath,
+                    'folder_id' => $doc->folder_id,
+                    'folder_name' => $doc->folder->name ?? 'Thư mục gốc',
+                    'is_search_result' => true,
+                    'is_owner' => $isOwner,
+                    'owner_name' => $doc->user->name ?? 'Unknown',
+                    'can_edit' => $isOwner, // Document: chỉ owner được sửa
+                    'can_delete' => $isOwner  // Document: chỉ owner được xóa
+                ];
+            });
+
+            $allItems = $allItems->concat($documentItems);
+        }
+
+        // ==================== SẮP XẾP VÀ PHÂN TRANG ====================
         $allItems = $allItems->sortByDesc('created_at');
+
+        // Lọc theo file_type nếu chỉ tìm folder hoặc document
+        if ($searchFileType === 'folder') {
+            $allItems = $allItems->filter(function ($item) {
+                return $item['item_type'] === 'folder';
+            });
+        }
+
         $page = $params['page'] ?? 1;
         $paginatedItems = $this->paginateItems($allItems, $perPage, $page);
 
@@ -1012,14 +1082,26 @@ class FolderService
             $doc->file_path = file_exists($filePath)
                 ? asset('app/Public_UploadFile/' . $latestVersion->file_name)
                 : null;
+            $doc->version_id = $latestVersion->version_id; // ✅ THÊM: Lưu version_id để download
         } else {
             $doc->size = 0;
             $doc->file_name = null;
             $doc->file_path = null;
+            $doc->version_id = null;
         }
 
         $doc->type_name = $doc->type->name ?? 'Unknown';
         $doc->item_type = 'document';
+    }
+
+    /**
+     * Kiểm tra có filter tìm kiếm không
+     */
+    private function hasSearchFilters(Request $request): bool
+    {
+        return $request->filled('name') ||
+            $request->filled('date') ||
+            $request->filled('file_type');
     }
 
     /**
