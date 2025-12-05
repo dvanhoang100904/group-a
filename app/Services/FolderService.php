@@ -281,9 +281,8 @@ class FolderService
             'breadcrumbs' => [],
         ];
     }
-
     /**
-     * Tạo thư mục mới (ĐÃ BẢO MẬT)
+     * Tạo thư mục mới - ĐÃ CẬP NHẬT CHO SHARE
      */
     public function createFolder(array $data): Folder
     {
@@ -291,10 +290,9 @@ class FolderService
 
         return DB::transaction(function () use ($data) {
             try {
-                // ✅ SỬA: Bỏ validation status
                 $validator = Validator::make($data, [
                     'name' => 'required|string|max:255',
-                    'parent_folder_id' => 'nullable|integer|min:0' // ✅ SỬA: min:0 thay vì min:1
+                    'parent_folder_id' => 'nullable|integer|min:0'
                 ]);
 
                 if ($validator->fails()) {
@@ -302,13 +300,9 @@ class FolderService
                 }
 
                 $validatedData = $validator->validated();
-
-                // Sanitize name
                 $validatedData['name'] = $this->sanitizeInput($validatedData['name']);
 
-                // Xử lý parent_folder_id
                 $parentFolderId = $validatedData['parent_folder_id'] ?? null;
-
                 Log::info('Processing parent_folder_id:', ['raw' => $parentFolderId]);
 
                 $userId = Auth::id();
@@ -316,43 +310,39 @@ class FolderService
                     throw new \Exception('User not authenticated');
                 }
 
-                // ✅ THÊM: Kiểm tra quyền tạo folder trong parent folder
+                $parentFolder = null;
+
                 if ($parentFolderId !== null && $parentFolderId !== '') {
                     $parentFolderId = $this->validateFolderId($parentFolderId);
 
                     // Kiểm tra user có quyền tạo folder trong folder này không
-                    $canCreate = $this->canCreateFolderIn($parentFolderId, $userId);
-                    if (!$canCreate) {
-                        throw new \Exception('Bạn không có quyền tạo thư mục trong thư mục này');
-                    }
-
-                    // Verify parent folder exists và user có quyền truy cập
-                    $parentFolder = Folder::accessibleBy($userId)
+                    $parentFolder = Folder::accessibleByWithInheritance($userId)
                         ->where('folder_id', $parentFolderId)
                         ->first();
 
                     if (!$parentFolder) {
                         throw new \Exception('Thư mục cha không tồn tại hoặc không có quyền truy cập');
                     }
-                } else {
-                    $parentFolderId = null;
-                    // ✅ THÊM: Chỉ owner mới được tạo folder gốc
-                    // Không cần check vì folder gốc luôn của user đó
+
+                    // Kiểm tra quyền edit (phải có quyền edit mới được tạo folder con)
+                    if (!$parentFolder->canUserEditContent($userId)) {
+                        throw new \Exception('Bạn không có quyền tạo thư mục trong thư mục này');
+                    }
                 }
 
+                // ✅ QUAN TRỌNG: Folder mới luôn thuộc về user tạo ra nó
                 $folderData = [
                     'name' => $validatedData['name'],
                     'parent_folder_id' => $parentFolderId,
-                    'user_id' => $userId, // ✅ QUAN TRỌNG: user_id luôn là người tạo
+                    'user_id' => $userId, // ✅ User tạo là owner của folder con
                 ];
 
                 Log::info('Final folder data for creation:', $folderData);
 
-                // Tạo folder
                 $folder = new Folder();
                 $folder->name = $folderData['name'];
                 $folder->parent_folder_id = $folderData['parent_folder_id'];
-                $folder->user_id = $folderData['user_id']; // ✅ User tạo là owner của folder con
+                $folder->user_id = $folderData['user_id'];
                 $folder->save();
 
                 Log::info('Folder saved successfully:', [
@@ -603,8 +593,10 @@ class FolderService
         }
     }
 
+   // App\Services\FolderService.php
+
     /**
-     * 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị dạng cây - ĐÃ CẬP NHẬT HỖ TRỢ SHARE
+     * 📁 CHẾ ĐỘ BÌNH THƯỜNG: Hiển thị dạng cây - ĐÃ CẬP NHẬT HỖ TRỢ KẾ THỪA
      */
     private function getTreeView($user, $currentFolderId, $params, $perPage)
     {
@@ -613,7 +605,7 @@ class FolderService
         $searchFileType = $params['file_type'] ?? '';
 
         // ==================== LẤY FOLDERS (SỞ HỮU + ĐƯỢC CHIA SẺ + KẾ THỪA) ====================
-        $foldersQuery = Folder::accessibleBy($user->user_id)
+        $foldersQuery = Folder::accessibleByWithInheritance($user->user_id)
             ->where('parent_folder_id', $currentFolderId);
 
         // Filter cho folders
@@ -632,16 +624,19 @@ class FolderService
             ->with(['shares' => function ($query) use ($user) {
                 $query->where('shared_with_id', $user->user_id);
             }])
+            ->with(['parentFolder.shares' => function ($query) use ($user) {
+                $query->where('shared_with_id', $user->user_id);
+            }])
             ->get();
 
         // ==================== LẤY DOCUMENTS ====================
         $documentsQuery = Document::with(['type', 'subject', 'tags'])
             ->where('folder_id', $currentFolderId)
             ->where(function ($query) use ($user) {
-                // Documents của user hoặc trong folder được chia sẻ
+                // Documents của user hoặc trong folder được chia sẻ kế thừa
                 $query->where('user_id', $user->user_id)
                     ->orWhereHas('folder', function ($folderQuery) use ($user) {
-                        $folderQuery->accessibleBy($user->user_id);
+                        $folderQuery->accessibleByWithInheritance($user->user_id);
                     });
             });
 
@@ -672,23 +667,32 @@ class FolderService
         // ==================== GỘP FOLDERS + DOCUMENTS ====================
         $folderItems = $folders->map(function ($folder) use ($user) {
             $isOwner = $folder->user_id === $user->user_id;
+
+            // ✅ QUAN TRỌNG: Kiểm tra quyền kế thừa
+            $canEditContent = $folder->canUserEditContent($user->user_id);
+            $isInherited = !$isOwner && $folder->user_id != $user->user_id;
+
             $shareInfo = null;
-
-            // ✅ SỬA: Sử dụng getUserFolderPermission để lấy thông tin quyền chính xác
-            $permission = $this->getUserFolderPermission($folder->folder_id, $user->user_id);
-
             $userPermission = 'view';
-            if ($permission['can_edit_content']) {
+
+            if ($canEditContent) {
                 $userPermission = 'edit';
             }
 
             if (!$isOwner) {
+                // Tìm share trực tiếp
                 $share = $folder->shares->first();
+                if (!$share && $folder->parentFolder) {
+                    // Tìm share từ parent (kế thừa)
+                    $share = $folder->parentFolder->shares->first();
+                }
+
                 if ($share) {
                     $shareInfo = [
                         'shared_by' => $share->owner->name ?? 'Unknown',
                         'permission' => $share->permission,
-                        'shared_at' => $share->created_at
+                        'shared_at' => $share->created_at,
+                        'is_inherited' => !$folder->shares->contains('shared_with_id', $user->user_id)
                     ];
                 }
             }
@@ -707,17 +711,21 @@ class FolderService
                 'is_owner' => $isOwner,
                 'shared_info' => $shareInfo,
                 'user_permission' => $userPermission,
-                'is_shared_folder' => $permission['is_shared_folder'],
-                'can_edit_content' => $permission['can_edit_content'],
-                'can_edit_info' => $permission['can_edit_info'],
-                'can_delete' => $permission['can_delete'],
-                'can_create_subfolder' => $permission['can_create_subfolder'],
-                'owner_name' => $folder->user->name ?? 'Unknown'
+                'is_shared_folder' => $isInherited || ($shareInfo !== null),
+                'can_edit_content' => $canEditContent,
+                'can_edit_info' => $isOwner, // Chỉ owner mới được sửa thông tin folder
+                'can_delete' => $isOwner, // Chỉ owner mới được xóa folder
+                'can_create_subfolder' => $canEditContent, // Được tạo folder con nếu có quyền edit
+                'owner_name' => $folder->user->name ?? 'Unknown',
+                'is_inherited' => $isInherited
             ];
         });
 
         $documentItems = collect($documents)->map(function ($doc) use ($user) {
             $isOwner = $doc->user_id === $user->user_id;
+
+            // Kiểm tra quyền edit document (chỉ owner)
+            $canEditDocument = $isOwner;
 
             return [
                 'id' => $doc->document_id,
@@ -732,7 +740,9 @@ class FolderService
                 'description' => $this->escapeOutput($doc->description ?? ''),
                 'folder_path' => $this->getDocumentFolderPath($doc),
                 'is_owner' => $isOwner,
-                'owner_name' => $doc->user->name ?? 'Unknown'
+                'owner_name' => $doc->user->name ?? 'Unknown',
+                'can_edit' => $canEditDocument,
+                'can_delete' => $canEditDocument
             ];
         });
 
@@ -755,7 +765,7 @@ class FolderService
         $currentFolder = null;
 
         if ($currentFolderId) {
-            $currentFolder = Folder::accessibleBy($user->user_id)->find($currentFolderId);
+            $currentFolder = Folder::accessibleByWithInheritance($user->user_id)->find($currentFolderId);
             if ($currentFolder) {
                 $breadcrumbs = $this->buildBreadcrumbs($currentFolder);
             }
