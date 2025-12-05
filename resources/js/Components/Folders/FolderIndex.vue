@@ -819,10 +819,11 @@ uploadFileUrl() {
     },
 shouldShowEditButton(item) {
     if (item.item_type === 'folder') {
-        // ✅ Được sửa folder con bên trong folder được share
-        // KHÔNG được sửa folder được share trực tiếp (trừ khi là owner)
+        // ✅ Folder của chính mình: được sửa
+        // ✅ Folder con trong folder được share: được sửa
+        // ❌ Folder được share trực tiếp (folder1): KHÔNG được sửa thông tin
         if (item.is_directly_shared && !item.is_owner) {
-            return false; // ❌ KHÔNG được sửa folder1
+            return false; // ❌ KHÔNG được sửa tên folder1
         }
         return item.can_edit_info === true;
     }
@@ -838,8 +839,9 @@ shouldShowDeleteButton(item) {
     }
     
     if (item.item_type === 'folder') {
-        // ✅ Được xóa folder con bên trong folder được share
-        // KHÔNG được xóa folder được share trực tiếp (trừ khi là owner)
+        // ✅ Folder của chính mình: được xóa
+        // ✅ Folder con trong folder được share: được xóa
+        // ❌ Folder được share trực tiếp: KHÔNG được xóa
         if (item.is_directly_shared && !item.is_owner) {
             return false; // ❌ KHÔNG được xóa folder1
         }
@@ -855,20 +857,18 @@ shouldShowShareButton(item) {
 },
 
     getUserPermissionText(item) {
-        if (item.is_owner) {
-            return 'Chủ sở hữu';
-        }
-        if (item.is_shared_folder) {
-            if (item.user_permission === 'edit') {
-                return 'Được chia sẻ (Chỉnh sửa nội dung)'; // ✅ SỬA: Thêm "nội dung"
-            }
-            return 'Được chia sẻ (Chỉ xem)';
-        }
-        if (item.user_permission === 'edit') {
-            return 'Chỉnh sửa (kế thừa)';
-        }
-        return 'Chỉ xem (kế thừa)';
-    },
+    if (item.is_owner) {
+        return 'Chủ sở hữu';
+    }
+    if (item.is_directly_shared) {
+        return `Được chia sẻ (${item.user_permission === 'edit' ? 'Có thể thêm folder con' : 'Chỉ xem'})`;
+    }
+    if (item.is_descendant_of_shared) {
+        return `Folder con trong folder được share (${item.user_permission === 'edit' ? 'Có thể chỉnh sửa' : 'Chỉ xem'})`;
+    }
+    return 'Chỉ xem';
+},
+
 
  // Thêm method kiểm tra quyền tạo folder con
 shouldShowNewFolderButton() {
@@ -890,21 +890,24 @@ shouldShowNewFolderButton() {
 },
 
     // Thêm method hiển thị thông báo quyền hạn chi tiết
-    getPermissionDetails(item) {
-        if (item.is_owner) {
-            return 'Bạn có toàn quyền với folder này';
-        }
-        if (item.is_shared_folder) {
-            if (item.user_permission === 'edit') {
-                return 'Bạn được phép: Xem, tạo folder con, upload file, sửa/xóa nội dung bên trong. KHÔNG được: Sửa tên folder, xóa folder, chia sẻ folder.';
-            }
-            return 'Bạn chỉ có quyền xem folder này';
-        }
+getPermissionDetails(item) {
+    if (item.is_owner) {
+        return 'Bạn có toàn quyền với folder này';
+    }
+    if (item.is_directly_shared) {
         if (item.user_permission === 'edit') {
-            return 'Bạn có quyền chỉnh sửa folder này (kế thừa từ folder cha)';
+            return 'Bạn có thể: Tạo folder con, upload file, sửa/xóa nội dung bên trong. KHÔNG được: Sửa tên folder, xóa folder, chia sẻ folder.';
         }
-        return 'Bạn chỉ có quyền xem folder này (kế thừa từ folder cha)';
-    },
+        return 'Bạn chỉ có quyền xem folder này';
+    }
+    if (item.is_descendant_of_shared) {
+        if (item.user_permission === 'edit') {
+            return 'Bạn có toàn quyền với folder này (folder con trong folder được share)';
+        }
+        return 'Bạn chỉ có quyền xem folder này (folder con trong folder được share)';
+    }
+    return 'Bạn chỉ có quyền xem';
+},
 
   /**
    * Mở modal chia sẻ folder
