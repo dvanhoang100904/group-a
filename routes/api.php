@@ -84,21 +84,15 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
     Route::get('/folders/search', [FolderController::class, 'search']);
 
-    // Route xóa document (giữ nguyên)
+    // Route xóa document
     Route::delete('/documents/{id}', [DocumentAccessController::class, 'deleteDocument']);
 
-    // ✅ THÊM MỚI: Folder Share Routes (đặt đúng vị trí)
-    Route::prefix('folders/{folder}')->group(function () {
-        Route::post('/share', [FolderController::class, 'shareFolder']);
-        Route::post('/unshare', [FolderController::class, 'unshareFolder']);
-        Route::get('/shared-users', [FolderController::class, 'getSharedUsers']);
-    });
-
-    // ✅ THÊM MỚI: User search for sharing
-    Route::get('/folders/{folder}/name', [FolderController::class, 'getFolderName']);
+    // Folder Share Routes
+    Route::post('/folders/{folderId}/share', [FolderController::class, 'shareFolder']);
+    Route::post('/folders/{folderId}/unshare', [FolderController::class, 'unshareFolder']);
+    Route::get('/folders/{folderId}/shared-users', [FolderController::class, 'getSharedUsers']);
     Route::get('/users/search', [FolderController::class, 'searchUsers']);
 });
-
 Route::get('/api/documents', [DocumentController::class, 'getDocuments']);
 Route::get('/api/documents/{id}/detail', [DocumentController::class, 'getDocumentDetail']);
 Route::get('/api/types', [TypeControllers::class, 'index']);

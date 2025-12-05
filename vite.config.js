@@ -14,6 +14,7 @@ export default defineConfig({
                 "resources/js/pages/document-shared.js",
                 "resources/js/pages/document-upload.js",
                 "resources/js/pages/document-list.js",
+                'resources/js/pages/dashboard.js',
             ],
             refresh: true,
         }),
