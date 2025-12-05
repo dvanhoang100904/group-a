@@ -2,23 +2,38 @@
   <div class="container mx-auto px-4 py-8">
     <!-- Header với nút Mới -->
     <div class="flex items-center justify-between mb-6">
-      <!-- Nút Mới ở vị trí header cũ -->
-      <div class="flex-shrink-0 relative">
-        <button @click="toggleNewDropdown"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
-          <i class="fas fa-plus mr-2"></i>Mới
-          <i class="fas fa-chevron-down ml-2 text-xs"></i>
-        </button>
-        
-        <div v-if="showNewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
-          <button @click="openCreateFolder" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
+      <!-- Nút Mới ở vị trí header -->
+<!-- Nút Mới -->
+<div class="flex-shrink-0 relative">
+    <button @click="toggleNewDropdown"
+            :disabled="!shouldShowNewFolderButton()"
+            :title="!shouldShowNewFolderButton() ? 'Bạn không có quyền tạo thư mục/file trong folder này' : ''"
+            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="fas fa-plus mr-2"></i>Mới
+        <i class="fas fa-chevron-down ml-2 text-xs"></i>
+    </button>
+    
+    <!-- Dropdown menu -->
+    <div v-if="showNewDropdown && shouldShowNewFolderButton()" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
+        <button @click="openCreateFolder" 
+                class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
             <i class="fas fa-folder-plus text-blue-500 mr-3"></i>Tạo thư mục
-          </button>
-          <a :href="sanitizeUrl(uploadFileUrl)" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
+        </button>
+        <a :href="sanitizeUrl(uploadFileUrl)" 
+           class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
             <i class="fas fa-file-upload text-green-500 mr-3"></i>Tải file lên
-          </a>
+        </a>
+    </div>
+    
+    <!-- Thông báo khi không có quyền -->
+    <div v-if="showNewDropdown && !shouldShowNewFolderButton()" 
+         class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
+        <div class="px-4 py-2 text-sm text-gray-500 italic">
+            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+            Bạn chỉ có quyền xem folder này
         </div>
-      </div>
+    </div>
+</div>
 
       <!-- Controls -->
       <div class="flex items-center gap-3">
@@ -664,12 +679,16 @@ export default {
     hasActiveFilters() {
       return this.searchParams.name || this.searchParams.date || this.searchParams.file_type;
     },
-    uploadFileUrl() {
-      const folderId = this.currentFolder?.folder_id || null;
-      // ✅ BẢO MẬT: Sanitize folder ID trong URL
-      const safeFolderId = folderId ? encodeURIComponent(folderId) : '';
-      return `/upload?folder_id=${safeFolderId}`;
-    },
+uploadFileUrl() {
+    if (!this.shouldShowNewFolderButton()) {
+        return ''; // Không hiển thị link upload nếu không có quyền
+    }
+    
+    const folderId = this.currentFolder?.folder_id || null;
+    // ✅ BẢO MẬT: Sanitize folder ID trong URL
+    const safeFolderId = folderId ? encodeURIComponent(folderId) : '';
+    return `/upload?folder_id=${safeFolderId}`;
+},
     pages() {
       const pages = [];
       const current = this.items.current_page;
@@ -864,18 +883,23 @@ export default {
     },
 
  // Thêm method kiểm tra quyền tạo folder con
-    shouldShowNewFolderButton() {
-        if (!this.currentFolder) {
-            return true; // Root folder - chỉ chủ sở hữu
-        }
-        
-        // Kiểm tra currentFolder có phải được share không
-        if (this.currentFolder.is_shared_folder && !this.currentFolder.is_owner) {
-            return this.currentFolder.user_permission === 'edit'; // ✅ Được tạo folder con
-        }
-        
+shouldShowNewFolderButton() {
+    // Luôn hiển thị nút "Mới" ở root (không có currentFolder)
+    if (!this.currentFolder) {
         return true;
-    },
+    }
+    
+    // Kiểm tra currentFolder
+    if (this.currentFolder.is_shared_folder && !this.currentFolder.is_owner) {
+        // ✅ SỬA: Chỉ được tạo folder con nếu có quyền edit
+        // Kiểm tra cả user_permission và can_edit_content
+        return this.currentFolder.user_permission === 'edit' || 
+               this.currentFolder.can_edit_content === true;
+    }
+    
+    // Folder của chính mình - luôn được phép
+    return true;
+},
 
     // Thêm method hiển thị thông báo quyền hạn chi tiết
     getPermissionDetails(item) {
@@ -1228,13 +1252,26 @@ async loadSharedUsers() {
       this.loadData();
     },
 
-    openCreateFolder() {
-      const parentId = this.currentFolder?.folder_id || null;
-      // ✅ BẢO MẬT: Sanitize URL
-      const safeParentId = parentId ? encodeURIComponent(parentId) : '';
-      window.location.href = `/folders/create?parent_id=${safeParentId}`;
-      this.showNewDropdown = false;
-    },
+openCreateFolder() {
+    // ✅ FIX: Lấy parent_id từ currentFolder (folder hiện tại đang xem)
+    const parentId = this.currentFolder?.folder_id || null;
+    
+    console.log('📁 Creating folder with parent_id:', {
+        currentFolder: this.currentFolder,
+        parentId: parentId,
+        currentFolderId: this.currentFolder?.folder_id
+    });
+    
+    // ✅ BẢO MẬT: Sanitize URL
+    const safeParentId = parentId ? encodeURIComponent(parentId) : '';
+    
+    // ✅ Tạo URL với parent_id
+    const url = `/folders/create?parent_id=${safeParentId}`;
+    console.log('📁 Redirecting to:', url);
+    
+    window.location.href = url;
+    this.showNewDropdown = false;
+},
 
     editFolder(item) {
       // ✅ BẢO MẬT: Validate item ID

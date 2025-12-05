@@ -96,6 +96,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     });
 
     // ✅ THÊM MỚI: User search for sharing
+    Route::get('/folders/{folder}/name', [FolderController::class, 'getFolderName']);
     Route::get('/users/search', [FolderController::class, 'searchUsers']);
 });
 

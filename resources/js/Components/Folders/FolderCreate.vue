@@ -285,6 +285,88 @@ export default {
   },
   
   methods: {
+    async getLocationInfo() {
+    try {
+        if (!this.parentFolderId || this.parentFolderId === 'null') {
+            this.parentFolderName = 'Thư mục gốc';
+            this.breadcrumbs = [];
+            return;
+        }
+        
+        // Sửa URL API
+        const response = await axios.get(`/api/folders/${this.parentFolderId}`);
+        
+        if (response.data.success) {
+            const data = response.data.data;
+            this.parentFolderName = this.sanitizeOutput(data.folder.name);
+            this.breadcrumbs = data.breadcrumbs || [];
+        } else {
+            throw new Error(response.data.message || 'Không thể tải thông tin thư mục');
+        }
+    } catch (error) {
+        console.error('Parent folder ID không hợp lệ:', error);
+        this.parentFolderName = 'Thư mục không tồn tại';
+        this.breadcrumbs = [];
+        
+        // Hiển thị thông báo lỗi
+        if (error.response?.status === 404) {
+            this.showError('Thư mục cha không tồn tại hoặc đã bị xóa');
+        } else {
+            this.showError('Không thể tải thông tin vị trí: ' + error.message);
+        }
+    }
+},
+    async getLocationInfo() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const parentId = urlParams.get('parent_id');
+        const parentName = urlParams.get('parent_name');
+        
+        console.log('📄 Create page - URL params:', {
+            parentId: parentId,
+            parentName: parentName,
+            fullUrl: window.location.href
+        });
+        
+        if (parentId) {
+            try {
+                const validParentId = this.validateFolderId(parentId);
+                this.form.parent_folder_id = validParentId;
+                
+                console.log('📄 Fetching parent folder info for:', validParentId);
+                
+                // ✅ SỬA: Gọi API mới getFolderName
+                try {
+                    const response = await axios.get(`/api/folders/${validParentId}/name`);
+                    
+                    if (response.data.success) {
+                        this.parentFolderName = this.sanitizeOutput(response.data.data.name);
+                        console.log('📄 Parent folder name from API:', this.parentFolderName);
+                    } else {
+                        console.warn('Không thể lấy thông tin thư mục cha:', response.data.message);
+                        // Fallback: sử dụng parent_name từ URL hoặc hiển thị ID
+                        this.parentFolderName = parentName ? decodeURIComponent(parentName) : `Thư mục #${validParentId}`;
+                    }
+                } catch (apiError) {
+                    console.warn('API Error, using fallback:', apiError.message);
+                    // Fallback: sử dụng parent_name từ URL hoặc hiển thị ID
+                    this.parentFolderName = parentName ? decodeURIComponent(parentName) : `Thư mục #${validParentId}`;
+                }
+                
+            } catch (validationError) {
+                console.warn('Parent folder ID không hợp lệ:', validationError.message);
+                this.form.parent_folder_id = null;
+                this.parentFolderName = 'Danh sách hiện tại (Thư mục gốc)';
+            }
+        } else {
+            console.log('📄 No parent_id - Creating root folder');
+            this.parentFolderName = 'Danh sách hiện tại (Thư mục gốc)';
+        }
+    } catch (error) {
+        console.error('Error getting location info:', error);
+        this.parentFolderName = 'Danh sách hiện tại (Thư mục gốc)';
+    }
+},
     // Sanitize methods
     sanitizeOutput(value) {
       if (value === null || value === undefined) return '';

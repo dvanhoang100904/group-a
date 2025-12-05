@@ -294,7 +294,7 @@ class FolderService
                 // ✅ SỬA: Bỏ validation status
                 $validator = Validator::make($data, [
                     'name' => 'required|string|max:255',
-                    'parent_folder_id' => 'nullable|integer|min:1'
+                    'parent_folder_id' => 'nullable|integer|min:0' // ✅ SỬA: min:0 thay vì min:1
                 ]);
 
                 if ($validator->fails()) {
@@ -311,31 +311,39 @@ class FolderService
 
                 Log::info('Processing parent_folder_id:', ['raw' => $parentFolderId]);
 
-                if ($parentFolderId === '' || $parentFolderId === 'null' || $parentFolderId === null) {
-                    $parentFolderId = null;
-                } else {
-                    $parentFolderId = $this->validateFolderId($parentFolderId);
-
-                    // Verify parent folder exists and belongs to user
-                    $parentFolder = Folder::where('folder_id', $parentFolderId)
-                        ->where('user_id', Auth::id())
-                        ->first();
-
-                    if (!$parentFolder) {
-                        throw new \Exception('Thư mục cha không tồn tại hoặc không có quyền truy cập');
-                    }
-                }
-
-                // Kiểm tra user_id
                 $userId = Auth::id();
                 if (!$userId) {
                     throw new \Exception('User not authenticated');
                 }
 
+                // ✅ THÊM: Kiểm tra quyền tạo folder trong parent folder
+                if ($parentFolderId !== null && $parentFolderId !== '') {
+                    $parentFolderId = $this->validateFolderId($parentFolderId);
+
+                    // Kiểm tra user có quyền tạo folder trong folder này không
+                    $canCreate = $this->canCreateFolderIn($parentFolderId, $userId);
+                    if (!$canCreate) {
+                        throw new \Exception('Bạn không có quyền tạo thư mục trong thư mục này');
+                    }
+
+                    // Verify parent folder exists và user có quyền truy cập
+                    $parentFolder = Folder::accessibleBy($userId)
+                        ->where('folder_id', $parentFolderId)
+                        ->first();
+
+                    if (!$parentFolder) {
+                        throw new \Exception('Thư mục cha không tồn tại hoặc không có quyền truy cập');
+                    }
+                } else {
+                    $parentFolderId = null;
+                    // ✅ THÊM: Chỉ owner mới được tạo folder gốc
+                    // Không cần check vì folder gốc luôn của user đó
+                }
+
                 $folderData = [
                     'name' => $validatedData['name'],
                     'parent_folder_id' => $parentFolderId,
-                    'user_id' => $userId,
+                    'user_id' => $userId, // ✅ QUAN TRỌNG: user_id luôn là người tạo
                 ];
 
                 Log::info('Final folder data for creation:', $folderData);
@@ -344,7 +352,7 @@ class FolderService
                 $folder = new Folder();
                 $folder->name = $folderData['name'];
                 $folder->parent_folder_id = $folderData['parent_folder_id'];
-                $folder->user_id = $folderData['user_id'];
+                $folder->user_id = $folderData['user_id']; // ✅ User tạo là owner của folder con
                 $folder->save();
 
                 Log::info('Folder saved successfully:', [
@@ -700,10 +708,10 @@ class FolderService
                 'shared_info' => $shareInfo,
                 'user_permission' => $userPermission,
                 'is_shared_folder' => $permission['is_shared_folder'],
-                'can_edit_content' => $permission['can_edit_content'],  // ✅ THÊM
-                'can_edit_info' => $permission['can_edit_info'],        // ✅ THÊM
-                'can_delete' => $permission['can_delete'],              // ✅ THÊM
-                'can_create_subfolder' => $permission['can_create_subfolder'], // ✅ THÊM
+                'can_edit_content' => $permission['can_edit_content'],
+                'can_edit_info' => $permission['can_edit_info'],
+                'can_delete' => $permission['can_delete'],
+                'can_create_subfolder' => $permission['can_create_subfolder'],
                 'owner_name' => $folder->user->name ?? 'Unknown'
             ];
         });
@@ -1241,9 +1249,9 @@ class FolderService
      */
     public function canCreateFolderIn($parentFolderId, $userId): bool
     {
-        if (!$parentFolderId) {
-            // Tạo folder gốc - chỉ chủ sở hữu
-            return false;
+        // ✅ SỬA: Tạo folder gốc - CHỈ chủ sở hữu của folder đó
+        if (!$parentFolderId || $parentFolderId === 0) {
+            return true; // 
         }
 
         $parentFolder = Folder::with('shares')->find($parentFolderId);
