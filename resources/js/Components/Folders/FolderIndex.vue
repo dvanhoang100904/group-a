@@ -346,21 +346,46 @@
       <div class="text-xs mt-1">{{ getPermissionDetails(activeMenu) }}</div>
     </div>
     
-    <!-- Nút Chia sẻ - CHỈ chủ sở hữu -->
-    <button v-if="shouldShowShareButton(activeMenu)" 
-            @click.stop="shareFolder(activeMenu)"
-            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-      <i class="fas fa-share-alt mr-3 text-green-500"></i>Chia sẻ
-    </button>
+    <!-- NÚT CHO FOLDER -->
+    <template v-if="activeMenu.item_type === 'folder'">
+      <!-- Nút Chia sẻ - CHỈ chủ sở hữu -->
+      <button v-if="shouldShowShareButton(activeMenu)" 
+              @click.stop="shareFolder(activeMenu)"
+              class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+        <i class="fas fa-share-alt mr-3 text-green-500"></i>Chia sẻ
+      </button>
+      
+      <!-- Nút Chỉnh sửa - CHỈ khi có quyền sửa thông tin -->
+      <button v-if="shouldShowEditButton(activeMenu)" 
+              @click.stop="editFolder(activeMenu)"
+              class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+        <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa thông tin
+      </button>
+    </template>
     
-    <!-- Nút Chỉnh sửa - CHỈ khi có quyền sửa thông tin -->
-    <button v-if="shouldShowEditButton(activeMenu)" 
-            @click.stop="editFolder(activeMenu)"
-            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-      <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa thông tin
-    </button>
+    <!-- NÚT CHO DOCUMENT -->
+    <template v-else-if="activeMenu.item_type === 'document'">
+      <!-- Xem chi tiết -->
+      <button @click.stop="viewDocument(activeMenu)"
+              class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+        <i class="fas fa-eye mr-3 text-blue-500"></i>Xem chi tiết
+      </button>
+      
+      <!-- Tải xuống -->
+      <button @click.stop="downloadDocument(activeMenu)"
+              class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+        <i class="fas fa-download mr-3 text-green-500"></i>Tải xuống
+      </button>
+      
+      <!-- Chỉnh sửa (chỉ owner) -->
+      <button v-if="activeMenu.is_owner" 
+              @click.stop="editDocument(activeMenu)"
+              class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
+        <i class="fas fa-edit mr-3 text-yellow-500"></i>Chỉnh sửa
+      </button>
+    </template>
     
-    <!-- Nút Xóa - CHỈ khi có quyền xóa -->
+    <!-- Nút Xóa (cho cả folder và document) -->
     <button v-if="shouldShowDeleteButton(activeMenu)" 
             @click.stop="showDeleteConfirmation(activeMenu)"
             class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
@@ -368,7 +393,7 @@
     </button>
     
     <!-- Thông báo đặc biệt cho folder được share với quyền edit -->
-    <div v-if="activeMenu.is_shared_folder && !activeMenu.is_owner && activeMenu.user_permission === 'edit'" 
+    <div v-if="activeMenu.item_type === 'folder' && activeMenu.is_shared_folder && !activeMenu.is_owner && activeMenu.user_permission === 'edit'" 
          class="px-4 py-2 text-sm text-blue-600 text-center bg-blue-50">
       <i class="fas fa-info-circle mr-1"></i>
       Bạn có thể: Tạo folder con, upload file
@@ -377,7 +402,8 @@
 </div>
 
     <!-- Context Menu -->
-    <div v-if="contextMenu.visible" class="context-menu" :style="contextMenuStyle">
+  <!-- Context Menu - CẬP NHẬT -->
+<div v-if="contextMenu.visible" class="context-menu" :style="contextMenuStyle">
   <div class="context-menu-header">
     <i :class="getItemIcon(contextMenu.item)" class="mr-2"></i>
     <span class="font-medium text-sm truncate">{{ sanitizeOutput(contextMenu.item.name) }}</span>
@@ -386,36 +412,50 @@
       ({{ contextMenu.item.user_permission === 'edit' ? 'Chỉnh sửa nội dung' : 'Chỉ xem' }})
     </span>
   </div>
+  
   <div class="py-2">
-    <button @click="openContextItem" class="context-menu-item">
-      <i :class="contextMenu.item.item_type === 'folder' ? 'fas fa-folder-open' : 'fas fa-eye'" 
-         class="text-blue-500 mr-3" style="width: 16px;"></i>
-      {{ contextMenu.item.item_type === 'folder' ? 'Mở thư mục' : 'Xem file' }}
-    </button>
+    <!-- CHO FOLDER -->
+    <template v-if="contextMenu.item.item_type === 'folder'">
+      <button @click="openContextItem" class="context-menu-item">
+        <i class="fas fa-folder-open text-blue-500 mr-3" style="width: 16px;"></i>
+        Mở thư mục
+      </button>
+      
+      <!-- ✅ Sửa thông tin folder -->
+      <button v-if="shouldShowEditButton(contextMenu.item)" 
+              @click="editFolder(contextMenu.item)" 
+              class="context-menu-item">
+        <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa thông tin
+      </button>
+      
+      <!-- ✅ Chia sẻ folder -->
+      <button v-if="shouldShowShareButton(contextMenu.item)" 
+              @click="shareFolder(contextMenu.item)" 
+              class="context-menu-item">
+        <i class="fas fa-share-alt text-green-500 mr-3" style="width: 16px;"></i>Chia sẻ
+      </button>
+    </template>
     
-    <!-- ✅ SỬA: Nút Sửa cho folder - CHỈ khi có quyền sửa thông tin -->
-    <button v-if="contextMenu.item.item_type === 'folder' && shouldShowEditButton(contextMenu.item)" 
-            @click="editFolder(contextMenu.item)" 
-            class="context-menu-item">
-      <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa thông tin
-    </button>
-    
-    <!-- ✅ SỬA: Nút Chia sẻ - CHỈ chủ sở hữu -->
-    <button v-if="contextMenu.item.item_type === 'folder' && shouldShowShareButton(contextMenu.item)" 
-            @click="shareFolder(contextMenu.item)" 
-            class="context-menu-item">
-      <i class="fas fa-share-alt text-green-500 mr-3" style="width: 16px;"></i>Chia sẻ
-    </button>
-    
-    <button v-if="contextMenu.item.item_type === 'document'" 
-            @click="downloadDocument(contextMenu.item)" 
-            class="context-menu-item">
-      <i class="fas fa-download text-green-500 mr-3" style="width: 16px;"></i>Tải xuống
-    </button>
+    <!-- CHO DOCUMENT -->
+    <template v-else-if="contextMenu.item.item_type === 'document'">
+      <button @click="viewDocument(contextMenu.item)" class="context-menu-item">
+        <i class="fas fa-eye text-blue-500 mr-3" style="width: 16px;"></i>Xem chi tiết
+      </button>
+      
+      <button @click="downloadDocument(contextMenu.item)" class="context-menu-item">
+        <i class="fas fa-download text-green-500 mr-3" style="width: 16px;"></i>Tải xuống
+      </button>
+      
+      <button v-if="contextMenu.item.is_owner" 
+              @click="editDocument(contextMenu.item)" 
+              class="context-menu-item">
+        <i class="fas fa-edit text-yellow-500 mr-3" style="width: 16px;"></i>Chỉnh sửa
+      </button>
+    </template>
     
     <div class="context-menu-divider"></div>
     
-    <!-- ✅ SỬA: Nút Xóa - CHỈ khi có quyền xóa -->
+    <!-- Nút Xóa -->
     <button v-if="shouldShowDeleteButton(contextMenu.item)" 
             @click="showDeleteConfirmation(contextMenu.item)" 
             class="context-menu-item context-menu-item-danger w-full text-left">
@@ -484,7 +524,7 @@
       </div>
     </div>
     <!-- Share Folder Modal -->
-<div v-if="showShareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10002] p-4">
+<div v-if="showShareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
     <div class="p-6">
       <!-- Header -->
@@ -676,9 +716,11 @@ export default {
     safeItems() {
       return (this.items.data || []).filter(item => item !== null && item !== undefined);
     },
-    hasActiveFilters() {
-      return this.searchParams.name || this.searchParams.date || this.searchParams.file_type;
-    },
+hasActiveFilters() {
+  return this.searchParams.name.trim() !== '' || 
+         this.searchParams.date !== '' || 
+         this.searchParams.file_type !== '';
+},
 uploadFileUrl() {
     if (!this.shouldShowNewFolderButton()) {
         return ''; // Không hiển thị link upload nếu không có quyền
@@ -797,6 +839,75 @@ uploadFileUrl() {
     window.removeEventListener('resize', this.hideContextMenu);
   },
   methods: {
+   /**
+   * 1. Xem chi tiết - DÙNG ROUTE ĐÃ CÓ
+   */
+  viewDocument(item) {
+    if (item.item_type !== 'document') return;
+    window.location.href = `/documents/${item.id}`;
+  },
+
+  /**
+   * 2. Sửa - DÙNG ROUTE MỚI THÊM
+   */
+  editDocument(item) {
+    if (item.item_type !== 'document') return;
+    
+    if (!item.is_owner) {
+      this.showError('Bạn không có quyền chỉnh sửa');
+      return;
+    }
+    
+    window.location.href = `/documents/${item.id}/edit`;
+  },
+
+  /**
+   * 3. Xóa - DÙNG ROUTE ĐÃ CÓ VÀ HOẠT ĐỘNG
+   */
+  async deleteDocument(item) {
+    if (item.item_type !== 'document') return;
+    
+    if (!item.is_owner) {
+      this.showError('Bạn không có quyền xóa');
+      return;
+    }
+    
+    if (!confirm(`Xóa "${this.sanitizeOutput(item.name)}"?`)) return;
+    
+    try {
+      const response = await axios.delete(`/documents/${item.id}`);
+      if (response.data.success) {
+        this.showSuccess('Xóa thành công');
+        this.loadData();
+      }
+    } catch (error) {
+      this.showError('Lỗi khi xóa');
+    }
+  },
+
+  /**
+   * Helper: Lấy filename từ response headers
+   */
+  getFilenameFromResponse(response) {
+    const contentDisposition = response.headers['content-disposition'];
+    if (contentDisposition) {
+      const matches = /filename="?([^"]+)"?/i.exec(contentDisposition);
+      if (matches && matches[1]) {
+        return matches[1];
+      }
+    }
+    return null;
+  },
+
+  /**
+   * Validate document ID
+   */
+  validateDocumentId(documentId) {
+    if (!documentId || !Number.isInteger(Number(documentId)) || documentId <= 0) {
+      throw new Error('ID tài liệu không hợp lệ');
+    }
+    return Number(documentId);
+  },
      formatFolderPath(fullPath) {
       if (!fullPath) return 'Thư mục gốc';
       
@@ -808,79 +919,68 @@ uploadFileUrl() {
       
       return `${pathParts[0]}/.../${pathParts[pathParts.length - 1]}`;
     },
-    getItemTypeDisplay(item) {
-      if (!item) return 'Unknown';
-      
-      if (item.item_type === 'folder') {
-        return 'Thư mục';
-      }
-      
-      return sanitizeOutput(item?.type_name) || 'Tài liệu';
-    },
-    shouldShowEditButton(item) {
-        if (item.item_type === 'folder') {
-            // ✅ SỬA: Chỉ hiển thị nút chỉnh sửa khi có quyền sửa THÔNG TIN
-            if (item.is_shared_folder && !item.is_owner) {
-                return false; // ❌ KHÔNG được sửa thông tin folder được share
-            }
-            return item.user_permission === 'edit' || item.is_owner;
+getItemTypeDisplay(item) {
+  if (!item) return 'Unknown';
+  
+  if (item.item_type === 'folder') {
+    return 'Thư mục';
+  }
+  
+  // ✅ SỬA: Gọi đúng this.sanitizeOutput
+  return this.sanitizeOutput(item?.type_name) || 'Tài liệu';
+},
+shouldShowEditButton(item) {
+    if (item.item_type === 'folder') {
+        // ✅ Folder của chính mình: được sửa
+        // ✅ Folder con trong folder được share: được sửa
+        // ❌ Folder được share trực tiếp (folder1): KHÔNG được sửa thông tin
+        if (item.is_directly_shared && !item.is_owner) {
+            return false; // ❌ KHÔNG được sửa tên folder1
         }
-        return item.is_owner;
-    },
+        return item.can_edit_info === true;
+    }
+    // Document: chỉ owner được sửa
+    return item.is_owner;
+},
 
-    shouldShowDeleteButton(item) {
+shouldShowDeleteButton(item) {
     if (!item) return false;
     
-    // Document: chỉ owner được xóa
     if (item.item_type === 'document') {
         return item.is_owner;
     }
     
-    // Folder: logic mới
     if (item.item_type === 'folder') {
-        // Sử dụng permission từ backend (item.can_delete)
-        if (typeof item.can_delete !== 'undefined') {
-            return item.can_delete;
+        // ✅ Folder của chính mình: được xóa
+        // ✅ Folder con trong folder được share: được xóa
+        // ❌ Folder được share trực tiếp: KHÔNG được xóa
+        if (item.is_directly_shared && !item.is_owner) {
+            return false; // ❌ KHÔNG được xóa folder1
         }
-        
-        // Fallback logic cũ
-        if (item.is_shared_folder && !item.is_owner) {
-            // Folder được chia sẻ trực tiếp - KHÔNG được xóa
-            return false;
-        }
-        
-        // Folder con trong folder được share - ĐƯỢC xóa nếu có quyền edit
-        if (item.user_permission === 'edit') {
-            return true;
-        }
-        
-        return item.is_owner;
+        return item.can_delete === true;
     }
     
     return false;
 },
 
 
-   shouldShowShareButton(item) {
-        // ✅ CHỈ chủ sở hữu được chia sẻ
-        return item.is_owner && item.item_type === 'folder';
-    },
+shouldShowShareButton(item) {
+    return item.is_owner && item.item_type === 'folder';
+},
 
     getUserPermissionText(item) {
-        if (item.is_owner) {
-            return 'Chủ sở hữu';
-        }
-        if (item.is_shared_folder) {
-            if (item.user_permission === 'edit') {
-                return 'Được chia sẻ (Chỉnh sửa nội dung)'; // ✅ SỬA: Thêm "nội dung"
-            }
-            return 'Được chia sẻ (Chỉ xem)';
-        }
-        if (item.user_permission === 'edit') {
-            return 'Chỉnh sửa (kế thừa)';
-        }
-        return 'Chỉ xem (kế thừa)';
-    },
+    if (item.is_owner) {
+        return 'Chủ sở hữu';
+    }
+    if (item.is_directly_shared) {
+        return `Được chia sẻ (${item.user_permission === 'edit' ? 'Có thể thêm folder con' : 'Chỉ xem'})`;
+    }
+    if (item.is_descendant_of_shared) {
+        return `Folder con trong folder được share (${item.user_permission === 'edit' ? 'Có thể chỉnh sửa' : 'Chỉ xem'})`;
+    }
+    return 'Chỉ xem';
+},
+
 
  // Thêm method kiểm tra quyền tạo folder con
 shouldShowNewFolderButton() {
@@ -902,21 +1002,24 @@ shouldShowNewFolderButton() {
 },
 
     // Thêm method hiển thị thông báo quyền hạn chi tiết
-    getPermissionDetails(item) {
-        if (item.is_owner) {
-            return 'Bạn có toàn quyền với folder này';
-        }
-        if (item.is_shared_folder) {
-            if (item.user_permission === 'edit') {
-                return 'Bạn được phép: Xem, tạo folder con, upload file, sửa/xóa nội dung bên trong. KHÔNG được: Sửa tên folder, xóa folder, chia sẻ folder.';
-            }
-            return 'Bạn chỉ có quyền xem folder này';
-        }
+getPermissionDetails(item) {
+    if (item.is_owner) {
+        return 'Bạn có toàn quyền với folder này';
+    }
+    if (item.is_directly_shared) {
         if (item.user_permission === 'edit') {
-            return 'Bạn có quyền chỉnh sửa folder này (kế thừa từ folder cha)';
+            return 'Bạn có thể: Tạo folder con, upload file, sửa/xóa nội dung bên trong. KHÔNG được: Sửa tên folder, xóa folder, chia sẻ folder.';
         }
-        return 'Bạn chỉ có quyền xem folder này (kế thừa từ folder cha)';
-    },
+        return 'Bạn chỉ có quyền xem folder này';
+    }
+    if (item.is_descendant_of_shared) {
+        if (item.user_permission === 'edit') {
+            return 'Bạn có toàn quyền với folder này (folder con trong folder được share)';
+        }
+        return 'Bạn chỉ có quyền xem folder này (folder con trong folder được share)';
+    }
+    return 'Bạn chỉ có quyền xem';
+},
 
   /**
    * Mở modal chia sẻ folder
@@ -1071,23 +1174,25 @@ async loadSharedUsers() {
       }
     },
 
-    goToFolder(folderId) {
-      // ✅ BẢO MẬT: Validate folder ID
-      try {
-        const validFolderId = this.validateFolderId(folderId);
-        
-        if (this.isSearchMode) {
-          this.isSearchMode = false;
-          this.searchParams = { name: '', date: '', file_type: '' };
-        }
-        
-        this.currentFolder = { folder_id: validFolderId };
-        this.items.current_page = 1;
-        this.loadData();
-      } catch (error) {
-        this.showError('ID thư mục không hợp lệ');
-      }
-    },
+goToFolder(folderId) {
+  // ✅ BẢO MẬT: Validate folder ID
+  try {
+    const validFolderId = this.validateFolderId(folderId);
+    
+    // ✅ Đảm bảo thoát chế độ tìm kiếm khi vào folder
+    if (this.isSearchMode) {
+      this.isSearchMode = false;
+      this.searchParams = { name: '', date: '', file_type: '' };
+      console.log('📂 Exiting search mode when entering folder');
+    }
+    
+    this.currentFolder = { folder_id: validFolderId };
+    this.items.current_page = 1;
+    this.loadData();
+  } catch (error) {
+    this.showError('ID thư mục không hợp lệ');
+  }
+},
 
     // THÊM: Method load danh sách loại tài liệu
     async loadDocumentTypes() {
@@ -1136,56 +1241,70 @@ async loadSharedUsers() {
       this.showErrorModal = true;
     },
 
-    async loadData() {
-      this.loading = true;
+   async loadData() {
+  this.loading = true;
+  
+  try {
+    // ✅ BẢO MẬT: Sanitize search parameters
+    const params = {
+      name: this.sanitizeInput(this.searchParams.name || ''),
+      date: this.searchParams.date || '',
+      file_type: this.searchParams.file_type || '',
+      per_page: this.perPage,
+      page: this.items.current_page,
+    };
+
+    // ✅ QUAN TRỌNG: Chỉ thêm parent_id khi KHÔNG ở chế độ tìm kiếm
+    // VÀ chỉ khi có currentFolder
+    if (this.currentFolder?.folder_id && !this.isSearchMode) {
+      params.parent_id = this.currentFolder.folder_id;
+    } else {
+      // Nếu đang ở chế độ tìm kiếm, không gửi parent_id
+      delete params.parent_id;
+    }
+
+    console.log('📡 API call params:', params); // Debug log
+    
+    const response = await axios.get('/api/folders', { params });
+    
+    if (response.data.success) {
+      const data = response.data.data;
       
-      try {
-        // ✅ BẢO MẬT: Sanitize search parameters
-        const params = {
-          name: this.sanitizeInput(this.searchParams.name || ''),
-          date: this.searchParams.date || '',
-          file_type: this.searchParams.file_type || '',
-          per_page: this.perPage,
-          page: this.items.current_page,
-        };
-
-        // ✅ QUAN TRỌNG: Chỉ thêm parent_id khi KHÔNG ở chế độ tìm kiếm
-        if (this.currentFolder?.folder_id && !this.isSearchMode) {
-          params.parent_id = this.currentFolder.folder_id;
-        }
-
-        const response = await axios.get('/api/folders', { params });
-        
-        if (response.data.success) {
-          const data = response.data.data;
-          
-          this.items = {
-            data: data.items?.data || data.items || [],
-            current_page: data.items?.current_page || data.current_page || 1,
-            last_page: data.items?.last_page || data.last_page || 1,
-            from: data.items?.from || data.from || 0,
-            to: data.items?.to || data.to || 0,
-            total: data.items?.total || data.total || 0
-          };
-          
-          this.currentFolder = data.currentFolder || null;
-          this.breadcrumbs = data.breadcrumbs || [];
-          this.isSearchMode = data.isSearchMode || false;
-          this.lastUpdate = new Date().toISOString();
-        } else {
-          throw new Error(response.data.message || 'API response not successful');
-        }
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Lỗi khi tải dữ liệu';
-        this.showError(errorMsg);
-        this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
-        this.currentFolder = null;
-        this.breadcrumbs = [];
-        this.isSearchMode = false;
-      } finally {
-        this.loading = false;
-      }
-    },
+      console.log('📥 API response:', { 
+        hasItems: !!data.items,
+        itemsLength: data.items?.data?.length || data.items?.length || 0,
+        isSearchMode: data.isSearchMode,
+        currentFolder: data.currentFolder
+      }); // Debug log
+      
+      this.items = {
+        data: data.items?.data || data.items || [],
+        current_page: data.items?.current_page || data.current_page || 1,
+        last_page: data.items?.last_page || data.last_page || 1,
+        from: data.items?.from || data.from || 0,
+        to: data.items?.to || data.to || 0,
+        total: data.items?.total || data.total || 0
+      };
+      
+      this.currentFolder = data.currentFolder || null;
+      this.breadcrumbs = data.breadcrumbs || [];
+      this.isSearchMode = data.isSearchMode || false;
+      this.lastUpdate = new Date().toISOString();
+    } else {
+      throw new Error(response.data.message || 'API response not successful');
+    }
+  } catch (error) {
+    console.error('❌ Error loading data:', error);
+    const errorMsg = error.response?.data?.message || 'Lỗi khi tải dữ liệu';
+    this.showError(errorMsg);
+    this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
+    this.currentFolder = null;
+    this.breadcrumbs = [];
+    this.isSearchMode = false;
+  } finally {
+    this.loading = false;
+  }
+},
 
     exitSearchMode() {
       this.resetFilters();
@@ -1285,18 +1404,13 @@ openCreateFolder() {
     },
 
     openDocument(item) {
-      if (item.file_path) {
-        // ✅ BẢO MẬT: Sanitize URL trước khi mở
-        const safeUrl = this.sanitizeUrl(item.file_path);
-        if (safeUrl) {
-          window.open(safeUrl, '_blank', 'noopener,noreferrer');
-        } else {
-          this.showError('Đường dẫn file không hợp lệ');
-        }
+      if (!item) return;
+      
+      if (item.item_type === 'folder') {
+        this.goToFolder(item.id);
       } else {
-        this.showError('File không tồn tại');
+        this.viewDocument(item);
       }
-      this.hideContextMenu();
     },
 
     downloadDocument(item) {
@@ -1323,12 +1437,12 @@ openCreateFolder() {
       this.hideContextMenu();
     },
 
-    showDeleteConfirmation(item) {
-      this.itemToDelete = item;
-      this.showDeleteModal = true;
-      this.activeMenu = null;
-      this.hideContextMenu();
-    },
+showDeleteConfirmation(item) {
+  this.itemToDelete = item;
+  this.showDeleteModal = true;
+  this.activeMenu = null;
+  this.hideContextMenu();
+},
 
     cancelDelete() {
       this.showDeleteModal = false;
@@ -1336,35 +1450,38 @@ openCreateFolder() {
     },
 
     async confirmDelete() {
-      if (!this.itemToDelete) return;
+  if (!this.itemToDelete) return;
+  
+  try {
+    const validId = this.validateDocumentId(this.itemToDelete.id);
+    
+    // Xác định endpoint dựa trên loại item
+    const endpoint = this.itemToDelete.item_type === 'folder' 
+      ? `/api/folders/${validId}`
+      : `/api/documents/${validId}`;
+    
+    const response = await axios.delete(endpoint);
+    
+    if (response.data.success) {
+      this.showSuccess(response.data.message);
       
-      try {
-        // ✅ BẢO MẬT: Validate item ID
-        const validId = this.validateFolderId(this.itemToDelete.id);
-        
-        const endpoint = this.itemToDelete.item_type === 'folder' 
-          ? `/api/folders/${validId}`
-          : `/api/documents/${validId}`;
-        
-        const response = await axios.delete(endpoint);
-        
-        if (response.data.success) {
-          this.showSuccess(response.data.message);
-          
-          // Reset currentFolder if deleting current folder
-          if (this.itemToDelete.item_type === 'folder' && 
-              this.currentFolder && 
-              this.currentFolder.folder_id === this.itemToDelete.id) {
-            this.currentFolder = null;
-          }
-        }
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Lỗi khi xóa: ' + error.message;
-        this.showError(errorMsg);
-      } finally {
-        this.showDeleteModal = false;
-        this.itemToDelete = null;
+      // Reset currentFolder nếu đang xóa folder hiện tại
+      if (this.itemToDelete.item_type === 'folder' && 
+          this.currentFolder && 
+          this.currentFolder.folder_id === this.itemToDelete.id) {
+        this.currentFolder = null;
       }
+      
+      // Reload dữ liệu
+      this.loadData();
+    }
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || 'Lỗi khi xóa: ' + error.message;
+    this.showError(errorMsg);
+  } finally {
+    this.showDeleteModal = false;
+    this.itemToDelete = null;
+  }
     },
 
     showContextMenu(event, item) {
@@ -1463,23 +1580,30 @@ openCreateFolder() {
       this.hideContextMenu();
     },
 
-    handleSearch() {
-       this.items.current_page = 1;
+handleSearch() {
+  this.items.current_page = 1;
   
-      if (this.hasActiveFilters) {
-        this.currentFolder = null;
-        this.isSearchMode = true;
-      }
-      
-      this.loadData();
-    },
+  // ✅ Kiểm tra nếu có bộ lọc thì vào chế độ tìm kiếm
+  if (this.hasActiveFilters) {
+    this.currentFolder = null; // Reset currentFolder khi tìm kiếm
+    this.isSearchMode = true;
+    console.log('🔍 Entering search mode with filters:', this.searchParams);
+  } else {
+    // Nếu không có bộ lọc, thoát chế độ tìm kiếm
+    this.isSearchMode = false;
+    console.log('📂 Exiting search mode, no filters');
+  }
+  
+  this.loadData();
+},
 
-    resetFilters() {
-      this.searchParams = { name: '', date: '', file_type: '' }; 
-      this.items.current_page = 1;
-      this.isSearchMode = false;
-      this.loadData();
-    },
+resetFilters() {
+  this.searchParams = { name: '', date: '', file_type: '' }; 
+  this.items.current_page = 1;
+  this.isSearchMode = false;
+  console.log('🔄 Resetting filters, exiting search mode');
+  this.loadData();
+},
 
     changePerPage() {
       this.items.current_page = 1;
