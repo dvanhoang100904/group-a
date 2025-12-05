@@ -484,7 +484,7 @@
       </div>
     </div>
     <!-- Share Folder Modal -->
-<div v-if="showShareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10002] p-4">
+<div v-if="showShareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
     <div class="p-6">
       <!-- Header -->
