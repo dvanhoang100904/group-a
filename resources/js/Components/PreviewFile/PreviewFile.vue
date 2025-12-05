@@ -8,7 +8,7 @@
       class="w-full h-[650px] border rounded"
     ></iframe>
 
-    <!-- IMAGE -->
+    <!-- IMAGE -->  
     <img
       v-else-if="isImage"
       :src="fileUrl"

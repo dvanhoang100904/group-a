@@ -56,60 +56,46 @@
       </div>
     </div>
 
-    <!-- THÔNG TIN MẶC ĐỊNH CHO TẤT CẢ FILE -->
+    <!-- Default settings -->
     <div class="mb-4 p-4 bg-light rounded-3 border">
       <div class="d-flex align-items-center mb-3">
         <i class="bi bi-gear-fill text-primary me-2 fs-5"></i>
         <h6 class="mb-0 fw-bold">Cài đặt mặc định cho tất cả file</h6>
       </div>
-      
+
       <div class="row g-3">
-        <!-- Loại tài liệu mặc định -->
         <div class="col-md-4">
-          <label class="form-label small fw-semibold">
-            <i class="bi bi-file-text me-1"></i>
-            Loại tài liệu
-          </label>
+          <label class="form-label small fw-semibold">Loại tài liệu</label>
           <select v-model="defaultSettings.type_id" class="form-select">
             <option value="">-- Không áp dụng --</option>
             <option v-for="t in types" :key="t.type_id" :value="t.type_id">{{ t.name }}</option>
           </select>
         </div>
 
-        <!-- Môn học mặc định -->
         <div class="col-md-3">
-          <label class="form-label small fw-semibold">
-            <i class="bi bi-book me-1"></i>
-            Môn học
-          </label>
+          <label class="form-label small fw-semibold">Môn học</label>
           <select v-model="defaultSettings.subject_id" class="form-select">
             <option value="">-- Không áp dụng --</option>
             <option v-for="s in subjects" :key="s.subject_id" :value="s.subject_id">{{ s.name }}</option>
           </select>
         </div>
 
-        <!-- Quyền truy cập mặc định -->
         <div class="col-md-3">
-          <label class="form-label small fw-semibold">
-            <i class="bi bi-shield-lock me-1"></i>
-            Quyền truy cập
-          </label>
+          <label class="form-label small fw-semibold">Quyền truy cập</label>
           <select v-model="defaultSettings.permission" class="form-select">
             <option v-for="(label, key) in permissionOptions" :key="key" :value="key">{{ label }}</option>
           </select>
         </div>
 
-        <!-- Button áp dụng -->
         <div class="col-md-2 d-flex align-items-end">
           <button @click="applyDefaultSettings" class="btn btn-primary w-100">
-            <i class="bi bi-arrow-down-circle me-1"></i>
-            Áp dụng
+            <i class="bi bi-arrow-down-circle me-1"></i> Áp dụng
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Danh sách file -->
+    <!-- File list -->
     <div v-if="files.length">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0 d-flex align-items-center gap-2">
@@ -129,64 +115,56 @@
             {{ uploading ? 'Đang tải...' : `Tải lên tất cả (${pendingFiles})` }}
           </button>
           <button @click="clearAll" class="btn btn-danger btn-sm d-flex align-items-center gap-1">
-            <i class="bi bi-trash"></i>
-            Xóa tất cả
+            <i class="bi bi-trash"></i> Xóa tất cả
           </button>
         </div>
       </div>
 
-      <!-- File Items -->
       <div class="file-list">
-        <div v-for="(file, index) in files" :key="file.uid" class="file-item card mb-3 border-start border-4 hover-shadow"
-          :class="`border-${getFileColorBootstrap(file.name)}`">
+        <div
+          v-for="(file, index) in files"
+          :key="file.uid"
+          class="file-item card mb-3 border-start border-4 hover-shadow"
+          :class="`border-${getFileColorBootstrap(file.name)}`"
+        >
           <div class="card-body p-3">
             <div class="row align-items-center">
-              <!-- Icon và Tên File -->
+              <!-- icon + name -->
               <div class="col-lg-5">
                 <div class="d-flex gap-3 align-items-center">
-                  <div class="file-icon-wrapper d-flex align-items-center justify-content-center rounded-3 p-2"
-                    :style="`background-color: ${getFileColor(file.name)}15`">
-                    <i :class="getFileIconClass(file.name)" :style="`color: ${getFileColor(file.name)}`"
-                      class="fs-2"></i>
+                  <div
+                    class="file-icon-wrapper d-flex align-items-center justify-content-center rounded-3 p-2"
+                    :style="`background-color: ${getFileColor(file.name)}15`"
+                  >
+                    <i :class="getFileIconClass(file.name)" :style="`color: ${getFileColor(file.name)}`" class="fs-2"></i>
                   </div>
 
                   <div class="flex-grow-1">
-                    <input v-model="file.title" class="form-control form-control-sm fw-semibold mb-1"
-                      :placeholder="file.originalNameNoExt" />
+                    <input v-model="file.title" class="form-control form-control-sm fw-semibold mb-1" :placeholder="file.originalNameNoExt" />
                     <div class="d-flex align-items-center gap-2">
                       <span class="badge bg-secondary">.{{ file.ext }}</span>
-                      <small class="text-muted">
-                        <i class="bi bi-hdd-fill"></i>
-                        {{ file.size }}
-                      </small>
+                      <small class="text-muted"><i class="bi bi-hdd-fill"></i> {{ file.size }}</small>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Cài đặt File -->
+              <!-- settings -->
               <div class="col-lg-5">
                 <div class="row g-2">
-                  <!-- Loại tài liệu -->
                   <div class="col-12">
                     <div class="input-group input-group-sm">
-                      <span class="input-group-text bg-light border-0">
-                        <i class="bi bi-file-earmark-text text-primary"></i>
-                      </span>
-                      <select v-model="file.type_id" class="form-select"
-                        :class="{ 'is-invalid': file.validationErrors?.type_id }">
+                      <span class="input-group-text bg-light border-0"><i class="bi bi-file-earmark-text text-primary"></i></span>
+                      <select v-model="file.type_id" class="form-select" :class="{ 'is-invalid': file.validationErrors?.type_id }">
                         <option value="">-- Loại tài liệu --</option>
                         <option v-for="t in types" :key="t.type_id" :value="t.type_id">{{ t.name }}</option>
                       </select>
                     </div>
                   </div>
 
-                  <!-- Môn học + Quyền -->
                   <div class="col-6">
                     <div class="input-group input-group-sm">
-                      <span class="input-group-text bg-light border-0">
-                        <i class="bi bi-book text-info"></i>
-                      </span>
+                      <span class="input-group-text bg-light border-0"><i class="bi bi-book text-info"></i></span>
                       <select v-model="file.subject_id" class="form-select">
                         <option value="">-- Môn học --</option>
                         <option v-for="s in subjects" :key="s.subject_id" :value="s.subject_id">{{ s.name }}</option>
@@ -196,58 +174,74 @@
 
                   <div class="col-6">
                     <div class="input-group input-group-sm">
-                      <span class="input-group-text bg-light border-0">
-                        <i class="bi bi-shield-lock text-warning"></i>
-                      </span>
+                      <span class="input-group-text bg-light border-0"><i class="bi bi-shield-lock text-warning"></i></span>
                       <select v-model="file.permission" class="form-select">
                         <option v-for="(label, key) in permissionOptions" :key="key" :value="key">{{ label }}</option>
                       </select>
                     </div>
                   </div>
 
-                  <!-- Thư mục đích cho FILE -->
+                  <!-- folder button -->
                   <div class="col-12">
-                    <div class="position-relative">
-                      <button @click="toggleFileFolderTree(index)"
-                        class="btn btn-sm btn-outline-secondary w-100 text-start d-flex align-items-center justify-content-between">
+                    <div class="folder-dropdown-wrapper" @click.stop>
+                      <button
+                        :id="`folder-btn-${index}`"
+                        @click.stop="toggleFileFolderTree(index)"
+                        class="btn btn-sm btn-outline-secondary w-100 text-start d-flex align-items-center justify-content-between"
+                      >
                         <span class="d-flex align-items-center gap-2 text-truncate">
                           <i class="bi bi-folder2-open text-warning"></i>
                           <small>{{ file.folder ? file.folder.name : 'Thư mục gốc' }}</small>
                         </span>
                         <i :class="file.showFolderTree ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
                       </button>
+                    </div>
 
-                      <!-- Tree riêng cho file này -->
-                      <div v-if="file.showFolderTree"
-                        class="position-absolute start-0 end-0 bg-white border rounded-3 shadow-lg mt-1 overflow-auto"
-                        style="z-index: 9999; max-height: 300px" @click.stop>
+                    <!-- Teleport popup: render to body so it never gets cut or covered -->
+                    <Teleport to="body">
+                      <div v-if="file.showFolderTree" class="folder-popup-global" :style="file.dropdownPosition" @click.stop>
                         <div class="p-2">
-                          <div class="d-flex align-items-center px-2 py-1 hover-bg-light cursor-pointer rounded"
-                            :class="{ 'bg-primary bg-opacity-10': !file.folder }" @click="selectFileFolder(index, null)">
+                          <div
+                            class="d-flex align-items-center px-2 py-1 hover-bg-light cursor-pointer rounded"
+                            :class="{ 'bg-primary bg-opacity-10': !file.folder }"
+                            @click="selectFileFolder(index, null)"
+                          >
                             <i class="bi bi-hdd-stack text-primary me-2"></i>
                             <small class="fw-semibold">Thư mục gốc</small>
                             <i v-if="!file.folder" class="bi bi-check2 ms-auto text-success"></i>
                           </div>
-                          <FoldersTreee v-if="folderTree.length" :folders="folderTree" :depth="0"
-                            :selected-id="file.folder?.id" @select="selectFileFolder(index, $event)" />
+
+                          <FoldersTreee
+                            v-if="folderTree.length"
+                            :folders="folderTree"
+                            :depth="0"
+                            :selected-id="file.folder?.id"
+                            @select="selectFileFolder(index, $event)"
+                          />
                         </div>
                       </div>
-                    </div>
+                    </Teleport>
                   </div>
                 </div>
               </div>
 
-              <!-- Actions -->
+              <!-- actions -->
               <div class="col-lg-2 text-end">
                 <div class="d-flex flex-column gap-1">
-                  <button v-if="file.status === 'pending'" @click="uploadSingle(file, index)" :disabled="!file.type_id"
-                    class="btn btn-sm w-100" :class="file.type_id ? 'btn-success' : 'btn-secondary opacity-50'">
+                  <button
+                    v-if="file.status === 'pending'"
+                    @click="uploadSingle(file)"
+                    :disabled="!file.type_id"
+                    class="btn btn-sm w-100"
+                    :class="file.type_id ? 'btn-success' : 'btn-secondary opacity-50'"
+                  >
                     <i class="bi bi-cloud-upload-fill"></i>
                   </button>
-                  <button v-else-if="file.status === 'done' && file.preview_url" @click="downloadPreview(file)"
-                    class="btn btn-info btn-sm w-100">
+
+                  <button v-else-if="file.status === 'done' && file.preview_url" @click="downloadPreview(file)" class="btn btn-info btn-sm w-100">
                     <i class="bi bi-eye-fill"></i>
                   </button>
+
                   <button @click="removeFile(index)" class="btn btn-outline-danger btn-sm w-100">
                     <i class="bi bi-trash3-fill"></i>
                   </button>
@@ -255,35 +249,44 @@
               </div>
             </div>
 
-            <!-- Progress Bar -->
+            <!-- progress -->
             <div v-if="file.progress !== null" class="mt-2">
               <div class="progress" style="height: 6px">
-                <div class="progress-bar" :class="{
-                  'bg-danger': file.status === 'error',
-                  'bg-warning': file.status === 'done' && file.errorMessage,
-                  'bg-primary': file.status === 'uploading',
-                  'bg-success': file.status === 'done' && !file.errorMessage
-                }" :style="{ width: file.progress + '%' }"></div>
+                <div
+                  class="progress-bar"
+                  :class="{
+                    'bg-danger': file.status === 'error',
+                    'bg-warning': file.status === 'done' && file.errorMessage,
+                    'bg-primary': file.status === 'uploading',
+                    'bg-success': file.status === 'done' && !file.errorMessage
+                  }"
+                  :style="{ width: file.progress + '%' }"
+                ></div>
               </div>
             </div>
 
-            <!-- Status + Errors -->
+            <!-- status + errors -->
             <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
-              <span class="badge d-flex align-items-center gap-1" :class="{
-                'bg-secondary': file.status === 'pending',
-                'bg-primary': file.status === 'uploading',
-                'bg-success': file.status === 'done' && !file.errorMessage && file.preview_ready,
-                'bg-warning': file.status === 'done' && file.errorMessage,
-                'bg-danger': file.status === 'error',
-                'bg-info': file.is_converting
-              }">
-                <i :class="{
-                  'bi bi-pause-circle-fill': file.status === 'pending',
-                  'bi bi-arrow-repeat spin': file.status === 'uploading' || file.is_converting,
-                  'bi bi-check-circle-fill': file.status === 'done' && file.preview_ready,
-                  'bi bi-exclamation-triangle-fill': file.status === 'done' && file.errorMessage,
-                  'bi bi-x-circle-fill': file.status === 'error'
-                }"></i>
+              <span
+                class="badge d-flex align-items-center gap-1"
+                :class="{
+                  'bg-secondary': file.status === 'pending',
+                  'bg-primary': file.status === 'uploading',
+                  'bg-success': file.status === 'done' && !file.errorMessage && file.preview_ready,
+                  'bg-warning': file.status === 'done' && file.errorMessage,
+                  'bg-danger': file.status === 'error',
+                  'bg-info': file.is_converting
+                }"
+              >
+                <i
+                  :class="{
+                    'bi bi-pause-circle-fill': file.status === 'pending',
+                    'bi bi-arrow-repeat spin': file.status === 'uploading' || file.is_converting,
+                    'bi bi-check-circle-fill': file.status === 'done' && file.preview_ready,
+                    'bi bi-exclamation-triangle-fill': file.status === 'done' && file.errorMessage,
+                    'bi bi-x-circle-fill': file.status === 'error'
+                  }"
+                ></i>
                 <span>{{ statusText(file) }}</span>
               </span>
 
@@ -297,14 +300,12 @@
                 {{ Object.values(file.validationErrors)[0][0] }}
               </small>
             </div>
-
-
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Empty State -->
+    <!-- empty -->
     <div v-else class="text-center py-5">
       <i class="bi bi-inbox text-muted" style="font-size: 5rem"></i>
       <p class="text-muted mt-3 mb-0">Chưa có file nào được chọn</p>
@@ -314,7 +315,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import FoldersTreee from '@/Components/DocumentUploads/FoldersTreee.vue'
@@ -329,10 +330,9 @@ const subjects = ref([])
 
 // Folder tree
 const folderTree = ref([])
-const showFolderTree = ref(false)
 const selectedFolder = ref(null)
 
-// Cài đặt mặc định
+// Default settings
 const defaultSettings = ref({
   type_id: '',
   subject_id: '',
@@ -353,9 +353,24 @@ const pendingFiles = computed(() => files.value.filter(f => f.status === 'pendin
 // Lifecycle
 onMounted(async () => {
   await Promise.all([fetchTypes(), fetchSubjects(), loadFolders()])
+
+  // click outside closes dropdowns
+  document.addEventListener('click', handleDocumentClick)
+  // esc closes dropdowns
+  window.addEventListener('keydown', handleKeydown)
+  // update position on scroll/resize
+  window.addEventListener('scroll', handleWindowUpdate, true)
+  window.addEventListener('resize', handleWindowUpdate)
 })
 
-// API Calls
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('scroll', handleWindowUpdate, true)
+  window.removeEventListener('resize', handleWindowUpdate)
+})
+
+// API calls
 const fetchTypes = async () => {
   try {
     const r = await axios.get('/api/types')
@@ -379,26 +394,17 @@ const fetchSubjects = async () => {
 const loadFolders = async () => {
   try {
     const res = await axios.get('/api/folders/tree')
-    if (res.data.success && res.data.data) {
-      folderTree.value = res.data.data
+    if (res.data && (res.data.success || res.data.data)) {
+      folderTree.value = res.data.data || res.data
     }
   } catch (err) {
     console.error('Lỗi load folder tree:', err)
+    folderTree.value = []
   }
 }
 
-// Folder selection
-const toggleFolderTree = () => {
-  showFolderTree.value = !showFolderTree.value
-}
-
-const selectFolder = folder => {
-  selectedFolder.value = folder
-  showFolderTree.value = false
-}
-
 // File handling
-const triggerFileInput = () => fileInput.value.click()
+const triggerFileInput = () => fileInput.value && fileInput.value.click()
 
 const handleFileSelect = e => {
   prepareFiles(e.target.files)
@@ -421,6 +427,7 @@ const prepareFiles = fileList => {
     const ext = parts.length > 1 ? parts.pop().toLowerCase() : ''
     const baseName = parts.join('.')
 
+    // ensure dropdownPosition exist on each file object
     files.value.push({
       uid: uuidv4(),
       file: f,
@@ -439,6 +446,7 @@ const prepareFiles = fileList => {
       permission: defaultSettings.value.permission,
       folder: null,
       showFolderTree: false,
+      dropdownPosition: null,
       is_converting: false,
       preview_ready: false,
       preview_url: null
@@ -446,7 +454,7 @@ const prepareFiles = fileList => {
   }
 }
 
-// Áp dụng cài đặt mặc định cho tất cả file pending
+// Apply default settings to pending files
 const applyDefaultSettings = () => {
   files.value.forEach(file => {
     if (file.status === 'pending') {
@@ -457,22 +465,79 @@ const applyDefaultSettings = () => {
   })
 }
 
-// Quản lý folder tree riêng cho từng file
-const toggleFileFolderTree = (index) => {
+// Dropdown / Teleport helpers
+const closeAllDropdowns = () => {
+  files.value.forEach(f => (f.showFolderTree = false))
+}
+
+const handleDocumentClick = (e) => {
+  // if click is outside any folder button or teleport popup -> close
+  // rely on stopPropagation on internal elements; simple approach: close all
+  closeAllDropdowns()
+}
+
+const handleKeydown = (e) => {
+  if (e.key === 'Escape' || e.key === 'Esc') {
+    closeAllDropdowns()
+  }
+}
+
+const handleWindowUpdate = () => {
+  // recalc for open dropdowns
+  files.value.forEach((f, idx) => {
+    if (f.showFolderTree) updateDropdownPosition(idx)
+  })
+}
+
+const toggleFileFolderTree = async (index) => {
+  // prevent index OOB
+  if (index < 0 || index >= files.value.length) return
+
+  // close others
+  files.value.forEach((f, i) => {
+    if (i !== index) f.showFolderTree = false
+  })
+
+  // toggle current
   files.value[index].showFolderTree = !files.value[index].showFolderTree
+
+  // compute position if opened
+  if (files.value[index].showFolderTree) {
+    await nextTick()
+    updateDropdownPosition(index)
+  }
+}
+
+const updateDropdownPosition = (index) => {
+  const btn = document.getElementById(`folder-btn-${index}`)
+  if (!btn) return
+
+  const rect = btn.getBoundingClientRect()
+  // default width same as button; allow small offset
+  const gap = 6
+  files.value[index].dropdownPosition = {
+    position: 'absolute',
+    top: `${rect.bottom + window.scrollY + gap}px`,
+    left: `${rect.left + window.scrollX}px`,
+    width: `${rect.width}px`,
+    zIndex: 9999999
+  }
 }
 
 const selectFileFolder = (index, folder) => {
+  if (index < 0 || index >= files.value.length) return
   files.value[index].folder = folder
   files.value[index].showFolderTree = false
+  files.value[index].dropdownPosition = null
 }
 
+// remove/clear/download
 const removeFile = i => files.value.splice(i, 1)
 const clearAll = () => (files.value = [])
 const downloadPreview = f => f.preview_url && window.open(f.preview_url, '_blank')
 
-// Upload
-const uploadSingle = async fileObj => {
+// Upload functions
+const uploadSingle = async (fileObj) => {
   if (!fileObj.type_id) {
     fileObj.validationErrors = { type_id: ['Vui lòng chọn loại tài liệu'] }
     return
@@ -489,8 +554,6 @@ const uploadSingle = async fileObj => {
   form.append('type_id', fileObj.type_id)
   if (fileObj.subject_id) form.append('subject_id', fileObj.subject_id)
   form.append('permission', fileObj.permission)
-  
-  // Sử dụng folder riêng của file, không phải folder chung
   if (fileObj.folder?.id) form.append('folder_id', fileObj.folder.id)
 
   try {
@@ -513,6 +576,9 @@ const uploadSingle = async fileObj => {
       if (fileObj.is_converting && !fileObj.preview_ready && res.data.document_id) {
         pollPreviewStatus(res.data.document_id, fileObj)
       }
+    } else {
+      fileObj.status = 'error'
+      fileObj.errorMessage = res.data?.message || 'Lỗi upload'
     }
   } catch (err) {
     fileObj.status = 'error'
@@ -549,8 +615,9 @@ const pollPreviewStatus = (id, fileObj, attempt = 0) => {
     .catch(() => setTimeout(() => pollPreviewStatus(id, fileObj, attempt + 1), 2000))
 }
 
-// Status text
+// helpers (status & icons)
 const statusText = f => {
+  if (!f) return ''
   if (f.status === 'pending') return 'Chờ tải'
   if (f.status === 'uploading') return 'Đang tải...'
   if (f.is_converting) return 'Tạo preview...'
@@ -560,9 +627,8 @@ const statusText = f => {
   return 'Lỗi'
 }
 
-// File icons
 const getFileIconClass = n => {
-  const e = n.split('.').pop().toLowerCase()
+  const e = (n || '').split('.').pop().toLowerCase()
   const m = {
     pdf: 'bi-file-earmark-pdf-fill',
     doc: 'bi-file-earmark-word-fill',
@@ -578,7 +644,7 @@ const getFileIconClass = n => {
 }
 
 const getFileColor = n => {
-  const e = n.split('.').pop().toLowerCase()
+  const e = (n || '').split('.').pop().toLowerCase()
   const c = {
     pdf: '#dc3545',
     doc: '#2b579a',
@@ -594,7 +660,7 @@ const getFileColor = n => {
 }
 
 const getFileColorBootstrap = n => {
-  const e = n.split('.').pop().toLowerCase()
+  const e = (n || '').split('.').pop().toLowerCase()
   const c = {
     pdf: 'danger',
     doc: 'primary',
@@ -654,8 +720,39 @@ const getFileColorBootstrap = n => {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
+}
+
+/* folder button wrapper inside card (no stacking needed here) */
+.folder-dropdown-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* Teleport popup (rendered in body) */
+.folder-popup-global {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  max-height: 360px;
+  overflow-y: auto;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  position: absolute !important;
+  z-index: 9999999 !important;
+  min-width: 200px;
+  animation: popupIn .12s ease-out;
+}
+
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.995); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* small helpers */
+.folder-popup-global .hover-bg-light:hover {
+  background: rgba(0,0,0,0.05);
 }
 </style>
