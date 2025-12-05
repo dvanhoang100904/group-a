@@ -548,7 +548,17 @@ class FolderController extends Controller
 
             $validated = $request->validate([
                 'emails' => 'required|array|min:1',
-                'emails.*' => 'required|email|exists:users,email',
+                'emails.*' => [
+                    'required',
+                    'email',
+                    'exists:users,email',
+                    function ($attribute, $value, $fail) use ($user) {
+                        // Không cho phép chia sẻ với chính mình
+                        if (User::where('email', $value)->first()?->user_id === $user->user_id) {
+                            $fail('Không thể chia sẻ với chính mình');
+                        }
+                    }
+                ],
                 'permission' => 'required|in:view,edit'
             ]);
 

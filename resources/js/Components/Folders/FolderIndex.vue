@@ -895,74 +895,72 @@ export default {
   /**
    * Tải danh sách người được chia sẻ
    */
-  async loadSharedUsers() {
-    if (!this.selectedFolder) return;
-    
-    try {
-      const response = await axios.get(`/api/folders/${this.selectedFolder.id}/shared-users`);
-      if (response.data.success) {
-        this.shareModalData.sharedUsers = response.data.data;
-      }
-    } catch (error) {
-      console.error('Lỗi khi tải danh sách chia sẻ:', error);
+async loadSharedUsers() {
+  try {
+    // ✅ THÊM /api/ prefix
+    const response = await axios.get(`/api/folders/${this.selectedFolder.id}/shared-users`);
+    if (response.data.success) {
+      this.shareModalData.sharedUsers = response.data.data;
     }
-  },
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách chia sẻ:', error);
+  }
+},
   /**
    * Chia sẻ folder với nhiều user
    */
   async shareFolderAction() {
-    if (!this.shareModalData.emailsInput.trim()) {
-      this.showError('Vui lòng nhập ít nhất một email');
-      return;
+  if (!this.shareModalData.emailsInput.trim()) {
+    this.showError('Vui lòng nhập ít nhất một email');
+    return;
+  }
+  const emails = this.shareModalData.emailsInput.split(',')
+    .map(email => email.trim())
+    .filter(email => email);
+
+  console.log('Emails input:', this.shareModalData.emailsInput);
+  console.log('Emails array:', emails);
+  
+  this.shareModalData.loading = true;
+  try {
+    const response = await axios.post(`/api/folders/${this.selectedFolder.id}/share`, {
+      emails: emails,
+      permission: this.shareModalData.permission
+    });
+
+    if (response.data.success) {
+      this.showSuccess(response.data.message);
+      this.shareModalData.emailsInput = '';
+      this.loadSharedUsers();
     }
-
-    this.shareModalData.loading = true;
-    try {
-      const emails = this.shareModalData.emailsInput.split(',')
-        .map(email => email.trim())
-        .filter(email => email);
-
-      // ✅ BẢO MẬT: Sanitize emails
-      const sanitizedEmails = emails.map(email => this.sanitizeInput(email));
-
-      const response = await axios.post(`/api/folders/${this.selectedFolder.id}/share`, {
-        emails: sanitizedEmails,
-        permission: this.shareModalData.permission
-      });
-
-      if (response.data.success) {
-        this.showSuccess(response.data.message);
-        this.shareModalData.emailsInput = '';
-        this.loadSharedUsers(); // Reload danh sách
-      }
-    } catch (error) {
-      const message = error.response?.data?.message || 'Lỗi khi chia sẻ folder';
-      this.showError(message);
-    } finally {
-      this.shareModalData.loading = false;
-    }
-  },
+  } catch (error) {
+    const message = error.response?.data?.message || 'Lỗi khi chia sẻ folder';
+    this.showError(message);
+  } finally {
+    this.shareModalData.loading = false;
+  }
+},
    /**
    * Hủy chia sẻ với user
    */
   async unshareUser(userId) {
-    if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
-      return;
-    }
+  if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
+    return;
+  }
 
-    try {
-      const response = await axios.post(`/api/folders/${this.selectedFolder.id}/unshare`, {
-        user_ids: [userId]
-      });
+  try {
+     const response = await axios.post(`/api/folders/${this.selectedFolder.id}/unshare`, {
+      user_ids: [userId]
+    });
 
-      if (response.data.success) {
-        this.loadSharedUsers();
-        this.showSuccess('Hủy chia sẻ thành công');
-      }
-    } catch (error) {
-      this.showError('Lỗi khi hủy chia sẻ');
+    if (response.data.success) {
+      this.loadSharedUsers();
+      this.showSuccess('Hủy chia sẻ thành công');
     }
-  },
+  } catch (error) {
+    this.showError('Lỗi khi hủy chia sẻ');
+  }
+},
    /**
    * Đóng modal chia sẻ
    */
