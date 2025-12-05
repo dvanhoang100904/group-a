@@ -676,9 +676,11 @@ export default {
     safeItems() {
       return (this.items.data || []).filter(item => item !== null && item !== undefined);
     },
-    hasActiveFilters() {
-      return this.searchParams.name || this.searchParams.date || this.searchParams.file_type;
-    },
+hasActiveFilters() {
+  return this.searchParams.name.trim() !== '' || 
+         this.searchParams.date !== '' || 
+         this.searchParams.file_type !== '';
+},
 uploadFileUrl() {
     if (!this.shouldShowNewFolderButton()) {
         return ''; // Không hiển thị link upload nếu không có quyền
@@ -808,15 +810,16 @@ uploadFileUrl() {
       
       return `${pathParts[0]}/.../${pathParts[pathParts.length - 1]}`;
     },
-    getItemTypeDisplay(item) {
-      if (!item) return 'Unknown';
-      
-      if (item.item_type === 'folder') {
-        return 'Thư mục';
-      }
-      
-      return sanitizeOutput(item?.type_name) || 'Tài liệu';
-    },
+getItemTypeDisplay(item) {
+  if (!item) return 'Unknown';
+  
+  if (item.item_type === 'folder') {
+    return 'Thư mục';
+  }
+  
+  // ✅ SỬA: Gọi đúng this.sanitizeOutput
+  return this.sanitizeOutput(item?.type_name) || 'Tài liệu';
+},
 shouldShowEditButton(item) {
     if (item.item_type === 'folder') {
         // ✅ Folder của chính mình: được sửa
@@ -1062,23 +1065,25 @@ async loadSharedUsers() {
       }
     },
 
-    goToFolder(folderId) {
-      // ✅ BẢO MẬT: Validate folder ID
-      try {
-        const validFolderId = this.validateFolderId(folderId);
-        
-        if (this.isSearchMode) {
-          this.isSearchMode = false;
-          this.searchParams = { name: '', date: '', file_type: '' };
-        }
-        
-        this.currentFolder = { folder_id: validFolderId };
-        this.items.current_page = 1;
-        this.loadData();
-      } catch (error) {
-        this.showError('ID thư mục không hợp lệ');
-      }
-    },
+goToFolder(folderId) {
+  // ✅ BẢO MẬT: Validate folder ID
+  try {
+    const validFolderId = this.validateFolderId(folderId);
+    
+    // ✅ Đảm bảo thoát chế độ tìm kiếm khi vào folder
+    if (this.isSearchMode) {
+      this.isSearchMode = false;
+      this.searchParams = { name: '', date: '', file_type: '' };
+      console.log('📂 Exiting search mode when entering folder');
+    }
+    
+    this.currentFolder = { folder_id: validFolderId };
+    this.items.current_page = 1;
+    this.loadData();
+  } catch (error) {
+    this.showError('ID thư mục không hợp lệ');
+  }
+},
 
     // THÊM: Method load danh sách loại tài liệu
     async loadDocumentTypes() {
@@ -1127,56 +1132,70 @@ async loadSharedUsers() {
       this.showErrorModal = true;
     },
 
-    async loadData() {
-      this.loading = true;
+   async loadData() {
+  this.loading = true;
+  
+  try {
+    // ✅ BẢO MẬT: Sanitize search parameters
+    const params = {
+      name: this.sanitizeInput(this.searchParams.name || ''),
+      date: this.searchParams.date || '',
+      file_type: this.searchParams.file_type || '',
+      per_page: this.perPage,
+      page: this.items.current_page,
+    };
+
+    // ✅ QUAN TRỌNG: Chỉ thêm parent_id khi KHÔNG ở chế độ tìm kiếm
+    // VÀ chỉ khi có currentFolder
+    if (this.currentFolder?.folder_id && !this.isSearchMode) {
+      params.parent_id = this.currentFolder.folder_id;
+    } else {
+      // Nếu đang ở chế độ tìm kiếm, không gửi parent_id
+      delete params.parent_id;
+    }
+
+    console.log('📡 API call params:', params); // Debug log
+    
+    const response = await axios.get('/api/folders', { params });
+    
+    if (response.data.success) {
+      const data = response.data.data;
       
-      try {
-        // ✅ BẢO MẬT: Sanitize search parameters
-        const params = {
-          name: this.sanitizeInput(this.searchParams.name || ''),
-          date: this.searchParams.date || '',
-          file_type: this.searchParams.file_type || '',
-          per_page: this.perPage,
-          page: this.items.current_page,
-        };
-
-        // ✅ QUAN TRỌNG: Chỉ thêm parent_id khi KHÔNG ở chế độ tìm kiếm
-        if (this.currentFolder?.folder_id && !this.isSearchMode) {
-          params.parent_id = this.currentFolder.folder_id;
-        }
-
-        const response = await axios.get('/api/folders', { params });
-        
-        if (response.data.success) {
-          const data = response.data.data;
-          
-          this.items = {
-            data: data.items?.data || data.items || [],
-            current_page: data.items?.current_page || data.current_page || 1,
-            last_page: data.items?.last_page || data.last_page || 1,
-            from: data.items?.from || data.from || 0,
-            to: data.items?.to || data.to || 0,
-            total: data.items?.total || data.total || 0
-          };
-          
-          this.currentFolder = data.currentFolder || null;
-          this.breadcrumbs = data.breadcrumbs || [];
-          this.isSearchMode = data.isSearchMode || false;
-          this.lastUpdate = new Date().toISOString();
-        } else {
-          throw new Error(response.data.message || 'API response not successful');
-        }
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Lỗi khi tải dữ liệu';
-        this.showError(errorMsg);
-        this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
-        this.currentFolder = null;
-        this.breadcrumbs = [];
-        this.isSearchMode = false;
-      } finally {
-        this.loading = false;
-      }
-    },
+      console.log('📥 API response:', { 
+        hasItems: !!data.items,
+        itemsLength: data.items?.data?.length || data.items?.length || 0,
+        isSearchMode: data.isSearchMode,
+        currentFolder: data.currentFolder
+      }); // Debug log
+      
+      this.items = {
+        data: data.items?.data || data.items || [],
+        current_page: data.items?.current_page || data.current_page || 1,
+        last_page: data.items?.last_page || data.last_page || 1,
+        from: data.items?.from || data.from || 0,
+        to: data.items?.to || data.to || 0,
+        total: data.items?.total || data.total || 0
+      };
+      
+      this.currentFolder = data.currentFolder || null;
+      this.breadcrumbs = data.breadcrumbs || [];
+      this.isSearchMode = data.isSearchMode || false;
+      this.lastUpdate = new Date().toISOString();
+    } else {
+      throw new Error(response.data.message || 'API response not successful');
+    }
+  } catch (error) {
+    console.error('❌ Error loading data:', error);
+    const errorMsg = error.response?.data?.message || 'Lỗi khi tải dữ liệu';
+    this.showError(errorMsg);
+    this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
+    this.currentFolder = null;
+    this.breadcrumbs = [];
+    this.isSearchMode = false;
+  } finally {
+    this.loading = false;
+  }
+},
 
     exitSearchMode() {
       this.resetFilters();
@@ -1454,23 +1473,30 @@ openCreateFolder() {
       this.hideContextMenu();
     },
 
-    handleSearch() {
-       this.items.current_page = 1;
+handleSearch() {
+  this.items.current_page = 1;
   
-      if (this.hasActiveFilters) {
-        this.currentFolder = null;
-        this.isSearchMode = true;
-      }
-      
-      this.loadData();
-    },
+  // ✅ Kiểm tra nếu có bộ lọc thì vào chế độ tìm kiếm
+  if (this.hasActiveFilters) {
+    this.currentFolder = null; // Reset currentFolder khi tìm kiếm
+    this.isSearchMode = true;
+    console.log('🔍 Entering search mode with filters:', this.searchParams);
+  } else {
+    // Nếu không có bộ lọc, thoát chế độ tìm kiếm
+    this.isSearchMode = false;
+    console.log('📂 Exiting search mode, no filters');
+  }
+  
+  this.loadData();
+},
 
-    resetFilters() {
-      this.searchParams = { name: '', date: '', file_type: '' }; 
-      this.items.current_page = 1;
-      this.isSearchMode = false;
-      this.loadData();
-    },
+resetFilters() {
+  this.searchParams = { name: '', date: '', file_type: '' }; 
+  this.items.current_page = 1;
+  this.isSearchMode = false;
+  console.log('🔄 Resetting filters, exiting search mode');
+  this.loadData();
+},
 
     changePerPage() {
       this.items.current_page = 1;
