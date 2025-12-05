@@ -499,7 +499,7 @@ class FolderService
     }
 
     /**
-     * Xóa thư mục - ĐÃ BẢO MẬT
+     * Xóa thư mục - ĐÃ BẢO MẬT VÀ HỖ TRỢ SHARE
      */
     public function deleteFolder($folderId)
     {
@@ -511,9 +511,20 @@ class FolderService
         try {
             $folderId = $this->validateFolderId($folderId);
 
-            $folder = Folder::where('folder_id', $folderId)
-                ->where('user_id', $userId)
-                ->firstOrFail();
+            // ✅ SỬA: Sử dụng scope AccessibleBy thay vì chỉ tìm theo user_id
+            $folder = Folder::accessibleBy($userId)
+                ->where('folder_id', $folderId)
+                ->first();
+
+            if (!$folder) {
+                throw new \Exception('Thư mục không tồn tại hoặc bạn không có quyền truy cập');
+            }
+
+            // ✅ SỬA: Kiểm tra quyền XÓA thay vì chỉ kiểm tra owner
+            $canDelete = $this->canDeleteFolder($folderId, $userId);
+            if (!$canDelete) {
+                throw new \Exception('Bạn không có quyền xóa thư mục này');
+            }
 
             // Kiểm tra điều kiện xóa
             if ($folder->documents()->count() > 0) {
@@ -529,7 +540,7 @@ class FolderService
 
             return $folderName;
         } catch (ModelNotFoundException $e) {
-            throw new \Exception('Thư mục không tồn tại hoặc bạn không có quyền xóa');
+            throw new \Exception('Thư mục không tồn tại');
         } catch (\Exception $e) {
             Log::error('Delete folder error: ' . $e->getMessage());
             throw $e;
@@ -1207,13 +1218,13 @@ class FolderService
             return true;
         }
 
-        // ✅ NGƯỜI ĐƯỢC CHIA SẺ: KHÔNG được xóa folder được share
+        // ✅ NGƯỜI ĐƯỢC CHIA SẺ: KHÔNG được xóa folder được share TRỰC TIẾP
         $directShare = $folder->shares->where('shared_with_id', $userId)->first();
         if ($directShare) {
             return false; // ❌ KHÔNG được xóa folder được chia sẻ trực tiếp
         }
 
-        // ✅ Chỉ được xóa folder con BÊN TRONG folder được share
+        // ✅ Được xóa folder con BÊN TRONG folder được share (nếu có quyền edit)
         if ($folder->parent_folder_id) {
             $parentFolder = Folder::with('shares')->find($folder->parent_folder_id);
             if ($parentFolder) {
@@ -1276,10 +1287,10 @@ class FolderService
         } elseif ($isSharedFolder) {
             // Folder được share trực tiếp
             if ($directShare->permission === 'edit') {
-                $canEditContent = true;  // ✅ Được sửa nội dung
-                $canEditInfo = false;    // ❌ KHÔNG được sửa thông tin folder
-                $canDelete = false;      // ❌ KHÔNG được xóa folder
-                $canCreateSubfolder = true; // ✅ Được tạo folder con
+                $canEditContent = true;
+                $canEditInfo = false;
+                $canDelete = false;
+                $canCreateSubfolder = true;
             } else {
                 $canEditContent = false; // Chỉ xem
                 $canEditInfo = false;
@@ -1294,8 +1305,8 @@ class FolderService
                     $parentShare = $parentFolder->shares->where('shared_with_id', $userId)->first();
                     if ($parentShare && $parentShare->permission === 'edit') {
                         $canEditContent = true;
-                        $canEditInfo = true;  // ✅ Được sửa thông tin folder con
-                        $canDelete = true;    // ✅ Được xóa folder con
+                        $canEditInfo = true;
+                        $canDelete = true;
                         $canCreateSubfolder = true;
                     }
                 }
