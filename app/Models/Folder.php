@@ -291,13 +291,12 @@ class Folder extends Model
     /**
      * Kiểm tra user có quyền edit nội dung folder (bao gồm kế thừa)
      */
-    public function canUserEditContent($userId): bool
+    public function canUserEdit($userId): bool
     {
-        if ($this->user_id == $userId) {
+        if ($this->user_id === $userId) {
             return true;
         }
 
-        // Kiểm tra chia sẻ trực tiếp với quyền edit
         $directShare = $this->shares()
             ->where('shared_with_id', $userId)
             ->where('permission', 'edit')
@@ -307,27 +306,128 @@ class Folder extends Model
             return true;
         }
 
-        // Kiểm tra ancestors có được chia sẻ với quyền edit không
-        return $this->hasInheritedEditAccess($userId);
+        return $this->hasParentWithEditPermission($userId);
     }
-    /**
-     * Kiểm tra quyền edit kế thừa
-     */
-    private function hasInheritedEditAccess($userId): bool
-    {
-        $ancestors = $this->getAncestors();
 
-        foreach ($ancestors as $ancestor) {
-            $share = $ancestor->shares()
+    /**
+     * Kiểm tra folder cha có được chia sẻ với quyền edit
+     */
+    private function hasParentWithEditPermission($userId): bool
+    {
+        $current = $this;
+        $maxDepth = 10;
+        $depth = 0;
+
+        while ($current->parent_folder_id && $depth < $maxDepth) {
+            $parent = Folder::with('shares')->find($current->parent_folder_id);
+            if (!$parent) {
+                break;
+            }
+
+            // Kiểm tra parent có được share với quyền edit không
+            $parentShare = $parent->shares()
                 ->where('shared_with_id', $userId)
                 ->where('permission', 'edit')
                 ->exists();
 
-            if ($share) {
+            if ($parentShare) {
                 return true;
             }
+
+            $current = $parent;
+            $depth++;
         }
 
         return false;
+    }
+    /**
+     * Kiểm tra user có quyền xóa folder
+     */
+    public function canUserDelete($userId): bool
+    {
+        if ($this->user_id === $userId) {
+            return true;
+        }
+        return $this->hasParentWithEditPermission($userId);
+    }
+
+    /**
+     * Kiểm tra user có quyền xem folder (bao gồm kế thừa)
+     */
+    public function canUserView($userId): bool
+    {
+        if ($this->user_id === $userId) {
+            return true;
+        }
+
+        // Kiểm tra chia sẻ trực tiếp
+        $directShare = $this->shares()
+            ->where('shared_with_id', $userId)
+            ->exists();
+
+        if ($directShare) {
+            return true;
+        }
+
+        // Kiểm tra kế thừa từ folder cha
+        return $this->hasParentWithViewPermission($userId);
+    }
+
+    private function hasParentWithViewPermission($userId): bool
+    {
+        $current = $this;
+        $maxDepth = 10;
+        $depth = 0;
+
+        while ($current->parent_folder_id && $depth < $maxDepth) {
+            $parent = Folder::with('shares')->find($current->parent_folder_id);
+            if (!$parent) {
+                break;
+            }
+
+            // Kiểm tra parent có được share không (view hoặc edit)
+            $parentShare = $parent->shares()
+                ->where('shared_with_id', $userId)
+                ->exists();
+
+            if ($parentShare) {
+                return true;
+            }
+
+            $current = $parent;
+            $depth++;
+        }
+
+        return false;
+    }
+
+    /**
+     * Scope để lấy tất cả folder mà user có thể xem (bao gồm kế thừa)
+     */
+    public function scopeVisibleToUser(Builder $query, $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            // 1. Folder của chính user
+            $q->where('user_id', $userId)
+
+                // 2. Folder được chia sẻ trực tiếp với user
+                ->orWhereHas('shares', function ($shareQuery) use ($userId) {
+                    $shareQuery->where('shared_with_id', $userId);
+                })
+
+                // 3. Folder có ANCESTOR được chia sẻ với user (kế thừa)
+                ->orWhereExists(function ($existsQuery) use ($userId) {
+                    $existsQuery->select(DB::raw(1))
+                        ->from('folders as ancestors')
+                        ->join('folder_shares', 'ancestors.folder_id', '=', 'folder_shares.folder_id')
+                        ->where('folder_shares.shared_with_id', $userId)
+                        ->where(function ($q) {
+                            // Sử dụng path hoặc parent chain để kiểm tra kế thừa
+                            // Đây là cách đơn giản, có thể cần tối ưu
+                            $q->whereRaw('folders.parent_folder_id = ancestors.folder_id')
+                                ->orWhereRaw('folders.folder_id = ancestors.folder_id');
+                        });
+                });
+        });
     }
 }

@@ -817,54 +817,38 @@ uploadFileUrl() {
       
       return sanitizeOutput(item?.type_name) || 'Tài liệu';
     },
-    shouldShowEditButton(item) {
-        if (item.item_type === 'folder') {
-            // ✅ SỬA: Chỉ hiển thị nút chỉnh sửa khi có quyền sửa THÔNG TIN
-            if (item.is_shared_folder && !item.is_owner) {
-                return false; // ❌ KHÔNG được sửa thông tin folder được share
-            }
-            return item.user_permission === 'edit' || item.is_owner;
-        }
-        return item.is_owner;
-    },
+shouldShowEditButton(item) {
+    if (item.item_type === 'folder') {
+        // ✅ FIX BUG1: Được sửa folder con trong folder được share
+        return item.can_edit_content === true;
+    }
+    // Document: chỉ owner được sửa
+    return item.is_owner;
+},
 
     shouldShowDeleteButton(item) {
     if (!item) return false;
     
-    // Document: chỉ owner được xóa
     if (item.item_type === 'document') {
         return item.is_owner;
     }
     
-    // Folder: logic mới
+    // Folder: 
     if (item.item_type === 'folder') {
-        // Sử dụng permission từ backend (item.can_delete)
-        if (typeof item.can_delete !== 'undefined') {
-            return item.can_delete;
-        }
-        
-        // Fallback logic cũ
-        if (item.is_shared_folder && !item.is_owner) {
-            // Folder được chia sẻ trực tiếp - KHÔNG được xóa
-            return false;
-        }
-        
-        // Folder con trong folder được share - ĐƯỢC xóa nếu có quyền edit
-        if (item.user_permission === 'edit') {
-            return true;
-        }
-        
-        return item.is_owner;
+        // ✅ FIX BUG1: Được xóa folder con trong folder được share
+        return item.can_delete === true;
     }
     
     return false;
 },
 
 
-   shouldShowShareButton(item) {
-        // ✅ CHỈ chủ sở hữu được chia sẻ
-        return item.is_owner && item.item_type === 'folder';
-    },
+ shouldShowShareButton(item) {
+    if (item.item_type === 'folder' && item.is_owner) {
+        return true; 
+    }
+    return false;
+},
 
     getUserPermissionText(item) {
         if (item.is_owner) {
