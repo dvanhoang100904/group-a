@@ -105,8 +105,9 @@ class DocumentAccessController extends Controller
             ], 500);
         }
     }
+
     /**
-     * Hien thi danh sach truy cap quyen co phan trang
+     * Hien thi danh sach quyen truy cap tai lieu co phan trang
      */
     public function index(int $documentId): JsonResponse
     {
@@ -116,14 +117,6 @@ class DocumentAccessController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Tài liệu không tồn tại. Vui lòng thử lại.'
-            ]);
-        }
-
-        $currentUserId = auth()->id();
-        if ($document->uploaded_by !== $currentUserId && !auth()->user()->is_admin) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn không có quyền truy cập tài liệu này. Vui lòng thử lại.'
             ]);
         }
 
@@ -224,7 +217,9 @@ class DocumentAccessController extends Controller
             'can_share',
         ]);
 
-        $access = $this->addService->addAccess($data, $documentId, auth()->id() ?? 1);
+        $userId = auth()->id() ?? 1;
+
+        $access = $this->addService->addAccess($data, $documentId, $userId);
 
         if (!$access) {
             return response()->json([

@@ -14,6 +14,9 @@ return new class extends Migration
             $table->unsignedInteger('owner_id');
             $table->unsignedInteger('shared_with_id');
             $table->enum('permission', ['view', 'edit'])->default('view');
+            // ✅ SỬA: Bỏ 'after()' vì MariaDB không hỗ trợ
+            $table->boolean('inherit_to_subfolders')->default(true);
+            $table->boolean('inherit_to_documents')->default(true);
             $table->timestamps();
 
             // Khóa ngoại

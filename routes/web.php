@@ -63,15 +63,16 @@ Route::get(
 	[DocumentController::class, 'downloadVersion']
 )->name('documents.version.download');
 
-// Document Versions
-Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login');;
-
-// Document Accesses
-Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login');;
-Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login');;
 
 // Document Shared
 Route::get('/shared', [DocumentSharedController::class, 'index'])->name('shared.index')->middleware('require.login');;
+
+// Document Versions
+Route::get('/documents/{id}/versions', [DocumentVersionController::class, 'index'])->name('documents.versions.index')->middleware('require.login', 'check.role:Admin');;
+
+// Document Accesses
+Route::get('/documents/{documentId}/accesses', [DocumentAccessController::class, 'index'])->name('documents.accesses.index')->middleware('require.login', 'check.role:Admin');;
+Route::put('/documents/{documentId}/accesses/settings', [DocumentAccessController::class, 'updateSettings'])->name('documents.accesses.updateSettings')->middleware('require.login', 'check.role:Admin');;
 
 /** 
  * Admin 
@@ -157,3 +158,5 @@ Route::middleware('require.login', 'check.role:Admin')->group(function () {
 		Route::put('/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 	});
 });
+Route::get('/monhoc/export/excel', [MonHocController::class, 'exportExcel'])->name('monhoc.export.excel');
+Route::get('/monhoc/export/pdf', [MonHocController::class, 'exportPDF'])->name('monhoc.export.pdf');

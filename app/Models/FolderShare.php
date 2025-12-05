@@ -14,9 +14,15 @@ class FolderShare extends Model
         'folder_id',
         'owner_id',
         'shared_with_id',
-        'permission'
+        'permission',
+        'inherit_to_subfolders',
+        'inherit_to_documents'
     ];
 
+    protected $attributes = [
+        'inherit_to_subfolders' => true,
+        'inherit_to_documents' => true
+    ];
     public $timestamps = true; // ✅ THÊM DÒNG NÀY
 
     /**

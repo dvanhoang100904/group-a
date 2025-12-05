@@ -1,6 +1,5 @@
 <?php
 
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DocumentController;
@@ -70,8 +69,8 @@ Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
 Route::get('/types', [TypeControllers::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
 Route::get('/folders', [FolderController::class, 'getFolder']);
-
 Route::get('documents/{id}/detail', [DocumentDetailController::class, 'show']);
+Route::get('/folders/tree', [FolderController::class, 'indexViewTree']);
 
 // =========================
 // 📁 Folder API Routes

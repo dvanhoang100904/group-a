@@ -90,7 +90,7 @@
 document.querySelectorAll('.view-btn').forEach(btn => {
     btn.addEventListener('click', async function() {
         const id = this.dataset.id;
-        const res = await fetch(`/dashboard/reports/${id}`);
+        const res = await fetch(`/reports/${id}`);
         const data = await res.json();
 
         document.getElementById('docTitle').textContent = data.document?.title ?? 'Không xác định';
@@ -102,7 +102,7 @@ document.querySelectorAll('.view-btn').forEach(btn => {
                 : '<span class="badge bg-secondary">Chưa xử lý</span>';
         document.getElementById('created').textContent = new Date(data.created_at).toLocaleString();
 
-        document.getElementById('resolveForm').action = `/dashboard/reports/${id}/resolve`;
+        document.getElementById('resolveForm').action = `/reports/${id}/resolve`;
         new bootstrap.Modal(document.getElementById('reportModal')).show();
     });
 });
