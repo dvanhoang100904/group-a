@@ -311,6 +311,8 @@ class FolderService
                 }
 
                 $parentFolder = null;
+                $isSharedParent = false;
+                $sharedOwnerId = null;
 
                 if ($parentFolderId !== null && $parentFolderId !== '') {
                     $parentFolderId = $this->validateFolderId($parentFolderId);
@@ -328,16 +330,34 @@ class FolderService
                     if (!$parentFolder->canUserEditContent($userId)) {
                         throw new \Exception('Bạn không có quyền tạo thư mục trong thư mục này');
                     }
+
+                    // 🔥 QUAN TRỌNG: Xác định xem parent folder có được SHARE không
+                    // Nếu parent folder được share, folder con cần được chủ sở hữu parent folder nhìn thấy
+                    if ($parentFolder->user_id !== $userId) {
+                        $isSharedParent = true;
+                        $sharedOwnerId = $parentFolder->user_id;
+                    }
                 }
 
-                // ✅ QUAN TRỌNG: Folder mới luôn thuộc về user tạo ra nó
+                // 🔥 QUAN TRỌNG: Xác định owner của folder mới
+                // Nếu tạo folder trong folder được share THÌ folder con phải thuộc về CHỦ SỞ HỮU của folder cha
+                if ($isSharedParent && $sharedOwnerId) {
+                    $folderOwnerId = $sharedOwnerId; // Folder con thuộc về chủ sở hữu folder cha
+                } else {
+                    $folderOwnerId = $userId; // Folder con thuộc về người tạo
+                }
+
                 $folderData = [
                     'name' => $validatedData['name'],
                     'parent_folder_id' => $parentFolderId,
-                    'user_id' => $userId, // ✅ User tạo là owner của folder con
+                    'user_id' => $folderOwnerId, // 🔥 SỬA: Dùng folderOwnerId thay vì userId
                 ];
 
-                Log::info('Final folder data for creation:', $folderData);
+                Log::info('Final folder data for creation:', array_merge($folderData, [
+                    'is_shared_parent' => $isSharedParent,
+                    'shared_owner_id' => $sharedOwnerId,
+                    'current_user_id' => $userId
+                ]));
 
                 $folder = new Folder();
                 $folder->name = $folderData['name'];
@@ -349,7 +369,8 @@ class FolderService
                     'folder_id' => $folder->folder_id,
                     'name' => $folder->name,
                     'parent_folder_id' => $folder->parent_folder_id,
-                    'user_id' => $folder->user_id
+                    'user_id' => $folder->user_id,
+                    'created_by_user_id' => $userId
                 ]);
 
                 return $folder;
@@ -363,16 +384,14 @@ class FolderService
     }
 
     /**
-     * PHƯƠNG THỨC AN TOÀN: Lấy descendant IDs sử dụng Eloquent (không dùng raw SQL)
+     * Lấy descendant IDs sử dụng Eloquent
      */
     private function getDescendantIdsSecure(string $folderId, int $userId): array
     {
         try {
-            // Sử dụng phương thức mới từ model Folder
-            $folder = new Folder();
-            $descendantIds = $folder->getAllDescendantIds($folderId);
-
-            return $descendantIds;
+            // Sửa tên phương thức từ getAllDescendantIds thành getAllDescendantIdsStatic
+            $result = [];
+            return Folder::getAllDescendantIdsStatic($folderId, $result);
         } catch (\Exception $e) {
             Log::error('Error in getDescendantIdsSecure: ' . $e->getMessage());
             return [];
@@ -380,7 +399,7 @@ class FolderService
     }
 
     /**
-     * PHƯƠNG THỨC AN TOÀN: Xây dựng hierarchical folders
+     * Xây dựng hierarchical folders
      */
     private function buildHierarchicalFoldersSecure($folders, $parentId = null, $level = 0, $maxLevel = 5): array
     {
