@@ -128,25 +128,51 @@ class DocumentController extends Controller
     {
         $version = DocumentVersion::find($versionId);
 
+        // Không tìm thấy version → chuyển sang trang not found đẹp
         if (!$version) {
-            abort(404, 'Phiên bản tài liệu không tồn tại.');
+            return $this->renderFileNotFound('Phiên bản tài liệu không tồn tại.');
         }
 
-        // Kiểm tra file_path có hợp lệ không
-        if (!$version->file_path || trim($version->file_path) === '') {
-            abort(500, 'File path rỗng hoặc không hợp lệ trong database.');
+        // file_path rỗng → lỗi dữ liệu
+        if (empty(trim($version->file_path))) {
+            return $this->renderFileNotFound('Tài liệu này không có file đính kèm.');
         }
 
-        // Đường dẫn trong disk public
         $filePath = $version->file_path;
 
-        if (!Storage::disk('public')->exists($filePath)) {
-            abort(404, 'Không tìm thấy file trên hệ thống.');
+        // FILE CÓ TỒN TẠI → CHO TẢI NGAY
+        if (Storage::disk('public')->exists($filePath)) {
+            $downloadName = $version->original_name
+                ?? $version->file_name
+                ?? basename($filePath);
+
+            return Storage::disk('public')->download(
+                $filePath,
+                $downloadName,
+                ['Content-Type' => $version->mime_type ?? 'application/octet-stream']
+            );
         }
 
-        // Tên file trả về cho người dùng
-        $downloadName = basename($filePath);
+        // FILE KHÔNG TỒN TẠI → HIỆN TRANG ĐẸP
+        return $this->renderFileNotFound('File đã bị xóa khỏi hệ thống hoặc không còn tồn tại.');
+    }
 
-        return Storage::disk('public')->download($filePath, $downloadName);
+    /**
+     * Render trang thông báo file không tồn tại (đẹp, thân thiện)
+     */
+    private function renderFileNotFound(string $message = 'File không tồn tại.')
+    {
+        // Kiểm tra view có tồn tại không, nếu không thì fallback về view mặc định
+        if (View::exists('documents.See_Document_Details.notfound')) {
+            return response()
+                ->view('documents.See_Document_Details.notfound', [
+                    'message' => $message,
+                ], 404)
+                ->header('Cache-Control', 'no-store, no-cache');
+        }
+
+        // Fallback nếu view chưa tạo
+        return response()
+            ->view('errors.file-not-found', ['message' => $message], 404);
     }
 }

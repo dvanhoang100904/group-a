@@ -153,5 +153,6 @@ Route::middleware('require.login', 'check.role:Admin')->group(function () {
 // Xuất excel/pdf
 Route::get('/monhoc/export/excel', [MonHocController::class, 'exportExcel'])->name('monhoc.export.excel');
 Route::get('/monhoc/export/pdf', [MonHocController::class, 'exportPDF'])->name('monhoc.export.pdf');
+
 Route::get('/khoa/export/excel', [KhoaController::class, 'exportExcel'])->name('khoa.export.excel');
 Route::get('/khoa/export/pdf', [KhoaController::class, 'exportPDF'])->name('khoa.export.pdf');

@@ -4,56 +4,70 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
-use App\Models\DocumentPreview;
+use App\Models\DocumentVersion;
+use App\Services\DocumentVersion\DocumentVersionPreviewService;
 use Illuminate\Support\Facades\Storage;
 
 class DocumentDetailController extends Controller
 {
+    public function __construct(
+        protected DocumentVersionPreviewService $previewService
+    ) {}
+
     public function show($id)
     {
-        $document = Document::with(['user', 'type', 'subject', 'versions', 'tags'])->findOrFail($id);
+        $document = Document::with(['user', 'type', 'subject', 'tags'])->findOrFail($id);
 
-        $currentVersion = $document->versions()
+        $currentVersion = DocumentVersion::where('document_id', $document->document_id)
             ->where('is_current_version', true)
             ->firstOrFail();
 
-        // File gốc
-        $currentVersion->file_url = Storage::disk('public')->url($currentVersion->file_path);
+        $currentVersion->file_url = asset('storage/' . $currentVersion->file_path);
 
-        // TÌM PREVIEW PDF
-        $preview = DocumentPreview::where('document_id', $document->document_id)
-            ->where('version_id', $currentVersion->version_id)
-            ->first();
+        // =================== SIÊU FIX CHỈ 15 DÒNG NÀY LÀ XONG HẾT ===================
+        $previewUrl   = null;
+        $previewReady = false;
 
-        $preview_url = null;
+        // 1. Ưu tiên dùng service (nếu nó sinh được preview thì quá ngon)
+        $fromService = $this->previewService->getOrGeneratePreview($currentVersion->version_id, $document->document_id);
 
-        if ($preview && Storage::disk('public')->exists($preview->preview_path)) {
-            $preview_url = Storage::disk('public')->url($preview->preview_path);
+        if ($fromService && !empty($fromService['preview_path'])) {
+            $previewUrl   = $fromService['preview_path']; // có thể là /storage/previews/9040.pdf
+            $previewReady = true;
         } else {
-            // Fallback: tự tạo URL theo quy ước của ông (preview_v1.pdf)
-            $fallbackPath = "documents/{$document->document_id}/preview_v{$currentVersion->version_number}.pdf";
-            if (Storage::disk('public')->exists($fallbackPath)) {
-                $preview_url = Storage::disk('public')->url($fallbackPath);
+            // 2. Nếu service chưa kịp sinh → TỰ ĐỘNG TÌM THEO 2 QUY ƯỚC ĐANG TỒN TẠI
+            $candidates = [
+                'previews/' . (1000 + $currentVersion->version_id) . '.pdf',  // chuẩn mới: 10029.pdf, 19040.pdf
+                'previews/' . $currentVersion->version_id . '.pdf',           // chuẩn cũ của service: 9040.pdf
+            ];
+
+            foreach ($candidates as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    $previewUrl   = Storage::url($path);
+                    $previewReady = true;
+                    break;
+                }
             }
         }
+        // ============================================================================
 
-        // QUAN TRỌNG NHẤT: GÁN VÀO currentVersion ĐỂ VUE ĐỌC ĐƯỢC!!!
-        $currentVersion->preview_url = $preview_url;
-        $currentVersion->preview_ready = !is_null($preview_url);
+        // Gắn vào để Vue đọc như cũ
+        $currentVersion->preview_url   = $previewUrl;
+        $currentVersion->preview_ready = $previewReady;
 
         // Tài liệu liên quan
         $related = Document::where('subject_id', $document->subject_id)
             ->where('document_id', '!=', $id)
             ->inRandomOrder()
             ->take(3)
-            ->get();
+            ->get(['document_id', 'title', 'created_at']);
 
         return response()->json([
-            'document'          => $document,
-            'current_version'   => $currentVersion, // ← Vue đọc preview_url ở đây
-            'preview_ready'     => $currentVersion->preview_ready,
-            'preview_url'       => $preview_url,
-            'related_documents' => $related
+            'document'        => $document,
+            'current_version' => $currentVersion,
+            'preview_ready'   => $previewReady,
+            'preview_url'     => $previewUrl,
+            'related_documents' => $related,
         ]);
     }
 }
