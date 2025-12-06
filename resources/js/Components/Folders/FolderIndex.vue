@@ -131,6 +131,7 @@
   @share-folder="shareFolder"
   @edit-folder="editFolder"
   @view-document="viewDocument"
+   @download-folder="downloadFolder"
   @download-document="downloadDocument"
   @edit-document="editDocument"
   @delete-item="showDeleteConfirmation"
@@ -146,6 +147,7 @@
   @edit-folder="editFolder"
   @share-folder="shareFolder"
   @view-document="viewDocument"
+    @download-folder="downloadFolder"
   @download-document="downloadDocument"
   @edit-document="editDocument"
   @delete-item="showDeleteConfirmation"
@@ -238,11 +240,32 @@ const selectedFolder = ref(null);
 
 // Thêm method downloadFolder:
 const downloadFolder = (item) => {
-  if (!item || item.item_type !== 'folder') return;
+  console.log('downloadFolder called', item);
+  
+  if (!item || item.item_type !== 'folder') {
+    console.warn('Invalid item for download', item);
+    showError('Chỉ có thể tải folder');
+    return;
+  }
   
   // Kiểm tra quyền download
-  if (!item.can_download) {
+  const hasPermission = item.is_owner || 
+                        item.user_permission === 'view' || 
+                        item.user_permission === 'edit' ||
+                        item.can_edit_content ||
+                        item.can_edit_info;
+  
+  if (!hasPermission) {
     showError('Bạn không có quyền download folder này');
+    return;
+  }
+  
+  // Kiểm tra folder có nội dung không
+  const hasContent = (item.documents_count && item.documents_count > 0) || 
+                     (item.child_folders_count && item.child_folders_count > 0);
+  
+  if (!hasContent) {
+    showError('Folder trống, không có gì để tải');
     return;
   }
   
