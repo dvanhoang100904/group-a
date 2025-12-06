@@ -4,11 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Folders\FolderDownloadService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 
 class FolderDownloadController extends Controller
 {
@@ -25,11 +22,6 @@ class FolderDownloadController extends Controller
     public function getInfo($folderId): JsonResponse
     {
         try {
-            Log::info("Get folder download info", [
-                'folder_id' => $folderId,
-                'user_id' => Auth::id()
-            ]);
-
             $info = $this->downloadService->getFolderInfo($folderId);
 
             return response()->json([
@@ -37,12 +29,6 @@ class FolderDownloadController extends Controller
                 'data' => $info
             ]);
         } catch (\Exception $e) {
-            Log::error('Get folder download info error: ' . $e->getMessage(), [
-                'folder_id' => $folderId,
-                'user_id' => Auth::id(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy thông tin folder: ' . $e->getMessage()
@@ -57,32 +43,15 @@ class FolderDownloadController extends Controller
     public function download($folderId)
     {
         try {
-            Log::info("Download folder request", [
-                'folder_id' => $folderId,
-                'user_id' => Auth::id()
-            ]);
-
             // Tạo ZIP và trả về response download
             // deleteFileAfterSend(true) sẽ tự động xóa file sau khi gửi xong
             return $this->downloadService->streamDownload($folderId);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::error('Folder not found', [
-                'folder_id' => $folderId,
-                'user_id' => Auth::id()
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Folder không tồn tại hoặc bạn không có quyền truy cập'
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Download folder error: ' . $e->getMessage(), [
-                'folder_id' => $folderId,
-                'user_id' => Auth::id(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            // ✅ Chỉ cleanup khi có lỗi
             $this->downloadService->cleanup();
 
             return response()->json([
@@ -90,7 +59,6 @@ class FolderDownloadController extends Controller
                 'message' => $e->getMessage()
             ], $e->getCode() ?: 500);
         }
-        // ✅ KHÔNG có finally block gọi cleanup()
     }
 
     /**
@@ -99,11 +67,6 @@ class FolderDownloadController extends Controller
     public function prepareDownload($folderId): JsonResponse
     {
         try {
-            Log::info("Prepare folder download", [
-                'folder_id' => $folderId,
-                'user_id' => Auth::id()
-            ]);
-
             $info = $this->downloadService->getFolderInfo($folderId);
 
             if (!$info['can_download']) {
@@ -136,12 +99,6 @@ class FolderDownloadController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Prepare download error: ' . $e->getMessage(), [
-                'folder_id' => $folderId,
-                'user_id' => Auth::id(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi chuẩn bị download: ' . $e->getMessage()

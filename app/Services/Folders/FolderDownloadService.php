@@ -6,7 +6,6 @@ use App\Models\Folder;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use ZipArchive;
 
 class FolderDownloadService
@@ -42,12 +41,6 @@ class FolderDownloadService
             throw new \Exception('Bạn không có quyền truy cập folder này');
         }
 
-        Log::info("=== START CREATING ZIP ===", [
-            'folder_id' => $folderId,
-            'folder_name' => $folder->name,
-            'user_id' => $userId
-        ]);
-
         // Tạo file ZIP tạm
         $this->tempPath = storage_path('app/temp/folder_' . uniqid('', true) . '.zip');
 
@@ -70,8 +63,6 @@ class FolderDownloadService
         // Thêm tất cả nội dung vào ZIP
         $filesAdded = $this->addFolderContentToZip($folder, '');
 
-        Log::info("Total files added to ZIP", ['count' => $filesAdded]);
-
         // Nếu không có file nào, thêm README
         if ($filesAdded === 0) {
             $this->zip->addFromString(
@@ -90,11 +81,6 @@ class FolderDownloadService
         }
 
         $fileSize = filesize($this->tempPath);
-        Log::info("=== ZIP CREATED SUCCESSFULLY ===", [
-            'path' => $this->tempPath,
-            'size' => $fileSize,
-            'files_added' => $filesAdded
-        ]);
 
         return $this->tempPath;
     }
@@ -141,14 +127,6 @@ class FolderDownloadService
         } else {
             $folderNameInZip = $folderNameInZip . '/';
         }
-
-        Log::info("Processing folder", [
-            'folder_id' => $folder->folder_id,
-            'folder_name' => $folder->name,
-            'zip_path' => $folderNameInZip
-        ]);
-
-        // 1. THÊM TẤT CẢ FILE TRONG FOLDER HIỆN TẠI
         $documents = Document::where('folder_id', $folder->folder_id)->get();
 
         foreach ($documents as $document) {
@@ -158,11 +136,9 @@ class FolderDownloadService
                 ->first();
 
             if ($latestVersion) {
-                // Thử các trường có thể chứa tên file
                 $fileName = $this->getFileNameFromVersion($latestVersion);
 
                 if ($fileName) {
-                    // Thử các đường dẫn có thể
                     $filePath = $this->findFilePath($fileName);
 
                     if ($filePath && file_exists($filePath) && is_readable($filePath)) {
@@ -191,10 +167,6 @@ class FolderDownloadService
                         // Thêm file vào ZIP
                         if ($this->zip->addFile($filePath, $zipFilePath)) {
                             $filesAdded++;
-                            Log::info("✓ Added file", [
-                                'document_id' => $document->document_id,
-                                'file' => $zipFilePath
-                            ]);
                         }
                     }
                 }
@@ -205,18 +177,8 @@ class FolderDownloadService
         $subfolders = Folder::where('parent_folder_id', $folder->folder_id)->get();
 
         foreach ($subfolders as $subfolder) {
-            Log::info("Recursing into subfolder", [
-                'subfolder_id' => $subfolder->folder_id,
-                'subfolder_name' => $subfolder->name
-            ]);
-
             $subFilesAdded = $this->addFolderContentToZip($subfolder, $folderNameInZip);
             $filesAdded += $subFilesAdded;
-
-            Log::info("Finished subfolder", [
-                'subfolder_name' => $subfolder->name,
-                'files_added' => $subFilesAdded
-            ]);
         }
 
         return $filesAdded;
@@ -406,7 +368,6 @@ class FolderDownloadService
     {
         if ($this->tempPath && file_exists($this->tempPath)) {
             unlink($this->tempPath);
-            Log::info("Cleaned up temp ZIP: {$this->tempPath}");
         }
     }
 
@@ -440,15 +401,6 @@ class FolderDownloadService
         if ($stats['total_size'] > $maxSize) {
             throw new \Exception('Folder quá lớn (' . round($stats['total_size'] / 1024 / 1024, 2) . ' MB). Giới hạn: ' . round($maxSize / 1024 / 1024, 2) . ' MB');
         }
-
-        Log::info("Starting folder download", [
-            'folder_id' => $folderId,
-            'folder_name' => $folder->name,
-            'total_size' => $stats['total_size'],
-            'file_count' => $stats['file_count'],
-            'folder_count' => $stats['folder_count']
-        ]);
-
         // Tạo ZIP
         $zipPath = $this->createZipForFolder($folderId);
         $zipName = $this->sanitizeFileName($folder->name) . '.zip';

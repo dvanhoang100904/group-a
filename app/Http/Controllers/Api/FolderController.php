@@ -11,7 +11,6 @@ use App\Models\Document;
 use App\Models\DocumentVersion;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -67,7 +66,6 @@ class FolderController extends Controller
         if ($value === null) {
             return null;
         }
-
         return htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
     }
 
@@ -79,7 +77,6 @@ class FolderController extends Controller
         if ($value === null) {
             return '';
         }
-
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
 
@@ -379,12 +376,6 @@ class FolderController extends Controller
     public function destroy(Request $request, $folder): JsonResponse
     {
         try {
-            Log::info('API Delete Folder Request:', [
-                'folder_id' => $folder,
-                'user_id' => auth()->id(),
-                'time' => now()
-            ]);
-
             // Validate folder ID
             if (!is_numeric($folder) || $folder <= 0) {
                 return response()->json([
@@ -395,18 +386,11 @@ class FolderController extends Controller
 
             $folderName = $this->folderService->deleteFolder($folder);
 
-            Log::info('API Delete Folder Success:', ['folder_name' => $folderName]);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Thư mục "' . $this->escapeOutput($folderName) . '" đã được xóa thành công!'
             ]);
         } catch (\Exception $e) {
-            Log::error('API Delete Folder Error:', [
-                'error' => $e->getMessage(),
-                'folder_id' => $folder
-            ]);
-
             $statusCode = $e->getMessage() === 'Thư mục không tồn tại' ? 404 : 500;
 
             return response()->json([
@@ -424,13 +408,8 @@ class FolderController extends Controller
         DB::beginTransaction();
 
         try {
-            Log::info('=== API DELETE DOCUMENT START ===');
-            Log::info('Document ID:', ['id' => $id]);
-            Log::info('User ID:', ['user_id' => Auth::id()]);
-
             // Kiểm tra user đăng nhập
             if (!Auth::check()) {
-                Log::warning('User not authenticated');
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized'
@@ -448,26 +427,13 @@ class FolderController extends Controller
             $document = Document::find($id);
 
             if (!$document) {
-                Log::warning('Document not found:', ['document_id' => $id]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Tài liệu không tồn tại'
                 ], 404);
             }
-
-            Log::info('Document found:', [
-                'id' => $document->document_id,
-                'title' => $document->title,
-                'user_id' => $document->user_id,
-                'owner' => $document->user_id
-            ]);
-
             // Kiểm tra quyền
             if ($document->user_id != Auth::id()) {
-                Log::warning('Permission denied:', [
-                    'current_user' => Auth::id(),
-                    'document_owner' => $document->user_id
-                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn không có quyền xóa tài liệu này'
@@ -476,40 +442,13 @@ class FolderController extends Controller
 
             // Xóa các versions
             $versions = DocumentVersion::where('document_id', $id)->get();
-            Log::info('Found versions:', ['count' => $versions->count()]);
 
             foreach ($versions as $version) {
-                Log::info('Processing version:', [
-                    'version_id' => $version->id,
-                    'file_name' => $version->file_name
-                ]);
-
-                if ($version->file_name) {
-                    $filePath = base_path('app/Public_UploadFile/' . $version->file_name);
-                    Log::info('File path:', ['path' => $filePath]);
-
-                    if (file_exists($filePath)) {
-                        if (unlink($filePath)) {
-                            Log::info('File deleted successfully:', ['file' => $version->file_name]);
-                        } else {
-                            Log::warning('Failed to delete file:', ['file' => $version->file_name]);
-                        }
-                    } else {
-                        Log::warning('File not found:', ['file' => $version->file_name]);
-                    }
-                }
-
                 $version->delete();
-                Log::info('Version deleted:', ['version_id' => $version->id]);
             }
 
             $documentName = $document->title;
             $document->delete();
-
-            Log::info('Document deleted successfully:', [
-                'document_id' => $id,
-                'document_name' => $documentName
-            ]);
 
             DB::commit();
 
@@ -519,10 +458,6 @@ class FolderController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error('=== API DELETE DOCUMENT ERROR ===');
-            Log::error('Error message: ' . $e->getMessage());
-            Log::error('Error trace: ' . $e->getTraceAsString());
 
             return response()->json([
                 'success' => false,
@@ -649,7 +584,6 @@ class FolderController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Share folder error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi chia sẻ folder: ' . $e->getMessage()
@@ -688,7 +622,6 @@ class FolderController extends Controller
                 'message' => 'Đã hủy chia sẻ folder với ' . $deletedCount . ' người dùng'
             ]);
         } catch (\Exception $e) {
-            Log::error('Unshare folder error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi hủy chia sẻ folder'
@@ -732,7 +665,6 @@ class FolderController extends Controller
                 'data' => $sharedUsers
             ]);
         } catch (\Exception $e) {
-            Log::error('Get shared users error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi tải danh sách chia sẻ'
@@ -937,7 +869,6 @@ class FolderController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error('Check create permission error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi kiểm tra quyền'
