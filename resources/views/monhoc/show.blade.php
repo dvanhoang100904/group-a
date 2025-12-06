@@ -19,7 +19,7 @@
                 <tr><th>Tên môn học</th><td>{{ $monhoc->name }}</td></tr>
                 <tr><th>Tín chỉ</th><td>{{ $monhoc->credits }}</td></tr>
                 <tr><th>Khoa / Bộ môn</th><td>{{ $monhoc->department->name ?? 'Không xác định' }}</td></tr>
-                <tr><th>Số lượng tài liệu</th><td>{{ $monhoc->documents_count ?? 0 }}</td></tr>
+                <tr><th>Số lượng tài liệu</th><td>{{ $monhoc->documents ? $monhoc->documents->count() : 0 }}</td></tr>
                 <tr><th>Mô tả</th><td>{{ $monhoc->description ?? '—' }}</td></tr>
 
                 <tr>
@@ -57,19 +57,18 @@
         </div>
     </div>
 
-    @if ($monhoc->documents_count > 0)
+      {{-- Danh sách tài liệu liên quan (nếu có) --}}
+    @if ($monhoc->documents && $monhoc->documents->count() > 0)
         <div class="card mt-4 shadow-sm">
             <div class="card-header bg-light fw-bold">
-                <i class="bi bi-file-earmark-text"></i>
-                Tài liệu liên quan ({{ $monhoc->documents_count }})
+                <i class="bi bi-file-earmark-text"></i> Danh sách tài liệu liên quan ({{ $monhoc->documents->count() }})
             </div>
             <div class="card-body">
                 <ul class="list-group list-group-flush">
                     @foreach ($monhoc->documents as $doc)
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             {{ $doc->title }}
-                            <a href="{{ route('documents.show', $doc->document_id) }}"
-                                class="btn btn-sm btn-outline-primary">
+                            <a href="{{ route('documents.show', $doc->document_id) }}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye"></i> Xem
                             </a>
                         </li>
