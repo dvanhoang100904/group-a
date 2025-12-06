@@ -1,5 +1,5 @@
 <template>
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+    <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div class="p-6">
                 <!-- Header -->
@@ -48,9 +48,9 @@
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                     </div>
                     <p class="text-center text-sm text-gray-600">
-                        Đang chuẩn bị file ZIP...
+                        {{ loadingMessage }}
                     </p>
-                    <div class="mt-4">
+                    <div v-if="progress > 0" class="mt-4">
                         <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div class="h-full bg-blue-500 rounded-full transition-all duration-300" 
                                  :style="{ width: progress + '%' }"></div>
@@ -76,13 +76,13 @@
                     <button @click="$emit('close')" 
                             :disabled="loading"
                             class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50">
-                        Hủy
+                        Đóng
                     </button>
                     <button @click="startDownload" 
-                            :disabled="loading || error"
+                            :disabled="loading || error || !folderInfo?.can_download"
                             class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-50 flex items-center">
                         <i class="fas fa-download mr-2"></i>
-                        {{ loading ? 'Đang chuẩn bị...' : 'Tải về' }}
+                        {{ getButtonText }}
                     </button>
                 </div>
             </div>
@@ -105,28 +105,37 @@ export default {
             default: false
         }
     },
+    emits: ['close'],
     data() {
         return {
             loading: false,
+            loadingMessage: 'Đang tải thông tin...',
             error: '',
             folderInfo: null,
             progress: 0,
             maxSizeWarning: 50 * 1024 * 1024, // 50MB
-            downloadUrl: null,
-            pollingInterval: null
         };
     },
     computed: {
         folderName() {
             return this.sanitizeOutput(this.folder?.name || '');
+        },
+        getButtonText() {
+            if (this.loading) return 'Đang xử lý...';
+            if (!this.folderInfo) return 'Tải về';
+            if (!this.folderInfo.can_download) return 'Không thể tải';
+            return 'Tải về';
         }
     },
     watch: {
-        show(newVal) {
-            if (newVal) {
-                this.loadFolderInfo();
-            } else {
-                this.reset();
+        show: {
+            immediate: true,
+            handler(newVal) {
+                if (newVal) {
+                    this.loadFolderInfo();
+                } else {
+                    this.reset();
+                }
             }
         }
     },
@@ -147,11 +156,21 @@ export default {
         },
         
         async loadFolderInfo() {
+            if (!this.folder || !this.folder.id) {
+                this.error = 'Thông tin folder không hợp lệ';
+                return;
+            }
+
             try {
                 this.loading = true;
+                this.loadingMessage = 'Đang tải thông tin folder...';
                 this.error = '';
                 
+                console.log('Loading folder info for:', this.folder.id);
+                
                 const response = await axios.get(`/api/folders/${this.folder.id}/download-info`);
+                
+                console.log('Folder info response:', response.data);
                 
                 if (response.data.success) {
                     this.folderInfo = response.data.data;
@@ -165,103 +184,89 @@ export default {
                 }
             } catch (error) {
                 console.error('Load folder info error:', error);
-                this.error = 'Lỗi khi tải thông tin folder';
+                console.error('Error response:', error.response?.data);
+                
+                this.error = error.response?.data?.message || 'Lỗi khi tải thông tin folder';
             } finally {
                 this.loading = false;
             }
         },
         
         async startDownload() {
-    try {
-        this.loading = true;
-        this.error = '';
-        this.progress = 10;
-        
-        // Gọi API download trực tiếp (không cần prepare)
-        const response = await axios.get(`/api/folders/${this.folder.id}/download`, {
-            responseType: 'blob'
-        });
-        
-        // Tạo download link
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${this.folderName}.zip`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        
-        // Cleanup
-        window.URL.revokeObjectURL(url);
-        
-        // Đóng modal sau khi download
-        this.progress = 100;
-        setTimeout(() => {
-            this.$emit('close');
-        }, 1000);
-        
-    } catch (error) {
-        console.error('Download error:', error);
-        this.error = 'Lỗi khi tải folder';
-        this.loading = false;
-    }
-},
-        
-        startPolling() {
-            this.progress = 30;
-            this.pollingInterval = setInterval(async () => {
-                try {
-                    // Gọi API kiểm tra trạng thái
-                    const response = await axios.get(`/api/folders/${this.folder.id}/download-status`);
-                    
-                    if (response.data.success) {
-                        if (response.data.data.status === 'ready') {
-                            clearInterval(this.pollingInterval);
-                            this.downloadUrl = response.data.data.download_url;
-                            this.progress = 100;
-                            this.downloadFile();
-                        } else if (response.data.data.status === 'processing') {
-                            this.progress = Math.min(this.progress + 10, 90);
-                        } else if (response.data.data.status === 'failed') {
-                            clearInterval(this.pollingInterval);
-                            this.error = 'Không thể tạo file ZIP';
-                            this.loading = false;
+            if (!this.folderInfo?.can_download) {
+                this.error = 'Không thể tải folder này';
+                return;
+            }
+
+            try {
+                this.loading = true;
+                this.loadingMessage = 'Đang tạo file ZIP...';
+                this.error = '';
+                this.progress = 20;
+                
+                console.log('Starting download for folder:', this.folder.id);
+                
+                // Gọi API download
+                const response = await axios.get(`/api/folders/${this.folder.id}/download`, {
+                    responseType: 'blob',
+                    onDownloadProgress: (progressEvent) => {
+                        if (progressEvent.total) {
+                            this.progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                            this.loadingMessage = `Đang tải... ${this.progress}%`;
                         }
                     }
-                } catch (error) {
-                    console.error('Polling error:', error);
-                }
-            }, 2000);
-        },
-        
-        downloadFile() {
-            if (this.downloadUrl) {
-                const a = document.createElement('a');
-                a.href = this.downloadUrl;
-                a.download = this.folderName + '.zip';
-                a.rel = 'noopener noreferrer';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                });
+                
+                console.log('Download response received');
+                
+                // Tạo download link
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `${this.folderName}.zip`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                
+                // Cleanup
+                window.URL.revokeObjectURL(url);
                 
                 // Đóng modal sau khi download
+                this.progress = 100;
+                this.loadingMessage = 'Hoàn tất!';
+                
                 setTimeout(() => {
                     this.$emit('close');
                 }, 1000);
+                
+            } catch (error) {
+                console.error('Download error:', error);
+                console.error('Error response:', error.response?.data);
+                
+                // Nếu response là blob, convert sang text để đọc error message
+                if (error.response?.data instanceof Blob) {
+                    const text = await error.response.data.text();
+                    try {
+                        const errorData = JSON.parse(text);
+                        this.error = errorData.message || 'Lỗi khi tải folder';
+                    } catch {
+                        this.error = 'Lỗi khi tải folder';
+                    }
+                } else {
+                    this.error = error.response?.data?.message || 'Lỗi khi tải folder';
+                }
+                
+                this.loading = false;
+                this.progress = 0;
             }
         },
         
         reset() {
             this.loading = false;
+            this.loadingMessage = 'Đang tải thông tin...';
             this.error = '';
             this.folderInfo = null;
             this.progress = 0;
-            this.downloadUrl = null;
-            
-            if (this.pollingInterval) {
-                clearInterval(this.pollingInterval);
-                this.pollingInterval = null;
-            }
         }
     },
     beforeUnmount() {
@@ -269,3 +274,18 @@ export default {
     }
 }
 </script>
+
+<style scoped>
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style>
