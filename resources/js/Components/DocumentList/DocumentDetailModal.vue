@@ -24,12 +24,13 @@
 
             <!-- Actions -->
             <div class="action-buttons">
-              <a v-if="currentVersion?.download_url" :href="currentVersion.download_url"
-                class="btn btn-primary btn-block mb-2" target="_blank">
-                <i class="bi bi-download me-1"></i> Tải xuống
-              </a>
 
-              <!--Document Accesses -->
+              <!-- Download -->
+              <a v-if="currentVersion?.download_url" :href="currentVersion.download_url"
+                class="btn btn-primary w-100 d-flex align-items-center justify-content-center mb-2" target="_blank">
+                <i class="bi bi-download me-2"></i> Tải xuống tài liệu
+              </a>
+              <!-- Document Accesses -->
               <a :href="`/documents/${document.document_id}/accesses`" class="btn btn-primary btn-block mb-2">
                 <i class="bi bi-shield-lock me-1"></i> Cài đặt chia sẻ
               </a>
@@ -43,6 +44,11 @@
                 <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
               </button>
 
+              <button class="btn btn-danger w-100 d-flex align-items-center justify-content-center mb-2"
+                @click="reportViolation">
+                <i class="bi bi-flag-fill me-2"></i> Báo cáo vi phạm
+              </button>
+              
               <a href="/documents" class="btn btn-outline-secondary btn-block">
                 <i class="bi bi-arrow-left me-1"></i> Quay lại
               </a>
