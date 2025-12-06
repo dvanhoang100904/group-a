@@ -279,12 +279,39 @@ export default {
     this.getLocationInfo();
     document.addEventListener('keydown', this.handleKeydown);
   },
-  
+  async mounted() {
+    this.getLocationInfo();
+    document.addEventListener('keydown', this.handleKeydown);
+    
+    // Kiểm tra quyền khi mở form
+    await this.checkPermissionOnOpen();
+},
   beforeUnmount() {
     document.removeEventListener('keydown', this.handleKeydown);
   },
   
   methods: {
+    async checkPermissionBeforeCreate() {
+    try {
+        const parentId = this.form.parent_folder_id;
+        if (!parentId) return true; // Tạo ở root luôn được
+        
+        const response = await axios.get(`/api/folders/${parentId}/permission-check`);
+        
+        if (response.data.success) {
+            if (response.data.data.can_create_subfolder) {
+                return true;
+            } else {
+                this.showError(response.data.message || 'Bạn không có quyền tạo thư mục trong folder này');              
+                return false;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('Permission check error:', error);
+        return true; // Nếu lỗi vẫn cho tạo, nhưng API sẽ validate lại
+    }
+},
     async getLocationInfo() {
     try {
         if (!this.parentFolderId || this.parentFolderId === 'null') {
@@ -563,6 +590,10 @@ export default {
     },
 
     async submitForm() {
+       const hasPermission = await this.checkPermissionBeforeCreate();
+    if (!hasPermission) {
+        return;
+    }
       if (!this.isFormValid) {
         this.showError('Vui lòng nhập tên thư mục.');
         return;

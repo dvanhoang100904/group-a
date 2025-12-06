@@ -16,9 +16,8 @@
                 {{-- Mã môn học --}}
                 <div class="mb-3">
                     <label class="form-label fw-bold">Mã môn học</label>
-                    <input type="text" name="code" class="form-control"
-                           value="{{ old('code') }}" placeholder="Nhập mã môn học"
-                           required>
+                    <input type="text" class="form-control bg-light"
+                    value="" readonly>
                 </div>
 
                 {{-- Tên môn học --}}

@@ -3,36 +3,54 @@
     <!-- Header với nút Mới -->
     <div class="flex items-center justify-between mb-6">
       <!-- Nút Mới -->
-      <div class="flex-shrink-0 relative">
-        <button @click="toggleNewDropdown"
-                :disabled="!shouldShowNewFolderButton"
-                :title="!shouldShowNewFolderButton ? 'Bạn không có quyền tạo thư mục/file trong folder này' : ''"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-            <i class="fas fa-plus mr-2"></i>Mới
-            <i class="fas fa-chevron-down ml-2 text-xs"></i>
+     <div class="flex-shrink-0 relative">
+    <button @click="handleNewButtonClick"
+            :disabled="!shouldShowNewFolderButton"
+            :title="!shouldShowNewFolderButton ? 'Bạn không có quyền tạo thư mục/file trong folder này' : ''"
+            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="fas fa-plus mr-2"></i>Mới
+        <i class="fas fa-chevron-down ml-2 text-xs"></i>
+    </button>
+    
+    <!-- Dropdown menu -->
+    <div v-if="showNewDropdown && shouldShowNewFolderButton" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
+        <button @click="openCreateFolder" 
+                class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
+            <i class="fas fa-folder-plus text-blue-500 mr-3"></i>Tạo thư mục
         </button>
-        
-        <!-- Dropdown menu -->
-        <div v-if="showNewDropdown && shouldShowNewFolderButton" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
-            <button @click="openCreateFolder" 
-                    class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
-                <i class="fas fa-folder-plus text-blue-500 mr-3"></i>Tạo thư mục
-            </button>
-            <a :href="uploadFileUrl" 
-               class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
-                <i class="fas fa-file-upload text-green-500 mr-3"></i>Tải file lên
-            </a>
-        </div>
-        
-        <!-- Thông báo khi không có quyền -->
-        <div v-if="showNewDropdown && !shouldShowNewFolderButton" 
-             class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
-            <div class="px-4 py-2 text-sm text-gray-500 italic">
-                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                Bạn chỉ có quyền xem folder này
-            </div>
-        </div>
+        <a :href="uploadFileUrl" 
+           class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
+            <i class="fas fa-file-upload text-green-500 mr-3"></i>Tải file lên
+        </a>
+    </div>
+    
+    <!-- Thông báo khi không có quyền -->
+    <div v-if="showNewDropdown && !shouldShowNewFolderButton" 
+      class="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-1 z-30">
+      <div class="px-4 py-3 text-sm">
+          <div class="flex items-start mb-3">
+              <i class="fas fa-lock text-red-500 mr-2 mt-0.5"></i>
+              <div>
+                  <div class="font-medium text-gray-900">Không có quyền tạo</div>
+                  <div class="text-gray-600 mt-1 text-xs">
+                      {{ permissionMessage }}
+                  </div>
+              </div>
+          </div>
+          <div class="flex space-x-2">
+              <button @click="goToRootFromPermission"
+                      class="flex-1 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-md transition-colors flex items-center justify-center">
+                  <i class="fas fa-home mr-1"></i>
+                  Về gốc
+              </button>
+              <button @click="showNewDropdown = false"
+                      class="flex-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-md transition-colors">
+                  Đóng
+              </button>
+          </div>
       </div>
+    </div>
+</div>
 
       <!-- Controls -->
       <div class="flex items-center gap-3">
@@ -113,6 +131,7 @@
   @share-folder="shareFolder"
   @edit-folder="editFolder"
   @view-document="viewDocument"
+   @download-folder="downloadFolder"
   @download-document="downloadDocument"
   @edit-document="editDocument"
   @delete-item="showDeleteConfirmation"
@@ -128,6 +147,7 @@
   @edit-folder="editFolder"
   @share-folder="shareFolder"
   @view-document="viewDocument"
+    @download-folder="downloadFolder"
   @download-document="downloadDocument"
   @edit-document="editDocument"
   @delete-item="showDeleteConfirmation"
@@ -177,6 +197,14 @@
   @change-per-page="changePerPage"
 />
   </div>
+
+   <!-- Folder Download Modal -->
+    <FolderDownloadModal 
+        v-if="showDownloadModal"
+        :folder="selectedFolder"
+        :show="showDownloadModal"
+        @close="closeDownloadModal"
+    />
 </template>
 
 <script setup>
@@ -194,6 +222,7 @@ import { sanitizeOutput, sanitizeUrl, validateFolderId, validateDocumentId } fro
 import { formatTime } from './utils/dateUtils';
 
 // Components
+import FolderDownloadModal from './components/FolderDownloadModal.vue';
 import FolderBreadcrumbs from './components/FolderBreadcrumbs.vue';
 import SearchModeNotification from './components/SearchModeNotification.vue';
 import SearchBar from './components/SearchBar.vue';
@@ -206,6 +235,51 @@ import ShareModal from './components/ShareModal.vue';
 import Pagination from './components/Pagination.vue';
 
 // Refs
+const showDownloadModal = ref(false);
+const selectedFolder = ref(null);
+
+// Thêm method downloadFolder:
+const downloadFolder = (item) => {
+  console.log('downloadFolder called', item);
+  
+  if (!item || item.item_type !== 'folder') {
+    console.warn('Invalid item for download', item);
+    showError('Chỉ có thể tải folder');
+    return;
+  }
+  
+  // Kiểm tra quyền download
+  const hasPermission = item.is_owner || 
+                        item.user_permission === 'view' || 
+                        item.user_permission === 'edit' ||
+                        item.can_edit_content ||
+                        item.can_edit_info;
+  
+  if (!hasPermission) {
+    showError('Bạn không có quyền download folder này');
+    return;
+  }
+  
+  // Kiểm tra folder có nội dung không
+  const hasContent = (item.documents_count && item.documents_count > 0) || 
+                     (item.child_folders_count && item.child_folders_count > 0);
+  
+  if (!hasContent) {
+    showError('Folder trống, không có gì để tải');
+    return;
+  }
+  
+  selectedFolder.value = item;
+  showDownloadModal.value = true;
+  activeMenu.value = null;
+  hideContextMenu();
+};
+
+const closeDownloadModal = () => {
+  showDownloadModal.value = false;
+  selectedFolder.value = null;
+};
+
 const items = ref({ 
   data: [], 
   current_page: 1, 
@@ -236,7 +310,6 @@ const successMessage = ref('');
 const showErrorModal = ref(false);
 const errorMessage = ref('');
 const showShareModal = ref(false);
-const selectedFolder = ref(null);
 
 // Composables
 const { loading, error, loadData, loadDocumentTypes: apiLoadDocumentTypes } = useFolderAPI();
@@ -268,7 +341,6 @@ const {
 } = useShareManagement();
 
 // Computed
-
 const actionDropdownStyle = computed(() => {
   if (!activeMenu.value) return {};
   
@@ -328,6 +400,51 @@ const contextMenuStyle = computed(() => {
     top: y + 'px'
   };
 });
+
+const handleNewButtonClick = () => {
+    if (!shouldShowNewFolderButton.value) {
+        // Hiển thị dropdown với thông báo lỗi
+        showNewDropdown.value = true;
+        // Cũng có thể hiển thị toast/thông báo
+        showPermissionError();
+    } else {
+        showNewDropdown.value = !showNewDropdown.value;
+    }
+};
+// Thêm computed để hiển thị thông báo chi tiết
+const permissionMessage = computed(() => {
+    if (!currentFolder.value) return '';
+    
+    const permission = currentFolder.value.user_permission;
+    const isShared = currentFolder.value.is_shared_folder;
+    const isDescendant = currentFolder.value.is_descendant_of_shared;
+    const folderName = currentFolder.value.name || 'folder này';
+    
+    if (isShared) {
+        if (permission === 'view') {
+            return `"${folderName}" được chia sẻ với bạn với quyền "Chỉ xem". Bạn chỉ có thể xem và tải file.`;
+        } else if (permission === 'edit') {
+            return `"${folderName}" được chia sẻ với bạn với quyền "Chỉnh sửa". Bạn có thể tạo thư mục/file mới.`;
+        }
+    } else if (isDescendant) {
+        return `"${folderName}" nằm trong folder được chia sẻ. Quyền của bạn phụ thuộc vào folder cha.`;
+    } else if (currentFolder.value.is_owner === false) {
+        return `Bạn không có quyền truy cập "${folderName}".`;
+    }
+    
+    return 'Bạn không có quyền tạo thư mục/file mới tại đây.';
+});
+
+const showPermissionError = () => {
+    if (!currentFolder.value) return;
+    
+    const message = permissionMessage.value;
+    if (message) {
+        // Có thể sử dụng toast notification hoặc alert
+        showError(message);
+    }
+};
+
 const shouldShowNewFolderButton = computed(() => {
   return checkShouldShowNewFolderButton(currentFolder.value);
 });
@@ -356,6 +473,11 @@ const pages = computed(() => {
 });
 
 // Methods
+const goToRootFromPermission = () => {
+    showNewDropdown.value = false;
+    goToRoot();
+};
+
 const hideContextMenu = () => {
   contextMenu.value = { visible: false, x: 0, y: 0, item: null };
 };

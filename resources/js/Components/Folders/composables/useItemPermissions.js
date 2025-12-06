@@ -87,6 +87,47 @@ export function useItemPermissions() {
         return `/upload?folder_id=${safeFolderId}`;
     };
 
+    // Trong useItemPermissions.js, thêm method kiểm tra quyền download
+    const shouldShowDownloadButton = (item) => {
+        if (!item) return false;
+
+        if (item.item_type === 'document') {
+            // Document: có thể download nếu có quyền view
+            return item.is_owner || item.can_download ||
+                (item.folder_id && item.folder_can_view);
+        }
+
+        if (item.item_type === 'folder') {
+            // Folder: có thể download nếu có quyền view và folder có ít nhất 1 file
+            return (item.is_owner || item.user_permission === 'view' || item.user_permission === 'edit') &&
+                (item.documents_count > 0 || item.child_folders_count > 0);
+        }
+
+        return false;
+    };
+
+    // Thêm method lấy thông tin quyền download
+    const getDownloadPermission = (item) => {
+        if (!item) return { can_download: false, reason: '' };
+
+        if (item.item_type === 'folder') {
+            const canView = item.is_owner || item.user_permission === 'view' || item.user_permission === 'edit';
+            const hasContent = item.documents_count > 0 || item.child_folders_count > 0;
+
+            if (!canView) {
+                return { can_download: false, reason: 'Bạn không có quyền xem folder này' };
+            }
+
+            if (!hasContent) {
+                return { can_download: false, reason: 'Folder trống, không có gì để tải' };
+            }
+
+            return { can_download: true, reason: '' };
+        }
+
+        return { can_download: true, reason: '' };
+    };
+
     return {
         shouldShowEditButton,
         shouldShowDeleteButton,
@@ -94,6 +135,8 @@ export function useItemPermissions() {
         shouldShowNewFolderButton,
         getUserPermissionText,
         getPermissionDetails,
-        getUploadFileUrl
+        getUploadFileUrl,
+        shouldShowDownloadButton,
+        getDownloadPermission,
     };
 }

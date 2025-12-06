@@ -44,7 +44,7 @@ const props = defineProps({
 defineEmits(['continue', 'close']);
 
 const title = computed(() => {
-  return props.type === 'success' ? 'Thành công' : 'Lỗi';
+  return props.type === 'success' ? 'Thành công' : 'Xin thông báo';
 });
 
 const iconClass = computed(() => {

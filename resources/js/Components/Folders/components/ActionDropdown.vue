@@ -23,7 +23,15 @@
               class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
         <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa thông tin
       </button>
+<!-- Nút tải fodler -->
+    <button v-if="shouldShowDownloadButton(activeMenu)" 
+            @click="$emit('download-folder', activeMenu)"
+            class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
+      <i class="fas fa-download text-green-500 mr-3"></i>
+      Tải folder (ZIP)
+    </button>
     </template>
+    
     
     <!-- NÚT CHO DOCUMENT -->
     <template v-else-if="activeMenu.item_type === 'document'">
@@ -86,7 +94,8 @@ export default {
     'download-document',
     'edit-document',
     'delete-item',
-    'close'
+    'close',
+    'download-folder',
   ],
   setup(props, { emit }) {
     const { 
@@ -94,7 +103,9 @@ export default {
       shouldShowDeleteButton, 
       shouldShowShareButton,
       getUserPermissionText,
-      getPermissionDetails
+      getPermissionDetails,
+      shouldShowDownloadButton,
+      getDownloadPermission,
     } = useItemPermissions();
 
     const shareFolder = (item) => {
@@ -132,7 +143,9 @@ export default {
       viewDocument,
       downloadDocument,
       editDocument,
-      showDeleteConfirmation
+      showDeleteConfirmation,
+      shouldShowDownloadButton,
+      getDownloadPermission,
     };
   }
 }

@@ -103,6 +103,7 @@ Route::middleware('require.login', 'check.role:Admin')->group(function () {
 		Route::delete('/{id}', [KhoaController::class, 'destroy'])->name('khoa.destroy');
 	});
 
+
 	// Môn học
 	Route::prefix('monhoc')->group(function () {
 		Route::get('/', [MonHocController::class, 'index'])->name('monhoc.index');
@@ -112,21 +113,12 @@ Route::middleware('require.login', 'check.role:Admin')->group(function () {
 		Route::get('/{id}/edit', [MonHocController::class, 'edit'])->name('monhoc.edit');
 		Route::put('/{id}', [MonHocController::class, 'update'])->name('monhoc.update');
 		Route::delete('/{id}', [MonHocController::class, 'destroy'])->name('monhoc.destroy');
+		Route::get('monhoc/{id}/documents', [MonHocController::class, 'documents'])
+     ->name('monhoc.documents');
+
 	});
 
 	// Type documents
-	// Route::prefix('types')->name('types.')->group(function () {
-	// 	Route::get('/', [TypeController::class, 'index'])->name('index');
-	// 	Route::get('/create', [TypeController::class, 'create'])->name('create');
-	// 	Route::post('/', [TypeController::class, 'store'])->name('store');
-	// 	Route::get('/{type}', [TypeController::class, 'show'])->name('show');
-	// 	Route::get('/{type}/edit', [TypeController::class, 'edit'])->name('edit');
-	// 	Route::put('/{type}', [TypeController::class, 'update'])->name('update');
-	// 	Route::delete('/{type}', [TypeController::class, 'destroy'])->name('destroy');
-
-	// 	// Xuất Excel
-	// 	Route::get('/export-excel', [TypeController::class, 'exportExcel'])->name('exportExcel');
-	// });
 
 	Route::prefix('types')->name('types.')->group(function () {
 		Route::get('/export-excel', [TypesController::class, 'exportExcel'])->name('exportExcel');
@@ -158,6 +150,9 @@ Route::middleware('require.login', 'check.role:Admin')->group(function () {
 		Route::put('/{id}/resolve', [ReportController::class, 'resolve'])->name('reports.resolve');
 	});
 });
+// Xuất excel/pdf
 Route::get('/monhoc/export/excel', [MonHocController::class, 'exportExcel'])->name('monhoc.export.excel');
 Route::get('/monhoc/export/pdf', [MonHocController::class, 'exportPDF'])->name('monhoc.export.pdf');
 
+Route::get('/khoa/export/excel', [KhoaController::class, 'exportExcel'])->name('khoa.export.excel');
+Route::get('/khoa/export/pdf', [KhoaController::class, 'exportPDF'])->name('khoa.export.pdf');
