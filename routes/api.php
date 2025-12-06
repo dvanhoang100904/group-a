@@ -92,6 +92,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/folders/{folderId}/unshare', [FolderController::class, 'unshareFolder']);
     Route::get('/folders/{folderId}/shared-users', [FolderController::class, 'getSharedUsers']);
     Route::get('/users/search', [FolderController::class, 'searchUsers']);
+    Route::get('/folders/{folderId}/permission-check', [FolderController::class, 'checkCreatePermission']);
 });
 Route::get('/api/documents', [DocumentController::class, 'getDocuments']);
 Route::get('/api/documents/{id}/detail', [DocumentController::class, 'getDocumentDetail']);
