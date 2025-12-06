@@ -11,54 +11,48 @@ class DocumentDetailController extends Controller
 {
     public function show($id)
     {
-        // ✔ Lấy document + quan hệ
-        $document = Document::with([
-            'user',
-            'type',
-            'subject',
-            'versions',
-            'tags'
-        ])->findOrFail($id);
+        $document = Document::with(['user', 'type', 'subject', 'versions', 'tags'])->findOrFail($id);
 
-        // ✔ Lấy version hiện tại
         $currentVersion = $document->versions()
             ->where('is_current_version', true)
-            ->first();
+            ->firstOrFail();
 
-        if (!$currentVersion) {
-            return response()->json([
-                'error' => 'Không tìm thấy phiên bản hiện tại.'
-            ], 404);
-        }
+        // File gốc
+        $currentVersion->file_url = Storage::disk('public')->url($currentVersion->file_path);
 
-        // ✔ File gốc (download)
-        $currentVersion->file_url = asset('storage/' . $currentVersion->file_path);
-
-        // ✔ Tìm preview PDF của version này
+        // TÌM PREVIEW PDF
         $preview = DocumentPreview::where('document_id', $document->document_id)
             ->where('version_id', $currentVersion->version_id)
             ->first();
 
-        // ✔ preview_path có tồn tại?
+        $preview_url = null;
+
         if ($preview && Storage::disk('public')->exists($preview->preview_path)) {
-            $preview_url = asset('storage/' . $preview->preview_path);
-            $preview_ready = true;
+            $preview_url = Storage::disk('public')->url($preview->preview_path);
         } else {
-            $preview_url = null;
-            $preview_ready = false;
+            // Fallback: tự tạo URL theo quy ước của ông (preview_v1.pdf)
+            $fallbackPath = "documents/{$document->document_id}/preview_v{$currentVersion->version_number}.pdf";
+            if (Storage::disk('public')->exists($fallbackPath)) {
+                $preview_url = Storage::disk('public')->url($fallbackPath);
+            }
         }
 
-        // ✔ Lấy 3 tài liệu liên quan cùng subject
+        // QUAN TRỌNG NHẤT: GÁN VÀO currentVersion ĐỂ VUE ĐỌC ĐƯỢC!!!
+        $currentVersion->preview_url = $preview_url;
+        $currentVersion->preview_ready = !is_null($preview_url);
+
+        // Tài liệu liên quan
         $related = Document::where('subject_id', $document->subject_id)
             ->where('document_id', '!=', $id)
+            ->inRandomOrder()
             ->take(3)
             ->get();
 
         return response()->json([
-            'document' => $document,
-            'current_version' => $currentVersion,
-            'preview_ready' => $preview_ready,
-            'preview_url' => $preview_url,
+            'document'          => $document,
+            'current_version'   => $currentVersion, // ← Vue đọc preview_url ở đây
+            'preview_ready'     => $currentVersion->preview_ready,
+            'preview_url'       => $preview_url,
             'related_documents' => $related
         ]);
     }

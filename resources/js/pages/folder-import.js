@@ -1,9 +1,7 @@
 import { createApp } from 'vue';
 
 // Import Folder components
-import FolderIndex from '../Components/Folders/FolderIndex.vue';
-import FolderCreate from '../Components/Folders/FolderCreate.vue';
-import FolderEdit from '../Components/Folders/FolderEdit.vue';
+import { FolderIndex, FolderCreate, FolderEdit } from '../Components/Folders/index.js';
 
 const app = createApp({});
 
