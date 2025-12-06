@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\TypeControllers;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\FolderController;
 use App\Http\Controllers\Api\DocumentSharedController;
-
+use App\Http\Controllers\Api\DocumentUpdateController;
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -97,3 +97,5 @@ Route::get('/api/documents', [DocumentController::class, 'getDocuments']);
 Route::get('/api/documents/{id}/detail', [DocumentController::class, 'getDocumentDetail']);
 Route::get('/api/types', [TypeControllers::class, 'index']);
 Route::get('/api/subjects', [SubjectController::class, 'index']);
+
+Route::put('/documents/{id}', [DocumentUpdateController::class, 'update']);

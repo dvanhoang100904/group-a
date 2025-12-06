@@ -39,16 +39,17 @@
               <a :href="`/documents/${document.document_id}/versions`" class="btn btn-outline-primary btn-block mb-2">
                 <i class="bi bi-clock-history me-1"></i> Phiên bản
               </a>
-
-              <button v-if="canEdit" class="btn btn-outline-primary btn-block mb-2">
+              <!-- Edit Document -->
+              <button v-if="canEdit" class="btn btn-outline-primary btn-block mb-2" @click="showEdit = true">
                 <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
               </button>
+
 
               <button class="btn btn-danger w-100 d-flex align-items-center justify-content-center mb-2"
                 @click="reportViolation">
                 <i class="bi bi-flag-fill me-2"></i> Báo cáo vi phạm
               </button>
-              
+
               <a href="/documents" class="btn btn-outline-secondary btn-block">
                 <i class="bi bi-arrow-left me-1"></i> Quay lại
               </a>
@@ -113,21 +114,36 @@
       </div>
     </div>
   </div>
+  <EditDocuments 
+  v-if="showEdit"
+  :document-id="document.document_id"
+  :document="document"
+  @close="showEdit = false"
+  @saved="applyEdit"
+/>
+
 </template>
 
 <script>
 import axios from 'axios';
+import EditDocuments from './EditDocuments.vue';
 
 export default {
   name: 'DocumentDetailPage',
+  components: { EditDocuments },
+
   data() {
     return {
       document: null,
       currentVersion: null,
       relatedDocuments: [],
       canEdit: true,
+
+      // ⭐ Quan trọng: showEdit phải đặt ở đây
+      showEdit: false,
     };
   },
+
   computed: {
     infoItems() {
       if (!this.document) return [];
@@ -142,6 +158,7 @@ export default {
       ];
     },
   },
+
   methods: {
     async fetchData() {
       try {
@@ -152,13 +169,6 @@ export default {
         this.currentVersion = res.data.current_version;
         this.relatedDocuments = res.data.related_documents || [];
 
-        // Debug: Log ra console để kiểm tra
-        console.log('Document ID:', id);
-        console.log('Current Version:', this.currentVersion);
-        console.log('Preview URL:', this.currentVersion?.preview_url);
-        console.log('File URL:', this.currentVersion?.file_url);
-
-        // Nếu backend chưa trả preview_url, tự tạo
         if (this.currentVersion && !this.currentVersion.preview_url) {
           this.buildPreviewUrl();
         }
@@ -168,22 +178,18 @@ export default {
       }
     },
 
-    // Tự động tạo preview_url nếu backend chưa có
     buildPreviewUrl() {
       const docId = this.document.document_id;
       const versionNum = this.currentVersion.version_number;
       const previewUrl = `http://localhost:8080/storage/documents/${docId}/preview_${versionNum}.pdf`;
 
-      // Kiểm tra file có tồn tại không
       this.checkFileExists(previewUrl).then(exists => {
         if (exists) {
           this.currentVersion.preview_url = previewUrl;
-          console.log('Preview URL created:', previewUrl);
         }
       });
     },
 
-    // Kiểm tra file preview có tồn tại
     async checkFileExists(url) {
       try {
         const response = await fetch(url, { method: 'HEAD' });
@@ -193,23 +199,19 @@ export default {
       }
     },
 
-    // Lấy nguồn preview (ưu tiên preview_url)
     getPreviewSource() {
       if (!this.currentVersion) return null;
 
       const fileName = this.currentVersion.file_name;
 
-      // 1. Ưu tiên preview_url (PDF đã convert)
       if (this.currentVersion.preview_url) {
         return this.currentVersion.preview_url;
       }
 
-      // 2. Nếu là PDF gốc, dùng file_url
       if (this.isPdf(fileName)) {
         return this.currentVersion.file_url;
       }
 
-      // 3. Nếu là Office file, dùng Google Docs Viewer
       if (this.isOffice(fileName) && this.currentVersion.file_url) {
         return `https://docs.google.com/gview?url=${encodeURIComponent(this.currentVersion.file_url)}&embedded=true`;
       }
@@ -230,14 +232,13 @@ export default {
     },
 
     handleImageError(e) {
-      console.error('Image load error:', e);
-      e.target.src = '/images/no-preview.png'; // Placeholder image
+      e.target.src = '/images/no-preview.png';
     },
 
     formatSize(bytes) {
       if (!bytes) return '';
       if (bytes < 1024) return bytes + ' B';
-      else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
       return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     },
 
@@ -252,7 +253,15 @@ export default {
     truncate(text, len) {
       return text?.length > len ? text.slice(0, len) + '...' : text;
     },
+
+    
+    applyEdit(updatedData) {
+      this.document.title = updatedData.title;
+      this.document.description = updatedData.description;
+      this.showEdit = false;
+    },
   },
+
   mounted() {
     this.fetchData();
   },
