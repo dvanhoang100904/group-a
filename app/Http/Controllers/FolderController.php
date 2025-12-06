@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\FolderService;
+use App\Services\Folders\FolderService;
 use App\Http\Requests\Folder\StoreFolderRequest;
 use App\Http\Requests\Folder\UpdateFolderRequest;
 use Illuminate\Http\Request;

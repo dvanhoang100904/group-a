@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Folders;
 
 use App\Models\Folder;
 use Illuminate\Support\Facades\Auth;

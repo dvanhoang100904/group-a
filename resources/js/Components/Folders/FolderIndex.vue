@@ -195,6 +195,14 @@
   @change-per-page="changePerPage"
 />
   </div>
+
+   <!-- Folder Download Modal -->
+    <FolderDownloadModal 
+        v-if="showDownloadModal"
+        :folder="selectedFolder"
+        :show="showDownloadModal"
+        @close="closeDownloadModal"
+    />
 </template>
 
 <script setup>
@@ -212,6 +220,7 @@ import { sanitizeOutput, sanitizeUrl, validateFolderId, validateDocumentId } fro
 import { formatTime } from './utils/dateUtils';
 
 // Components
+import FolderDownloadModal from './components/FolderDownloadModal.vue';
 import FolderBreadcrumbs from './components/FolderBreadcrumbs.vue';
 import SearchModeNotification from './components/SearchModeNotification.vue';
 import SearchBar from './components/SearchBar.vue';
@@ -224,6 +233,30 @@ import ShareModal from './components/ShareModal.vue';
 import Pagination from './components/Pagination.vue';
 
 // Refs
+const showDownloadModal = ref(false);
+const selectedFolder = ref(null);
+
+// Thêm method downloadFolder:
+const downloadFolder = (item) => {
+  if (!item || item.item_type !== 'folder') return;
+  
+  // Kiểm tra quyền download
+  if (!item.can_download) {
+    showError('Bạn không có quyền download folder này');
+    return;
+  }
+  
+  selectedFolder.value = item;
+  showDownloadModal.value = true;
+  activeMenu.value = null;
+  hideContextMenu();
+};
+
+const closeDownloadModal = () => {
+  showDownloadModal.value = false;
+  selectedFolder.value = null;
+};
+
 const items = ref({ 
   data: [], 
   current_page: 1, 
@@ -254,7 +287,6 @@ const successMessage = ref('');
 const showErrorModal = ref(false);
 const errorMessage = ref('');
 const showShareModal = ref(false);
-const selectedFolder = ref(null);
 
 // Composables
 const { loading, error, loadData, loadDocumentTypes: apiLoadDocumentTypes } = useFolderAPI();
