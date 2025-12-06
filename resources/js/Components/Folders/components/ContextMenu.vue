@@ -31,6 +31,12 @@
                 class="context-menu-item">
           <i class="fas fa-share-alt text-green-500 mr-3" style="width: 16px;"></i>Chia sẻ
         </button>
+<!-- Tải folder -->
+             <button @click="$emit('download-folder', contextMenu.item)" 
+            class="context-menu-item">
+      <i class="fas fa-download text-green-500 mr-3" style="width: 16px;"></i>
+      Tải folder (ZIP)
+    </button>
       </template>
       
       <!-- CHO DOCUMENT -->
@@ -88,7 +94,8 @@ export default {
     'download-document',
     'edit-document',
     'delete-item',
-    'close'
+    'close',
+      'download-folder',
   ],
   setup(props, { emit }) {
     const { 
