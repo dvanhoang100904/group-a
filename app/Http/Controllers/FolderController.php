@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class FolderController extends Controller
@@ -146,9 +145,6 @@ class FolderController extends Controller
                 'errors' => $e->errors()
             ]);
         } catch (\Exception $e) {
-            // ✅ BẢO MẬT: Log lỗi và escape error message
-            Log::error('FolderController index error: ' . $e->getMessage());
-
             $result = $this->folderService->getFoldersAndDocuments([]);
             $escapedResult = $this->escapeOutputData($result);
 
@@ -196,9 +192,6 @@ class FolderController extends Controller
                 'searchParams' => $this->escapeSearchParams($validatedData)
             ]);
         } catch (\Exception $e) {
-            // ✅ BẢO MẬT: Log và escape error
-            Log::error('FolderController show error: ' . $e->getMessage());
-
             return view('folders.index', [
                 'items' => collect(),
                 'currentFolder' => null,
@@ -237,9 +230,6 @@ class FolderController extends Controller
                 'breadcrumbs' => $locationInfo['breadcrumbs']
             ]);
         } catch (\Exception $e) {
-            // ✅ BẢO MẬT: Log và escape error
-            Log::error('FolderController create error: ' . $e->getMessage());
-
             return view('folders.create', [
                 'parentFolderId' => $request->get('parent_id'),
                 'parentFolderName' => 'Thư mục gốc',
@@ -252,17 +242,9 @@ class FolderController extends Controller
     public function store(StoreFolderRequest $request): RedirectResponse
     {
         try {
-            // ✅ BẢO MẬT: Log an toàn (không log sensitive data)
-            Log::info('Store method called');
-
             $validatedData = $request->validated();
 
             $folder = $this->folderService->createFolder($validatedData);
-
-            Log::info('Folder created successfully:', [
-                'id' => $folder->folder_id,
-                'parent_id' => $folder->parent_folder_id
-            ]);
 
             $redirectParams = [];
             if ($folder->parent_folder_id) {
@@ -273,9 +255,6 @@ class FolderController extends Controller
             return redirect()->route('folders.index', $redirectParams)
                 ->with('success', 'Thư mục "' . $this->escapeOutput($folder->name) . '" đã được tạo thành công!');
         } catch (\Exception $e) {
-            // ✅ BẢO MẬT: Log chi tiết nhưng không expose sensitive info
-            Log::error('Error in store method: ' . $e->getMessage());
-
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Lỗi khi tạo thư mục: ' . $this->escapeOutput($e->getMessage()));
@@ -309,9 +288,6 @@ class FolderController extends Controller
                 'breadcrumbs' => $folderData['breadcrumbs']
             ]);
         } catch (\Exception $e) {
-            // ✅ BẢO MẬT: Log và escape error
-            Log::error('FolderController edit error: ' . $e->getMessage());
-
             return view('folders.edit', [
                 'folder' => null,
                 'parentFolders' => [],
@@ -353,9 +329,6 @@ class FolderController extends Controller
 
             return redirect($redirectUrl)->with('success', $message);
         } catch (\Exception $e) {
-            // ✅ BẢO MẬT: Log và escape error
-            Log::error('FolderController update error: ' . $e->getMessage());
-
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
@@ -381,9 +354,6 @@ class FolderController extends Controller
             return redirect()->back()
                 ->with('success', 'Thư mục "' . $this->escapeOutput($folderName) . '" đã được xóa thành công!');
         } catch (\Exception $e) {
-            // ✅ BẢO MẬT: Log và escape error
-            Log::error('FolderController destroy error: ' . $e->getMessage());
-
             return redirect()->back()
                 ->with('error', $this->escapeOutput($e->getMessage()));
         }
@@ -429,9 +399,6 @@ class FolderController extends Controller
                 'errors' => $e->errors()
             ]);
         } catch (\Exception $e) {
-            // ✅ BẢO MẬT: Log và escape error
-            Log::error('FolderController search error: ' . $e->getMessage());
-
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
