@@ -311,13 +311,22 @@ class FolderService
 
                     // Kiểm tra quyền edit (phải có quyền edit mới được tạo folder con)
                     if (!$parentFolder->canUserEditContent($userId)) {
-                        throw new \Exception('Bạn không có quyền tạo thư mục trong thư mục này');
+                        throw new \Exception(
+                            'Bạn không có quyền tạo thư mục trong "' .
+                                htmlspecialchars($parentFolder->name, ENT_QUOTES, 'UTF-8') .
+                                '". ' .
+                                ($parentFolder->user_id !== $userId ?
+                                    'Folder này được chia sẻ với bạn với quyền "Chỉ xem".' :
+                                    'Bạn chỉ có quyền xem folder này.')
+                        );
                     }
+
                     if ($parentFolder->user_id !== $userId) {
                         $isSharedParent = true;
                         $sharedOwnerId = $parentFolder->user_id;
                     }
                 }
+
                 if ($isSharedParent && $sharedOwnerId) {
                     $folderOwnerId = $sharedOwnerId;
                 } else {
@@ -340,7 +349,7 @@ class FolderService
             } catch (ValidationException $e) {
                 throw $e;
             } catch (\Exception $e) {
-                throw new \Exception('Không thể tạo thư mục: ' . $e->getMessage());
+                throw new \Exception($e->getMessage());
             }
         });
     }

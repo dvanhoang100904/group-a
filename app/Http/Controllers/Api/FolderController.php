@@ -289,6 +289,31 @@ class FolderController extends Controller
     public function store(StoreFolderRequest $request): JsonResponse
     {
         try {
+            // Kiểm tra quyền tạo folder con trước
+            $userId = Auth::id();
+            $parentFolderId = $request->input('parent_folder_id');
+
+            if ($parentFolderId) {
+                $parentFolder = Folder::accessibleBy($userId)->find($parentFolderId);
+
+                if (!$parentFolder) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Thư mục cha không tồn tại hoặc không có quyền truy cập'
+                    ], 403);
+                }
+
+                // Kiểm tra quyền tạo folder con
+                if (!$parentFolder->canUserEditContent($userId)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền tạo thư mục trong "' .
+                            htmlspecialchars($parentFolder->name, ENT_QUOTES, 'UTF-8') .
+                            '". Folder này được chia sẻ với bạn với quyền "Chỉ xem".'
+                    ], 403);
+                }
+            }
+
             $folder = $this->folderService->createFolder($request->validated());
 
             return response()->json([
@@ -798,6 +823,124 @@ class FolderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * API kiểm tra quyền tạo thư mục trong folder
+     */
+    public function checkCreatePermission($folderId): JsonResponse
+    {
+        try {
+            $userId = Auth::id();
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            // Nếu folderId = null hoặc 0 là root folder
+            if (!$folderId || $folderId === '0' || $folderId === 'null') {
+                // Root folder: mọi người đều có thể tạo
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'can_create_subfolder' => true,
+                        'permission' => 'owner',
+                        'message' => 'Có thể tạo thư mục trong thư mục gốc'
+                    ]
+                ]);
+            }
+
+            // Validate folder ID
+            if (!is_numeric($folderId) || $folderId <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ID thư mục không hợp lệ'
+                ], 400);
+            }
+
+            $folder = Folder::accessibleBy($userId)->find($folderId);
+            if (!$folder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thư mục không tồn tại hoặc không có quyền truy cập'
+                ], 404);
+            }
+
+            // Kiểm tra quyền tạo subfolder
+            $canCreate = false;
+            $permissionType = '';
+            $message = '';
+
+            if ($folder->user_id == $userId) {
+                // Chủ sở hữu
+                $canCreate = true;
+                $permissionType = 'owner';
+                $message = 'Bạn là chủ sở hữu folder này';
+            } else {
+                // Kiểm tra chia sẻ trực tiếp
+                $directShare = $folder->shares()
+                    ->where('shared_with_id', $userId)
+                    ->first();
+
+                if ($directShare) {
+                    // Folder được chia sẻ trực tiếp
+                    if ($directShare->permission === 'edit') {
+                        $canCreate = true;
+                        $permissionType = 'shared_edit';
+                        $message = 'Folder được chia sẻ với bạn với quyền "Chỉnh sửa"';
+                    } else {
+                        $canCreate = false;
+                        $permissionType = 'shared_view';
+                        $message = 'Folder được chia sẻ với bạn với quyền "Chỉ xem". Không thể tạo thư mục/file mới.';
+                    }
+                } else {
+                    // Folder con của folder được share (kế thừa quyền edit từ cha)
+                    if ($folder->parent_folder_id) {
+                        $parentFolder = Folder::find($folder->parent_folder_id);
+                        if ($parentFolder) {
+                            $parentShare = $parentFolder->shares()
+                                ->where('shared_with_id', $userId)
+                                ->where('permission', 'edit')
+                                ->exists();
+
+                            if ($parentShare) {
+                                $canCreate = true;
+                                $permissionType = 'inherited_edit';
+                                $message = 'Folder nằm trong folder được chia sẻ với quyền "Chỉnh sửa"';
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!$canCreate && !$message) {
+                $message = 'Bạn không có quyền tạo thư mục trong folder này';
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'can_create_subfolder' => $canCreate,
+                    'permission' => $permissionType,
+                    'message' => htmlspecialchars($message, ENT_QUOTES, 'UTF-8'),
+                    'folder_info' => [
+                        'id' => $folder->folder_id,
+                        'name' => htmlspecialchars($folder->name, ENT_QUOTES, 'UTF-8'),
+                        'is_owner' => $folder->user_id == $userId,
+                        'is_shared' => $directShare ? true : false,
+                        'shared_permission' => $directShare ? $directShare->permission : null
+                    ]
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Check create permission error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi kiểm tra quyền'
             ], 500);
         }
     }
