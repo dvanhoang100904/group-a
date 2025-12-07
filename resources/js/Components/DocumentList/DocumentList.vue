@@ -112,10 +112,6 @@
                 Tên tài liệu
               </th>
               <th>
-                <i class="bi bi-hdd me-1"></i>
-                Dung lượng
-              </th>
-              <th>
                 <i class="bi bi-tag me-1"></i>
                 Loại
               </th>
@@ -154,11 +150,7 @@
                   <span class="fw-medium text-primary">{{ doc.title }}</span>
                 </div>
               </td>
-              <td>
-                <span class="badge bg-light text-dark">
-                  {{ formatSize(doc.size) }}
-                </span>
-              </td>
+
               <td>
                 <span class="badge bg-info">
                   {{ doc.type?.name || '—' }}
