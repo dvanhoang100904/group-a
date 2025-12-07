@@ -41,7 +41,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => env('APP_URL') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -77,4 +77,10 @@ return [
         public_path('storage') => storage_path('app/public'),
     ],
 
+    // gioi han cau hinh tai folder
+    'folder_download' => [
+        'max_size' => env('FOLDER_DOWNLOAD_MAX_SIZE', 500 * 1024 * 1024), // 500MB
+        'temp_path' => storage_path('app/temp'),
+        'chunk_size' => 1024 * 1024, // 1MB
+    ],
 ];

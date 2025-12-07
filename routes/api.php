@@ -9,8 +9,11 @@ use App\Http\Controllers\Api\DocumentDetailController;
 use App\Http\Controllers\Api\TypeControllers;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\FolderController;
+use App\Http\Controllers\Api\FolderDownloadController;
 use App\Http\Controllers\Api\DocumentSharedController;
+use App\Http\Controllers\Api\FolderShareController;
 
+use App\Http\Controllers\Api\DocumentUpdateController;
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -69,8 +72,8 @@ Route::get('/documents/{id}/detail', [DocumentDetailController::class, 'show']);
 Route::get('/types', [TypeControllers::class, 'index']);
 Route::get('/subjects', [SubjectController::class, 'index']);
 Route::get('/folders', [FolderController::class, 'getFolder']);
-
 Route::get('documents/{id}/detail', [DocumentDetailController::class, 'show']);
+Route::get('/folders/tree', [FolderController::class, 'indexViewTree']);
 
 // =========================
 // 📁 Folder API Routes
@@ -88,12 +91,20 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::delete('/documents/{id}', [DocumentAccessController::class, 'deleteDocument']);
 
     // Folder Share Routes
-    Route::post('/folders/{folderId}/share', [FolderController::class, 'shareFolder']);
-    Route::post('/folders/{folderId}/unshare', [FolderController::class, 'unshareFolder']);
-    Route::get('/folders/{folderId}/shared-users', [FolderController::class, 'getSharedUsers']);
-    Route::get('/users/search', [FolderController::class, 'searchUsers']);
+    Route::post('/folders/{folderId}/share', [FolderShareController::class, 'shareFolder']);
+    Route::post('/folders/{folderId}/unshare', [FolderShareController::class, 'unshareFolder']);
+    Route::get('/folders/{folderId}/shared-users', [FolderShareController::class, 'getSharedUsers']);
+    Route::get('/users/search', [FolderShareController::class, 'searchUsers']);
+    Route::get('/folders/{folderId}/permission-check', [FolderShareController::class, 'checkCreatePermission']);
+
+    // Folder Download Routes
+    Route::get('/folders/{folder}/download-info', [FolderDownloadController::class, 'getInfo']);
+    Route::get('/folders/{folder}/download-prepare', [FolderDownloadController::class, 'prepareDownload']);
+    Route::get('/folders/{folder}/download', [FolderDownloadController::class, 'download'])->name('api.folders.download.direct');
 });
 Route::get('/api/documents', [DocumentController::class, 'getDocuments']);
 Route::get('/api/documents/{id}/detail', [DocumentController::class, 'getDocumentDetail']);
 Route::get('/api/types', [TypeControllers::class, 'index']);
 Route::get('/api/subjects', [SubjectController::class, 'index']);
+
+Route::put('/documents/{id}', [DocumentUpdateController::class, 'update']);

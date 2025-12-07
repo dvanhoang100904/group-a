@@ -56,5 +56,31 @@
             </div>
         </div>
     </div>
+     
+   {{-- Danh sách môn học liên quan --}}
+    @if ($khoa->subjects && $khoa->subjects->count() > 0)
+        <div class="card mt-4 shadow-sm">
+            <div class="card-header bg-light fw-bold">
+                <i class="bi bi-journal-bookmark"></i>
+                Danh sách Môn học ({{ $khoa->subjects_count }})
+            </div>
+
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    @foreach ($khoa->subjects as $sub)
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ $sub->name }}
+
+                            <a href="{{ route('monhoc.show', $sub->subject_id) }}"
+                            class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Xem
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    @endif
+
 </div>
 @endsection

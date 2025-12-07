@@ -6,26 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('tags', function (Blueprint $table) {
-            $table->increments('tag_id');
-            $table->string('name', 150)->unique();
-            $table->string('description', 255)->nullable();
-            $table->boolean('status')->default(0);
-            $table->timestamps();
+    Schema::create('tags', function (Blueprint $table) {
+    $table->increments('tag_id');
 
-            $table->index('name');
-            $table->index('status');
-        });
+    $table->string('code', 20)->unique()->nullable();
+
+    $table->string('name', 150)->unique();
+    $table->string('description', 500)->nullable();
+    $table->string('image_path', 255)->nullable();
+    $table->boolean('status')->default(0);
+
+    $table->softDeletes();
+    $table->timestamps();
+
+    $table->index('name');
+    $table->index('status');
+    });
+
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('tags');
