@@ -13,36 +13,36 @@ use Illuminate\Support\Facades\Storage;
 class TagController extends Controller
 {
     protected $imageFolder = 'public/tags';
-    protected $defaultImage = 'images/default-tag.png'; // fallback nếu không có ảnh
+    protected $defaultImage = 'images/default-tag.png';
 
     // ===================== Helpers =====================
     protected function normalizeText(?string $value): ?string
     {
         if ($value === null) return null;
+
         $value = preg_replace('/\p{Z}+/u', ' ', $value);
         $value = trim($value);
 
-        // Convert full-width digits
         $map = [
             '０' => '0','１' => '1','２' => '2','３' => '3','４' => '4',
             '５' => '5','６' => '6','７' => '7','８' => '8','９' => '9'
         ];
-        $value = strtr($value, $map);
-        return $value;
+
+        return strtr($value, $map);
     }
 
     protected function storeImageIfPresent(Request $request, ?Tag $tag = null): ?string
     {
         if (!$request->hasFile('image')) {
-            return $tag?->image;
+            return $tag?->image_path;
         }
 
         $file = $request->file('image');
         $path = $file->store($this->imageFolder);
 
-        // Xóa ảnh cũ nếu có
-        if ($tag && $tag->image && Storage::exists($tag->image)) {
-            try { Storage::delete($tag->image); } catch (\Throwable $e) { Log::warning('Delete old tag image failed', ['err'=>$e->getMessage()]); }
+        // Xóa ảnh cũ
+        if ($tag && $tag->image_path && Storage::exists($tag->image_path)) {
+            try { Storage::delete($tag->image_path); } catch (\Throwable $e) {}
         }
 
         return $path;
@@ -54,13 +54,15 @@ class TagController extends Controller
         $query = Tag::query()->withCount('documents');
 
         if ($request->filled('name')) {
-            $query->where('name', 'like', '%' . $request->name . '%');
+            $query->where('name', 'like', "%{$request->name}%");
         }
 
         if ($request->filter === 'most_used') {
             $query->orderByDesc('documents_count');
         } else {
-            $sortField = in_array($request->sort, ['created_at', 'name', 'documents_count']) ? $request->sort : 'created_at';
+            $sortField = in_array($request->sort, ['created_at', 'name', 'documents_count']) 
+                        ? $request->sort 
+                        : 'created_at';
             $query->orderBy($sortField, 'desc');
         }
 
@@ -80,13 +82,15 @@ class TagController extends Controller
         $name = $this->normalizeText($request->input('name'));
         $description = $this->normalizeText($request->input('description'));
 
-        if ($name === '' || mb_strlen($name) === 0) {
+        if (!$name) {
             return back()->withInput()->withErrors(['name' => 'Tên thẻ không được để trống.']);
         }
 
         try {
             $tag = null;
+
             DB::transaction(function () use (&$tag, $name, $description, $request) {
+
                 $existing = Tag::where('name', $name)->lockForUpdate()->first();
                 if ($existing) throw new \RuntimeException('exists');
 
@@ -95,20 +99,25 @@ class TagController extends Controller
                 $tag = Tag::create([
                     'name' => $name,
                     'description' => strip_tags($description),
-                    'image' => $imagePath,
+                    'image_path' => $imagePath,
                 ]);
 
-                Log::info('Tag created', ['tag_id'=>$tag->id,'name'=>$tag->name,'user_id'=>auth()->id()]);
+                Log::info('Tag created', [
+                    'tag_id' => $tag->tag_id,
+                    'name'   => $tag->name,
+                    'user_id'=> auth()->id()
+                ]);
             });
 
             return redirect()->route('tags.index')->with('success','Thêm thẻ mới thành công!');
-        } catch (\RuntimeException $re) {
+        } 
+        catch (\RuntimeException $re) {
             if ($re->getMessage() === 'exists') {
-                return back()->withInput()->withErrors(['name'=>'Tên thẻ đã tồn tại.']);
+                return back()->withInput()->withErrors(['name' => 'Tên thẻ đã tồn tại.']);
             }
-            Log::error('Tag store runtime', ['err'=>$re->getMessage()]);
-            return back()->withInput()->withErrors(['msg'=>'Lỗi khi tạo thẻ.']);
-        } catch (\Throwable $e) {
+            return back()->withInput()->withErrors(['msg' => 'Lỗi khi tạo thẻ.']);
+        } 
+        catch (\Throwable $e) {
             Log::error('Tag store unexpected', ['err'=>$e->getMessage()]);
             return back()->withInput()->withErrors(['msg'=>'Đã xảy ra lỗi khi tạo thẻ.']);
         }
@@ -137,7 +146,7 @@ class TagController extends Controller
         $name = $this->normalizeText($request->input('name'));
         $description = $this->normalizeText($request->input('description'));
 
-        if ($name === '' || mb_strlen($name) === 0) {
+        if (!$name) {
             return back()->withInput()->withErrors(['name'=>'Tên thẻ không được để trống.']);
         }
 
@@ -145,13 +154,18 @@ class TagController extends Controller
             return back()->withInput()->withErrors(['name'=>'Tên thẻ quá dài.']);
         }
 
-        if ($description !== null && mb_strlen($description) > 1000) {
+        if ($description && mb_strlen($description) > 1000) {
             return back()->withInput()->withErrors(['description'=>'Mô tả quá dài.']);
         }
 
         try {
             DB::transaction(function () use ($tag, $name, $description, $request) {
-                $existing = Tag::where('name', $name)->where('id','!=',$tag->id)->lockForUpdate()->first();
+
+                $existing = Tag::where('name', $name)
+                    ->where('tag_id', '!=', $tag->tag_id)
+                    ->lockForUpdate()
+                    ->first();
+
                 if ($existing) throw new \RuntimeException('exists');
 
                 $data = [
@@ -159,22 +173,22 @@ class TagController extends Controller
                     'description' => strip_tags($description),
                 ];
 
-                // Upload ảnh nếu có
                 if ($request->hasFile('image')) {
-                    $data['image'] = $this->storeImageIfPresent($request, $tag);
+                    $data['image_path'] = $this->storeImageIfPresent($request, $tag);
                 }
 
                 $tag->update($data);
             });
 
             return redirect()->route('tags.index')->with('success','Cập nhật thẻ thành công!');
-        } catch (\RuntimeException $re) {
+        } 
+        catch (\RuntimeException $re) {
             if ($re->getMessage() === 'exists') {
                 return back()->withInput()->withErrors(['name'=>'Tên thẻ đã tồn tại.']);
             }
-            Log::error('Tag update runtime', ['err'=>$re->getMessage()]);
             return back()->withInput()->withErrors(['msg'=>'Cập nhật thất bại.']);
-        } catch (\Throwable $e) {
+        } 
+        catch (\Throwable $e) {
             Log::error('Tag update unexpected', ['err'=>$e->getMessage()]);
             return back()->withInput()->withErrors(['msg'=>'Đã xảy ra lỗi khi cập nhật thẻ.']);
         }
@@ -198,25 +212,32 @@ class TagController extends Controller
 
         try {
             DB::transaction(function () use ($tag) {
-                if ($tag->documents()->count() > 0) throw new \RuntimeException('has_docs');
 
-                if ($tag->image && Storage::exists($tag->image)) {
-                    try { Storage::delete($tag->image); } catch (\Throwable $e) { Log::warning('Delete tag image failed',['err'=>$e->getMessage()]); }
+                if ($tag->documents()->count() > 0) {
+                    throw new \RuntimeException('has_docs');
+                }
+
+                if ($tag->image_path && Storage::exists($tag->image_path)) {
+                    try { Storage::delete($tag->image_path); } catch (\Throwable $e) {}
                 }
 
                 $tag->delete();
-                Log::info('Tag deleted',['tag_id'=>$tag->id,'user'=>auth()->id()]);
+
+                Log::info('Tag deleted', [
+                    'tag_id'=>$tag->tag_id,
+                    'user'=>auth()->id()
+                ]);
             });
 
             return redirect()->route('tags.index')->with('success','Xóa thẻ thành công!');
-        } catch (\RuntimeException $re) {
+        } 
+        catch (\RuntimeException $re) {
             if ($re->getMessage() === 'has_docs') {
                 return redirect()->route('tags.index')->withErrors(['msg'=>'Không thể xóa: thẻ đang được dùng bởi tài liệu.']);
             }
-            Log::error('Tag delete runtime',['err'=>$re->getMessage()]);
             return redirect()->route('tags.index')->withErrors(['msg'=>'Xóa thất bại.']);
-        } catch (\Throwable $e) {
-            Log::error('Tag delete unexpected',['err'=>$e->getMessage()]);
+        } 
+        catch (\Throwable $e) {
             return redirect()->route('tags.index')->withErrors(['msg'=>'Xóa thất bại.']);
         }
     }
@@ -224,8 +245,8 @@ class TagController extends Controller
     // ===================== Utility =====================
     public function imageUrl(Tag $tag): string
     {
-        if ($tag->image && Storage::exists($tag->image)) {
-            return Storage::url($tag->image);
+        if ($tag->image_path && Storage::exists($tag->image_path)) {
+            return Storage::url($tag->image_path);
         }
         return asset($this->defaultImage);
     }
