@@ -141,6 +141,7 @@ Route::middleware('require.login', 'check.role:Admin')->group(function () {
 		Route::get('/{tag}/edit', [App\Http\Controllers\TagController::class, 'edit'])->name('edit');
 		Route::put('/{tag}', [App\Http\Controllers\TagController::class, 'update'])->name('update');
 		Route::delete('/{tag}', [App\Http\Controllers\TagController::class, 'destroy'])->name('destroy');
+		
 	});
 
 	// Reports

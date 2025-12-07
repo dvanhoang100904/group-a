@@ -8,31 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('tags', function (Blueprint $table) {
-            $table->increments('tag_id');
+    Schema::create('tags', function (Blueprint $table) {
+    $table->increments('tag_id');
 
-            // Tên tag (unique) – giữ nguyên 150, hợp lý
-            $table->string('name', 150)->unique();
+    $table->string('code', 20)->unique()->nullable();
 
-            // Mô tả – tăng lên 500 để phòng copy/paste HTML dài
-            $table->string('description', 500)->nullable();
+    $table->string('name', 150)->unique();
+    $table->string('description', 500)->nullable();
+    $table->string('image_path', 255)->nullable();
+    $table->boolean('status')->default(0);
 
-            // Upload ảnh (phục vụ test 11–12–13)
-            $table->string('image_path', 255)->nullable();
+    $table->softDeletes();
+    $table->timestamps();
 
-            // Status
-            $table->boolean('status')->default(0);
+    $table->index('name');
+    $table->index('status');
+    });
 
-            // Soft delete để xử lý test-case 1 & 14
-            $table->softDeletes();
-
-            // timestamps → phục vụ optimistic lock (test-case 2)
-            $table->timestamps();
-
-            // Index
-            $table->index('name');
-            $table->index('status');
-        });
     }
 
     public function down(): void

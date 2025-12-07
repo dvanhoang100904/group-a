@@ -24,7 +24,7 @@
     {{-- Bộ lọc + tìm kiếm --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <form method="GET" action="{{ route('tags.index') }}" class="row g-3">
+            <form method="GET" action="{{ route('tags.index') }}" class="row g-3 align-items-end">
 
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Tìm theo tên</label>
@@ -33,12 +33,15 @@
 
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Lọc</label>
-                    <select name="filter" class="form-select">
-                        <option value="">-- Không lọc --</option>
-                        <option value="most_used" {{ request('filter')=='most_used' ? 'selected' : '' }}>
-                            Tag được dùng nhiều nhất
-                        </option>
-                    </select>
+                    <div class="d-flex">
+                        <select name="filter" class="form-select">
+                            <option value="">-- Không lọc --</option>
+                            <option value="most_used" {{ request('filter')=='most_used' ? 'selected' : '' }}>
+                                Tag được dùng nhiều nhất
+                            </option>
+                        </select>
+                        
+                    </div>
                 </div>
 
                 <div class="col-md-3">
@@ -50,13 +53,17 @@
                     </select>
                 </div>
 
-                <div class="col-md-2">
+                <div class="col-md-2 text-end">
                     <label class="form-label d-block">&nbsp;</label>
-                    <button class="btn btn-primary w-100 shadow-sm">Lọc</button>
+                    <button class="btn btn-primary shadow-sm"><i class="bi bi-funnel"></i>Lọc</button>
+                    <a href="{{ route('tags.index') }}" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-x-circle"></i> Xóa lọc
+                        </a>
                 </div>
             </form>
         </div>
     </div>
+
 
     {{-- Danh sách --}}
     <div class="card shadow-sm">
@@ -80,7 +87,7 @@
                         <td class="text-center">{{ $tags->firstItem() + $i }}</td>
 
                         <td class="text-center text-primary fw-semibold">
-                            {{ $tag->code }}
+                            {{ $tag->code ?: '-' }}
                         </td>
 
                         <td class="fw-semibold">{{ $tag->name }}</td>
@@ -98,15 +105,16 @@
                         </td>
 
                         <td class="text-center">
-                            <a href="{{ route('tags.show', $tag->tag_id) }}" class="btn btn-outline-info btn-sm me-1">
+                            {{-- Route model binding: truyền object Tag --}}
+                            <a href="{{ route('tags.show', $tag) }}" class="btn btn-outline-info btn-sm me-1">
                                 <i class="bi bi-eye"></i>
                             </a>
 
-                            <a href="{{ route('tags.edit', $tag->tag_id) }}" class="btn btn-outline-warning btn-sm me-1">
+                            <a href="{{ route('tags.edit', $tag) }}" class="btn btn-outline-warning btn-sm me-1">
                                 <i class="bi bi-pencil"></i>
                             </a>
 
-                            <form action="{{ route('tags.destroy', $tag->tag_id) }}"
+                            <form action="{{ route('tags.destroy', $tag) }}"
                                   method="POST" class="d-inline"
                                   onsubmit="return confirm('Xóa thẻ này?')">
                                 @csrf @method('DELETE')
