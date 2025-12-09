@@ -12,12 +12,11 @@ use App\Http\Controllers\Api\FolderController;
 use App\Http\Controllers\Api\FolderDownloadController;
 use App\Http\Controllers\Api\DocumentSharedController;
 use App\Http\Controllers\Api\FolderShareController;
-
 use App\Http\Controllers\Api\DocumentUpdateController;
+
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
-
 
 // Document Versions
 Route::get('/documents/{documentId}/versions', [DocumentVersionController::class, 'index']);
@@ -102,9 +101,9 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/folders/{folder}/download-prepare', [FolderDownloadController::class, 'prepareDownload']);
     Route::get('/folders/{folder}/download', [FolderDownloadController::class, 'download'])->name('api.folders.download.direct');
 });
+
 Route::get('/api/documents', [DocumentController::class, 'getDocuments']);
 Route::get('/api/documents/{id}/detail', [DocumentController::class, 'getDocumentDetail']);
 Route::get('/api/types', [TypeControllers::class, 'index']);
 Route::get('/api/subjects', [SubjectController::class, 'index']);
-
 Route::put('/documents/{id}', [DocumentUpdateController::class, 'update']);
