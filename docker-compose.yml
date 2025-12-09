@@ -9,7 +9,6 @@ services:
     container_name: web-backend
     ports:
       - 8080:80
-      - 5173:5173
     volumes:
       - ./:/var/www/html
       - ./docker/backend/php.ini:/usr/local/etc/php/php.ini

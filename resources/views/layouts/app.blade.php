@@ -24,7 +24,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    {{-- sweetalert2 --}}
+    {{-- Sweet Alert 2 CSS --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.23.0/sweetalert2.min.css"
         integrity="sha512-Ivy7sPrd6LPp20adiK3al16GBelPtqswhJnyXuha3kGtmQ1G2qWpjuipfVDaZUwH26b3RDe8x707asEpvxl7iA=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -64,43 +64,15 @@
     {{-- Bootstrap JS --}}
     <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
 
-    {{-- My JS --}}
-    <script src="{{ asset('assets/js/script.js') }}"></script>
-
-    @stack('scripts')
-
-    {{-- sweetalert2 --}}
+    {{-- Sweet Alert 2 JS --}}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.23.0/sweetalert2.min.js"
         integrity="sha512-pnPZhx5S+z5FSVwy62gcyG2Mun8h6R+PG01MidzU+NGF06/ytcm2r6+AaWMBXAnDHsdHWtsxS0dH8FBKA84FlQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
-    {{-- alert error --}}
-    @if (session('error'))
-        <script>
-            Swal.fire({
-                icon: 'error',
-                title: 'Lỗi',
-                text: "{{ session('error') }}",
-                showConfirmButton: false,
-                timer: 2000,
-                timerProgressBar: true
-            });
-        </script>
-    @endif
+    {{-- My JS --}}
+    <script src="{{ asset('assets/js/script.js') }}"></script>
 
-    {{-- alert success --}}
-    @if (session('success'))
-        <script>
-            Swal.fire({
-                icon: 'success',
-                title: 'Thành công',
-                text: "{{ session('success') }}",
-                showConfirmButton: false,
-                timer: 2000,
-                timerProgressBar: true
-            });
-        </script>
-    @endif
+    @stack('scripts')
 
 </body>
 
