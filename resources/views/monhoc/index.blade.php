@@ -79,11 +79,10 @@
     @endif
 
     {{-- Bảng danh sách --}}
-    <div class="card shadow-sm border-0">
+     <div class="card shadow-sm">
         <div class="card-body table-responsive">
-
-            <table class="table table-hover table-bordered align-middle">
-                <thead class="table-primary text-center">
+            <table class="table table-striped align-middle">
+                <thead class="table-dark">
                     <tr>
                         <th>STT</th>
                         <th>Mã Môn học</th>
@@ -98,14 +97,14 @@
                 <tbody>
                     @forelse ($monhocs as $index => $monhoc)
                         <tr>
-                            <td class="text-center fw-bold">{{ $monhocs->firstItem() + $index }}</td>
-                            <td class="text-primary fw-semibold">{{ $monhoc->code }}</td>
+                            <td >{{ $monhocs->firstItem() + $index }}</td>
+                            <td class="fw-semibold">{{ $monhoc->code }}</td>
                             <td>{{ $monhoc->name }}</td>
-                            <td class="text-center">{{ $monhoc->credits }}</td>
+                            <td >{{ $monhoc->credits }}</td>
                             <td>{{ $monhoc->department->name ?? '—' }}</td>
-                            <td class="text-center">{{ $monhoc->documents_count }}</td>
+                            <td>{{ $monhoc->documents_count }}</td>
 
-                            <td class="text-center">
+                            <td>
 
                                 <a href="{{ route('monhoc.show', $monhoc->subject_id) }}"
                                    class="btn btn-info btn-sm me-1" title="Xem chi tiết">
@@ -133,7 +132,7 @@
 
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-3">
+                            <td colspan="7" class="text-muted py-3">
                                 <i class="bi bi-exclamation-circle"></i> Không có dữ liệu
                             </td>
                         </tr>
@@ -147,5 +146,6 @@
 
         </div>
     </div>
+    
 </div>
 @endsection

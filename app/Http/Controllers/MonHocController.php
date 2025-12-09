@@ -25,8 +25,12 @@ class MonHocController extends Controller
      * - collapse nhiều khoảng trắng thành 1
      * - trim
      */
-    protected function normalizeText(string $value): string
+    protected function normalizeText(?string $value): string
     {
+        if ($value === null) {
+            return '';
+        }
+
         // chuyển full-width digits và chữ (nếu có)
         $fullWidth  = ['０', '１', '２', '３', '４', '５', '６', '７', '８', '９', '　'];
         $halfWidth  = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' '];
@@ -35,17 +39,16 @@ class MonHocController extends Controller
         // loại bỏ thẻ html
         $value = strip_tags($value);
 
-        // chuyển các unicode spaces (những common ones) thành space
-        $value = preg_replace('/\p{Z}+/u', ' ', $value); // includes various separator spaces
+        // chuẩn hoá unicode spaces → space
+        $value = preg_replace('/\p{Z}+/u', ' ', $value);
 
-        // collapse nhiều khoảng trắng thành 1
+        // gộp space
         $value = preg_replace('/\s+/u', ' ', $value);
 
         // trim
-        $value = trim($value);
-
-        return $value;
+        return trim($value);
     }
+
 
     /**
      * Helper: chuẩn hoá number input
@@ -119,7 +122,11 @@ class MonHocController extends Controller
             $query->where('department_id', $dep);
         }
 
-        $monhocs = $query->orderBy('subject_id')->paginate(10)->appends($request->query());
+        $monhocs = $query
+    ->orderBy('subject_id', 'DESC')
+    ->paginate(10)
+    ->appends($request->query());
+
         $departments = Department::orderBy('name')->get();
 
         return view('monhoc.index', compact('monhocs', 'departments'));
@@ -370,4 +377,5 @@ class MonHocController extends Controller
             return redirect()->route('monhoc.index')->with('error', 'Lỗi khi xóa. Vui lòng thử lại.');
         }
     }
+    
 }

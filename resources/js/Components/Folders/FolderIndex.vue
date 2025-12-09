@@ -2,23 +2,55 @@
   <div class="container mx-auto px-4 py-8">
     <!-- Header với nút Mới -->
     <div class="flex items-center justify-between mb-6">
-      <!-- Nút Mới ở vị trí header cũ -->
-      <div class="flex-shrink-0 relative">
-        <button @click="toggleNewDropdown"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
-          <i class="fas fa-plus mr-2"></i>Mới
-          <i class="fas fa-chevron-down ml-2 text-xs"></i>
-        </button>
-        
-        <div v-if="showNewDropdown" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
-          <button @click="openCreateFolder" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
+      <!-- Nút Mới -->
+     <div class="flex-shrink-0 relative">
+    <button @click="handleNewButtonClick"
+            :disabled="!shouldShowNewFolderButton"
+            :title="!shouldShowNewFolderButton ? 'Bạn không có quyền tạo thư mục/file trong folder này' : ''"
+            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="fas fa-plus mr-2"></i>Mới
+        <i class="fas fa-chevron-down ml-2 text-xs"></i>
+    </button>
+    
+    <!-- Dropdown menu -->
+    <div v-if="showNewDropdown && shouldShowNewFolderButton" class="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-30">
+        <button @click="openCreateFolder" 
+                class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 w-full text-left text-gray-700">
             <i class="fas fa-folder-plus text-blue-500 mr-3"></i>Tạo thư mục
-          </button>
-          <a :href="sanitizeUrl(uploadFileUrl)" class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
+        </button>
+        <a :href="uploadFileUrl" 
+           class="flex items-center px-4 py-2 text-sm hover:bg-gray-100 no-underline text-gray-700">
             <i class="fas fa-file-upload text-green-500 mr-3"></i>Tải file lên
-          </a>
-        </div>
+        </a>
+    </div>
+    
+    <!-- Thông báo khi không có quyền -->
+    <div v-if="showNewDropdown && !shouldShowNewFolderButton" 
+      class="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border py-1 z-30">
+      <div class="px-4 py-3 text-sm">
+          <div class="flex items-start mb-3">
+              <i class="fas fa-lock text-red-500 mr-2 mt-0.5"></i>
+              <div>
+                  <div class="font-medium text-gray-900">Không có quyền tạo</div>
+                  <div class="text-gray-600 mt-1 text-xs">
+                      {{ permissionMessage }}
+                  </div>
+              </div>
+          </div>
+          <div class="flex space-x-2">
+              <button @click="goToRootFromPermission"
+                      class="flex-1 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-md transition-colors flex items-center justify-center">
+                  <i class="fas fa-home mr-1"></i>
+                  Về gốc
+              </button>
+              <button @click="showNewDropdown = false"
+                      class="flex-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-md transition-colors">
+                  Đóng
+              </button>
+          </div>
       </div>
+    </div>
+</div>
 
       <!-- Controls -->
       <div class="flex items-center gap-3">
@@ -41,1349 +73,868 @@
       </div>
     </div>
 
-    <!-- Actions & Search -->
-    <div class="flex flex-col lg:flex-row gap-4 mb-6">
-      <!-- Search Section -->
-      <div class="flex flex-col lg:flex-row gap-4 mb-6">
-        <div class="flex-1 min-w-0">
-          <div class="flex flex-col sm:flex-row gap-2 bg-gray-100 rounded-lg shadow-sm border p-3">
-            <div class="relative flex-1">
-              <input v-model="searchParams.name" 
-                     type="text" 
-                     placeholder="Tìm theo tên" 
-                     class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                     @keyup.enter="handleSearch"
-                     maxlength="255">
-              <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            </div>
-            
-            <div class="relative flex-1">
-              <input v-model="searchParams.date" 
-                     type="date" 
-                     class="pl-10 pr-4 py-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                     @change="validateDate">
-              <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-            </div>
-            
-            <!-- Lọc theo loại file -->
-            <div class="relative flex-1 min-w-0">
-              <select v-model="searchParams.file_type" 
-                      class="pl-10 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none w-full appearance-none bg-white truncate"
-                      :disabled="loadingDocumentTypes">
-                <option value="">Tất cả loại file</option>
-                <option value="folder">Thư mục</option>
-                <option v-for="docType in documentTypes" 
-                        :key="docType.type_id" 
-                        :value="sanitizeInput(docType.name)"
-                        class="truncate">
-                  {{ sanitizeOutput(docType.name) }}
-                </option>
-              </select>
-              <i class="fas fa-file-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-              <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-            </div>
-            
-            <div class="flex gap-2">
-              <button @click="handleSearch" 
-                      :disabled="loading"
-                      class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 flex-shrink-0">
-                <i class="fas fa-search mr-2"></i>Tìm
-              </button>
-              
-              <button v-if="hasActiveFilters" @click="resetFilters" 
-                      class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-                <i class="fas fa-times mr-2"></i>Reset
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Breadcrumbs -->
-    <nav v-if="breadcrumbs.length > 0 || !isSearchMode" class="flex items-center justify-between mb-6">
-      <ol class="flex items-center space-x-2 text-sm">
-        <!-- Root chỉ hiển thị khi KHÔNG ở chế độ tìm kiếm -->
-        <li v-if="!isSearchMode">
-          <button @click="goToRoot" class="text-blue-500 hover:text-blue-700 flex items-center">
-            <i class="fas fa-home mr-1"></i>Root
-          </button>
-        </li>
-        
-        <!-- Breadcrumbs bình thường -->
-        <template v-if="!isSearchMode">
-          <li v-for="(crumb, idx) in breadcrumbs" :key="crumb.folder_id" class="flex items-center">
-            <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-            <button v-if="idx < breadcrumbs.length - 1" 
-                    @click="goToFolder(crumb.folder_id)" 
-                    class="text-blue-500 hover:text-blue-700">
-              {{ sanitizeOutput(crumb.name) }}
-            </button>
-            <span v-else class="text-gray-600 font-medium">{{ sanitizeOutput(crumb.name) }}</span>
-          </li>
-        </template>
-        
-        <!-- Breadcrumbs khi tìm kiếm (chỉ hiển thị kết quả tìm kiếm) -->
-        <template v-else>
-          <li class="text-gray-600 font-medium">
-            Kết quả tìm kiếm
-          </li>
-        </template>
-      </ol>
-
-      <!-- Nút quay lại chỉ hiển thị khi có currentFolder và không ở chế độ tìm kiếm -->
-      <button v-if="currentFolder && !isSearchMode" @click="goToParent" 
-              class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
-        <i class="fas fa-arrow-left mr-2"></i>Quay lại
-      </button>
-    </nav>
+    <FolderBreadcrumbs 
+      :breadcrumbs="breadcrumbs"
+      :current-folder="currentFolder"
+      :is-search-mode="isSearchMode"
+      @go-to-root="goToRoot"
+      @go-to-folder="goToFolder"
+      @go-to-parent="goToParent"
+    />
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-8">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
     </div>
 
-    <!-- Delete Modal -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="p-6">
-          <div class="flex items-center mb-4">
-            <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl mr-3"></i>
-            <h3 class="text-lg font-medium text-gray-900">Xác nhận xóa</h3>
-          </div>
-          <p class="text-sm text-gray-600 mb-6">
-            Bạn có chắc muốn xóa <strong>{{ itemToDelete?.item_type === 'folder' ? 'thư mục' : 'tài liệu' }}</strong> 
-            "<strong>{{ sanitizeOutput(itemToDelete?.name) }}</strong>"? Hành động này không thể hoàn tác.
-          </p>
-          <div class="flex justify-end space-x-3">
-            <button @click="cancelDelete" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-              Hủy
-            </button>
-            <button @click="confirmDelete" 
-                    class="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg flex items-center transition-colors">
-              <i class="fas fa-trash mr-2"></i>Xóa
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Success Modal -->
-    <div v-if="showSuccessModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="p-6">
-          <div class="flex items-center mb-4">
-            <i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i>
-            <h3 class="text-lg font-medium text-gray-900">Thành công</h3>
-          </div>
-          <p class="text-sm text-gray-600 mb-6">
-            {{ sanitizeOutput(successMessage) }}
-          </p>
-          <div class="flex justify-end space-x-3">
-            <button @click="continueAfterSuccess" 
-                    class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center transition-colors">
-              <i class="fas fa-sync-alt mr-2"></i>Tiếp tục
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Error Modal -->
-    <div v-if="showErrorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
-      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="p-6">
-          <div class="flex items-center mb-4">
-            <i class="fas fa-exclamation-circle text-red-500 text-2xl mr-3"></i>
-            <h3 class="text-lg font-medium text-gray-900">Lỗi</h3>
-          </div>
-          <p class="text-sm text-gray-600 mb-6">
-            {{ sanitizeOutput(errorMessage) }}
-          </p>
-          <div class="flex justify-end space-x-3">
-            <button @click="hideErrorModal" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-              Đóng
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Thông báo chế độ tìm kiếm -->
-    <div v-if="isSearchMode && items.data.length > 0" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-      <div class="flex items-center">
-        <i class="fas fa-search text-blue-500 mr-3"></i>
-        <div>
-          <p class="text-blue-800 font-medium">Đang hiển thị kết quả tìm kiếm</p>
-          <p class="text-blue-600 text-sm">Tìm thấy {{ items.total }} kết quả phù hợp</p>
-        </div>
-      </div>
-    </div>
+    <SearchModeNotification 
+      v-if="isSearchMode && items.data.length > 0"
+      :total-results="items.total"
+    />
 
-    <!-- Table -->
-    <div v-if="!loading" class="bg-white rounded-lg shadow overflow-hidden mb-6">
-      <table class="min-w-full">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
-            <!-- Thêm cột Vị trí khi ở chế độ tìm kiếm -->
-            <th v-if="isSearchMode" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vị trí</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kích cỡ</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr v-for="item in (items.data || [])" 
-              :key="getItemKey(item)" 
-              class="hover:bg-gray-50 transition-colors cursor-pointer"
-              @contextmenu.prevent="showContextMenu($event, item)">
-            
-            <!-- Tên -->
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center" 
-                   @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-                <i :class="getItemIcon(item)" class="text-lg mr-3"></i>
-                <div>
-                  <div class="text-sm font-medium text-gray-900">{{ sanitizeOutput(item?.name) || 'Unknown' }}</div>
-                  <!-- Chỉ hiển thị thông tin con khi không ở chế độ tìm kiếm -->
-                  <div v-if="!isSearchMode && item && item.item_type === 'folder' && (item.child_folders_count > 0 || item.documents_count > 0)" 
-                       class="text-xs text-gray-500 flex items-center">
-                    <i class="fas fa-folder-open mr-1"></i>
-                    {{ item.child_folders_count }} thư mục, {{ item.documents_count }} file
-                  </div>
-                </div>
-              </div>
-            </td>
+    <!-- Search Bar -->
+    <SearchBar 
+      :search-params="searchParams"
+      :document-types="documentTypes"
+      :loading="loading"
+      :loading-document-types="loadingDocumentTypes"
+      @search="handleSearch"
+      @reset="resetFilters"
+    />
 
-            <!-- Cột Vị trí - chỉ hiển thị khi tìm kiếm -->
-            <td v-if="isSearchMode" class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-              <div class="flex items-center">
-                <i class="fas fa-folder text-yellow-500 mr-2"></i>
-                <span class="truncate max-w-xs">{{ sanitizeOutput(item.folder_path) || 'Thư mục gốc' }}</span>
-              </div>
-            </td>
-
-            <!-- Các cột khác giữ nguyên -->
-            <td class="px-6 py-4 whitespace-nowrap" @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-              <span class="text-sm text-gray-600">{{ sanitizeOutput(item?.type_name) || 'Unknown' }}</span>
-            </td>
-
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
-                @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-              {{ item ? formatDateTime(item.created_at) : '' }}
-            </td>
-
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" 
-                @click="item && item.item_type === 'folder' ? goToFolder(item.id) : openDocument(item)">
-              {{ item && item.item_type === 'folder' ? '-' : formatFileSize(item?.size) }}
-            </td>
-
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <div class="relative inline-block text-left action-dropdown-container">
-                <button @click.stop="item && toggleMenu(item, $event)"
-                        :disabled="!item"
-                        class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                  <i class="fas fa-ellipsis-v text-gray-500"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-
-          <!-- Empty state -->
-          <tr v-if="(items.data || []).length === 0">
-            <td :colspan="isSearchMode ? 6 : 5" class="px-6 py-12 text-center">
-              <div class="flex flex-col items-center">
-                <i class="fas fa-search text-gray-400 text-4xl mb-4" v-if="isSearchMode"></i>
-                <i class="fas fa-folder-open text-gray-400 text-4xl mb-4" v-else></i>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">
-                  {{ isSearchMode ? 'Không tìm thấy kết quả' : 'Không có dữ liệu' }}
-                </h3>
-                <p class="text-gray-500 mb-4">
-                  {{ isSearchMode ? 'Hãy thử với từ khóa khác hoặc điều chỉnh bộ lọc' : 'Hãy tạo thư mục hoặc tải file lên' }}
-                </p>
-                <button v-if="!isSearchMode" @click="openCreateFolder" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
-                  <i class="fas fa-plus mr-2"></i>Tạo thư mục
-                </button>
-                <button v-if="isSearchMode" @click="resetFilters" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
-                  <i class="fas fa-times mr-2"></i>Xóa bộ lọc
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Action Dropdown (fixed positioning) -->
-    <div v-if="activeMenu" 
-         class="fixed bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 w-56 z-[10001] action-dropdown-fixed"
-         :style="actionDropdownStyle">
-      <div class="py-1">
-        <!-- THÊM NÚT CHIA SẺ CHO FOLDER -->
-        <button v-if="activeMenu.item_type === 'folder' && activeMenu.is_owner" 
-                @click.stop="shareFolder(activeMenu)"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-          <i class="fas fa-share-alt mr-3 text-green-500"></i>Chia sẻ
-        </button> 
-        <button v-if="activeMenu.item_type === 'folder'" 
-                @click.stop="editFolder(activeMenu)"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-          <i class="fas fa-edit mr-3 text-blue-500"></i>Chỉnh sửa
+    <!-- Folder Table -->
+    <FolderTable 
+      v-if="!loading"
+      :items="items.data"
+      :is-search-mode="isSearchMode"
+      @open-item="openItem"
+      @toggle-menu="toggleMenu"
+      @show-context-menu="showContextMenu"
+    >
+      <template #empty-state-actions>
+        <button v-if="!isSearchMode" @click="openCreateFolder" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+          <i class="fas fa-plus mr-2"></i>Tạo thư mục
         </button>
-        <button v-if="activeMenu.item_type === 'document'" 
-                @click.stop="downloadDocument(activeMenu)"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-          <i class="fas fa-download mr-3 text-green-500"></i>Tải xuống
+        <button v-if="isSearchMode" @click="resetFilters" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+          <i class="fas fa-times mr-2"></i>Xóa bộ lọc
         </button>
-        <button @click.stop="showDeleteConfirmation(activeMenu)"
-                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left transition-colors">
-          <i class="fas fa-trash mr-3 text-red-500"></i>Xóa
-        </button>
-      </div>
-    </div>
+      </template>
+    </FolderTable>
 
-    <!-- Context Menu -->
-    <div v-if="contextMenu.visible" class="context-menu" :style="contextMenuStyle">
-      <div class="context-menu-header">
-        <i :class="getItemIcon(contextMenu.item)" class="mr-2"></i>
-        <span class="font-medium text-sm truncate">{{ sanitizeOutput(contextMenu.item.name) }}</span>
-            <!-- HIỂN THỊ THÔNG TIN CHIA SẺ -->
-        <span v-if="contextMenu.item.shared_info && !contextMenu.item.is_owner" 
-              class="text-xs text-blue-600 ml-2">
-              (Được chia sẻ)
-        </span>
-      </div>
-      <div class="py-2">
-        <button @click="openContextItem" class="context-menu-item">
-          <i :class="contextMenu.item.item_type === 'folder' ? 'fas fa-folder-open' : 'fas fa-eye'" 
-             class="text-blue-500 mr-3" style="width: 16px;"></i>
-          {{ contextMenu.item.item_type === 'folder' ? 'Mở thư mục' : 'Xem file' }}
-        </button>
-        <!-- ✅ THÊM: Nút Sửa cho folder -->
-        <button v-if="contextMenu.item.item_type === 'folder'" 
-                @click="editFolder(contextMenu.item)" 
-                class="context-menu-item">
-          <i class="fas fa-edit text-blue-500 mr-3" style="width: 16px;"></i>Chỉnh sửa
-        </button>
-          <!-- THÊM NÚT CHIA SẺ CHO FOLDER -->
-        <button v-if="contextMenu.item.item_type === 'folder' && contextMenu.item.is_owner" 
-                @click="shareFolder(contextMenu.item)" 
-                class="context-menu-item">
-          <i class="fas fa-share-alt text-green-500 mr-3" style="width: 16px;"></i>Chia sẻ
-        </button>
-        <button v-if="contextMenu.item.item_type === 'document'" 
-                @click="downloadDocument(contextMenu.item)" 
-                class="context-menu-item">
-          <i class="fas fa-download text-green-500 mr-3" style="width: 16px;"></i>Tải xuống
-        </button>
-        <div class="context-menu-divider"></div>
-        <button @click="showDeleteConfirmation(contextMenu.item)" class="context-menu-item context-menu-item-danger w-full text-left">
-          <i class="fas fa-trash text-red-500 mr-3" style="width: 16px;"></i>Xóa
-        </button>
-      </div>
-    </div>
+   <!-- Action Dropdown -->
+<ActionDropdown 
+  v-if="activeMenu"
+  :active-menu="activeMenu"
+  :action-dropdown-style="actionDropdownStyle"
+  @share-folder="shareFolder"
+  @edit-folder="editFolder"
+  @view-document="viewDocument"
+   @download-folder="downloadFolder"
+  @download-document="downloadDocument"
+  @edit-document="editDocument"
+  @delete-item="showDeleteConfirmation"
+  @close="activeMenu = null"
+/>
 
-    <div v-if="contextMenu.visible" class="context-menu-overlay" @click="hideContextMenu"></div>
+<!-- Context Menu -->
+<ContextMenu 
+  v-if="contextMenu.visible"
+  :context-menu="contextMenu"
+  :context-menu-style="contextMenuStyle"
+  @open-item="openContextItem"
+  @edit-folder="editFolder"
+  @share-folder="shareFolder"
+  @view-document="viewDocument"
+    @download-folder="downloadFolder"
+  @download-document="downloadDocument"
+  @edit-document="editDocument"
+  @delete-item="showDeleteConfirmation"
+  @close="hideContextMenu"
+/>
 
-    <!-- Pagination -->
-    <div v-if="!loading && items.data.length > 0" 
-         class="flex items-center justify-between bg-white px-4 py-3 rounded-lg shadow border-t">
-      <div class="flex items-center text-sm text-gray-700">
-        <span v-if="items.total > 0">
-          Hiển thị <strong>{{ items.from }}-{{ items.to }}</strong> của <strong>{{ items.total }}</strong> kết quả
-        </span>
-        <span v-else>Không có kết quả</span>
-      </div>
+    <!-- Modals -->
+    <DeleteModal 
+      v-if="showDeleteModal"
+      :item="itemToDelete"
+      @cancel="cancelDelete"
+      @confirm="confirmDelete"
+    />
 
-      <div v-if="items.last_page > 1" class="flex items-center space-x-2">
-        <button v-if="items.current_page > 1" 
-                @click="changePage(items.current_page - 1)"
-                class="px-3 py-1 bg-white border rounded-lg hover:bg-gray-50 text-gray-700 transition-colors">
-          <i class="fas fa-chevron-left mr-1"></i>Trước
-        </button>
-        <span v-else class="px-3 py-1 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
-          <i class="fas fa-chevron-left mr-1"></i>Trước
-        </span>
+    <SuccessErrorModal 
+      v-if="showSuccessModal"
+      type="success"
+      :message="successMessage"
+      @close="showSuccessModal = false"
+      @continue="continueAfterSuccess"
+    />
 
-        <button v-for="page in pages" 
-                :key="page"
-                @click="changePage(page)"
-                :disabled="page === '...'"
-                :class="['px-3 py-1 rounded-lg font-medium transition-colors', 
-                        page === items.current_page 
-                          ? 'bg-blue-500 text-white' 
-                          : page === '...' 
-                            ? 'cursor-default text-gray-500'
-                            : 'bg-white border hover:bg-gray-50 text-gray-700']">
-          {{ page }}
-        </button>
+    <SuccessErrorModal 
+      v-if="showErrorModal"
+      type="error"
+      :message="errorMessage"
+      @close="showErrorModal = false"
+    />
 
-        <button v-if="items.current_page < items.last_page" 
-                @click="changePage(items.current_page + 1)"
-                class="px-3 py-1 bg-white border rounded-lg hover:bg-gray-50 text-gray-700 transition-colors">
-          Sau<i class="fas fa-chevron-right ml-1"></i>
-        </button>
-        <span v-else class="px-3 py-1 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed">
-          Sau<i class="fas fa-chevron-right ml-1"></i>
-        </span>
-      </div>
-      <div v-else class="text-sm text-gray-500">
-        Tất cả kết quả đang được hiển thị
-      </div>
+    <ShareModal 
+      v-if="showShareModal"
+      :folder-name="selectedFolder?.name"
+      :share-data="shareModalData"
+      :shared-users="shareModalData.sharedUsers"
+      @close="closeShareModal"
+      @share="shareFolderAction"
+      @unshare="unshareUser"
+    />
 
-      <div class="flex items-center space-x-2">
-        <span class="text-sm text-gray-700">Hiển thị:</span>
-        <select v-model="perPage" @change="changePerPage" 
-                class="border rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-      </div>
-    </div>
-    <!-- Share Folder Modal -->
-<div v-if="showShareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10002] p-4">
-  <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-    <div class="p-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center">
-          <i class="fas fa-share-alt text-blue-500 text-xl mr-3"></i>
-          <h3 class="text-lg font-medium text-gray-900">Chia sẻ thư mục</h3>
-        </div>
-        <button @click="closeShareModal" class="text-gray-400 hover:text-gray-600">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <!-- Folder Info -->
-      <div class="bg-gray-50 rounded-lg p-3 mb-4">
-        <div class="flex items-center">
-          <i class="fas fa-folder text-yellow-500 mr-2"></i>
-          <span class="font-medium text-gray-800">{{ sanitizeOutput(selectedFolder?.name) }}</span>
-        </div>
-      </div>
-
-      <!-- Share Form -->
-      <form @submit.prevent="shareFolderAction">
-        <!-- Email Input -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Email người dùng (phân cách bằng dấu phẩy)
-          </label>
-          <input 
-            v-model="shareModalData.emailsInput"
-            type="text" 
-            placeholder="Nhập email1, email2, ..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            :disabled="shareModalData.loading"
-          >
-          <p class="text-xs text-gray-500 mt-1">
-            Nhập email của những người bạn muốn chia sẻ
-          </p>
-        </div>
-
-        <!-- Permission Selection -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Quyền truy cập
-          </label>
-          <div class="space-y-2">
-            <label class="flex items-center">
-              <input 
-                v-model="shareModalData.permission" 
-                type="radio" 
-                value="view" 
-                class="mr-3 text-blue-500 focus:ring-blue-500"
-                :disabled="shareModalData.loading"
-              >
-              <div>
-                <div class="font-medium text-gray-900">Chỉ xem</div>
-                <div class="text-sm text-gray-500">Có thể xem và tải xuống file</div>
-              </div>
-            </label>
-            <label class="flex items-center">
-              <input 
-                v-model="shareModalData.permission" 
-                type="radio" 
-                value="edit" 
-                class="mr-3 text-blue-500 focus:ring-blue-500"
-                :disabled="shareModalData.loading"
-              >
-              <div>
-                <div class="font-medium text-gray-900">Chỉnh sửa</div>
-                <div class="text-sm text-gray-500">Có thể thêm, sửa, xóa file và folder con</div>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- Current Shares -->
-        <div v-if="shareModalData.sharedUsers.length > 0" class="mb-4">
-          <h4 class="text-sm font-medium text-gray-700 mb-2">Đang chia sẻ với:</h4>
-          <div class="space-y-2">
-            <div 
-              v-for="user in shareModalData.sharedUsers" 
-              :key="user.user_id"
-              class="flex items-center justify-between bg-gray-50 rounded-lg p-2"
-            >
-              <div class="flex items-center">
-                <i class="fas fa-user text-gray-400 mr-2"></i>
-                <span class="text-sm font-medium">{{ sanitizeOutput(user.name) }}</span>
-                <span class="text-xs text-gray-500 ml-2">({{ sanitizeOutput(user.email) }})</span>
-                <span class="text-xs text-gray-500 ml-2">- {{ user.permission === 'edit' ? 'Chỉnh sửa' : 'Chỉ xem' }}</span>
-              </div>
-              <button 
-                @click="unshareUser(user.user_id)"
-                type="button"
-                class="text-red-500 hover:text-red-700 text-sm"
-                :disabled="shareModalData.loading"
-              >
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex justify-end space-x-3">
-          <button 
-            type="button"
-            @click="closeShareModal"
-            :disabled="shareModalData.loading"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-          >
-            Hủy
-          </button>
-          <button 
-            type="submit"
-            :disabled="shareModalData.loading"
-            class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center transition-colors disabled:opacity-50"
-          >
-            <i class="fas fa-share-alt mr-2"></i>
-            {{ shareModalData.loading ? 'Đang chia sẻ...' : 'Chia sẻ' }}
-          </button>
-        </div>
-      </form>
-    </div>
+<!-- Phần template -->
+<Pagination 
+  v-if="!loading && items.data.length > 0"
+  :pagination="items"
+  :per-page="perPage"
+  :pages="pages"
+  @change-page="changePage"
+  @change-per-page="changePerPage"
+/>
   </div>
-</div>
-  </div>
-  
+
+   <!-- Folder Download Modal -->
+    <FolderDownloadModal 
+        v-if="showDownloadModal"
+        :folder="selectedFolder"
+        :show="showDownloadModal"
+        @close="closeDownloadModal"
+    />
 </template>
 
-<script>
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 
-export default {
-  name: 'FolderIndex',
-  data() {
-    return {
-      items: { 
-        data: [], 
-        current_page: 1, 
-        last_page: 1, 
-        from: 0, 
-        to: 0, 
-        total: 0 
-      },
-      currentFolder: null,
-      breadcrumbs: [],
-      userInfo: null,
-      loading: true,
-      isSearchMode: false,
-      activeMenu: null,
-      perPage: 20,
-      successMessage: '',
-      errorMessage: '',
-      showSuccessModal: false,
-      showErrorModal: false, 
-      showShareModal: false,
-      searchParams: { 
-        name: '', 
-        date: '', 
-        file_type: '' 
-      },
-      shareModalData: {
-      emailsInput: '',
-      permission: 'view',
-      loading: false,
-      sharedUsers: []
-      },
-      documentTypes: [],
-      loadingDocumentTypes: false,
-      contextMenu: { 
-        visible: false, 
-        x: 0, 
-        y: 0, 
-        item: null 
-      },
-      actionDropdownPosition: { 
-        x: 0, 
-        y: 0 
-      },
-      showNewDropdown: false,
-      autoReloadInterval: null,
-      autoReloadEnabled: false,
-      lastUpdate: null,
-      showDeleteModal: false,
-      itemToDelete: null,
-    }
-  },
-  computed: {
-    safeItems() {
-      return (this.items.data || []).filter(item => item !== null && item !== undefined);
-    },
-    hasActiveFilters() {
-      return this.searchParams.name || this.searchParams.date || this.searchParams.file_type;
-    },
-    uploadFileUrl() {
-      const folderId = this.currentFolder?.folder_id || null;
-      // ✅ BẢO MẬT: Sanitize folder ID trong URL
-      const safeFolderId = folderId ? encodeURIComponent(folderId) : '';
-      return `/upload?folder_id=${safeFolderId}`;
-    },
-    pages() {
-      const pages = [];
-      const current = this.items.current_page;
-      const last = this.items.last_page;
-      const delta = 2;
-      
-      for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
-        pages.push(i);
-      }
-      
-      if (current - delta > 2) pages.unshift('...');
-      if (current + delta < last - 1) pages.push('...');
-      
-      pages.unshift(1);
-      if (last > 1) pages.push(last);
-      
-      return pages.filter((v, i, a) => a.indexOf(v) === i);
-    },
-    
-    actionDropdownStyle() {
-      if (!this.activeMenu) return {};
-      
-      const menuWidth = 224;
-      const menuHeight = 96;
-      const padding = 10;
-      
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      
-      let x = this.actionDropdownPosition.x;
-      let y = this.actionDropdownPosition.y;
-      
-      if (x + menuWidth > viewportWidth) {
-        x = viewportWidth - menuWidth - padding;
-      }
-      
-      if (y + menuHeight > viewportHeight) {
-        y = this.actionDropdownPosition.y - menuHeight - 40;
-      }
-      
-      x = Math.max(padding, Math.min(x, viewportWidth - menuWidth - padding));
-      y = Math.max(padding, Math.min(y, viewportHeight - menuHeight - padding));
-      
-      return {
-        left: x + 'px',
-        top: y + 'px'
-      };
-    },
+// Composables
+import { useFolderAPI } from './composables/useFolderAPI';
+import { useSearchFilters } from './composables/useSearchFilters';
+import { useItemPermissions } from './composables/useItemPermissions';
+import { useShareManagement } from './composables/useShareManagement';
 
-    contextMenuStyle() {
-      if (!this.contextMenu.visible) return {};
-      
-      const menuWidth = 256;
-      const menuHeight = 180;
-      const padding = 10;
-      
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      
-      let x = this.contextMenu.x;
-      let y = this.contextMenu.y;
-      
-      if (x + menuWidth > viewportWidth) {
-        x = x - menuWidth;
-      }
-      
-      if (y + menuHeight > viewportHeight) {
-        y = y - menuHeight;
-      }
-      
-      x = Math.max(padding, Math.min(x, viewportWidth - menuWidth - padding));
-      y = Math.max(padding, Math.min(y, viewportHeight - menuHeight - padding));
-      
-      return {
-        left: x + 'px',
-        top: y + 'px'
-      };
-    },
+// Utils
+import { sanitizeOutput, sanitizeUrl, validateFolderId, validateDocumentId } from './utils/sanitizeUtils';
+import { formatTime } from './utils/dateUtils';
+
+// Components
+import FolderDownloadModal from './components/FolderDownloadModal.vue';
+import FolderBreadcrumbs from './components/FolderBreadcrumbs.vue';
+import SearchModeNotification from './components/SearchModeNotification.vue';
+import SearchBar from './components/SearchBar.vue';
+import FolderTable from './components/FolderTable.vue';
+import ActionDropdown from './components/ActionDropdown.vue';
+import ContextMenu from './components/ContextMenu.vue';
+import DeleteModal from './components/DeleteModal.vue';
+import SuccessErrorModal from './components/SuccessErrorModal.vue';
+import ShareModal from './components/ShareModal.vue';
+import Pagination from './components/Pagination.vue';
+
+// Refs
+const showDownloadModal = ref(false);
+const selectedFolder = ref(null);
+
+// Thêm method downloadFolder:
+const downloadFolder = (item) => {
+  console.log('downloadFolder called', item);
   
-    safePagination() {
-        return {
-          current_page: this.items.current_page || 1,
-          last_page: this.items.last_page || 1,
-          from: this.items.from || 0,
-          to: this.items.to || 0,
-          total: this.items.total || 0
-      };
-    }
-  },
-  mounted() {
-    this.loadUserInfo();
-    this.loadData();
-    this.loadDocumentTypes(); 
-    document.addEventListener('click', this.closeMenu);
-    document.addEventListener('keydown', this.handleKeydown);
-    document.addEventListener('click', this.closeNewDropdownOutside);
-    document.addEventListener('scroll', this.handleScroll);
-    window.addEventListener('resize', this.hideContextMenu);
-  },
-  beforeUnmount() {
-    this.stopAutoReload();
-    document.removeEventListener('click', this.closeMenu);
-    document.removeEventListener('keydown', this.handleKeydown);
-    document.removeEventListener('click', this.closeNewDropdownOutside);
-    document.removeEventListener('scroll', this.handleScroll);
-    window.removeEventListener('resize', this.hideContextMenu);
-  },
-  methods: {
-    /**
-   * Mở modal chia sẻ folder
-   */
-  shareFolder(item) {
-    // BẢO MẬT: Chỉ cho phép chủ sở hữu chia sẻ
-    if (!item.is_owner) {
-      this.showError('Chỉ chủ sở hữu mới có thể chia sẻ folder này');
-      return;
-    }
-    
-    this.selectedFolder = item;
-    this.showShareModal = true;
-    this.activeMenu = null;
-    this.hideContextMenu();
-    
-    // Load danh sách người đã được chia sẻ
-    this.loadSharedUsers();
-  },
-
-  /**
-   * Tải danh sách người được chia sẻ
-   */
-  async loadSharedUsers() {
-    if (!this.selectedFolder) return;
-    
-    try {
-      const response = await axios.get(`/api/folders/${this.selectedFolder.id}/shared-users`);
-      if (response.data.success) {
-        this.shareModalData.sharedUsers = response.data.data;
-      }
-    } catch (error) {
-      console.error('Lỗi khi tải danh sách chia sẻ:', error);
-    }
-  },
-  /**
-   * Chia sẻ folder với nhiều user
-   */
-  async shareFolderAction() {
-    if (!this.shareModalData.emailsInput.trim()) {
-      this.showError('Vui lòng nhập ít nhất một email');
-      return;
-    }
-
-    this.shareModalData.loading = true;
-    try {
-      const emails = this.shareModalData.emailsInput.split(',')
-        .map(email => email.trim())
-        .filter(email => email);
-
-      // ✅ BẢO MẬT: Sanitize emails
-      const sanitizedEmails = emails.map(email => this.sanitizeInput(email));
-
-      const response = await axios.post(`/api/folders/${this.selectedFolder.id}/share`, {
-        emails: sanitizedEmails,
-        permission: this.shareModalData.permission
-      });
-
-      if (response.data.success) {
-        this.showSuccess(response.data.message);
-        this.shareModalData.emailsInput = '';
-        this.loadSharedUsers(); // Reload danh sách
-      }
-    } catch (error) {
-      const message = error.response?.data?.message || 'Lỗi khi chia sẻ folder';
-      this.showError(message);
-    } finally {
-      this.shareModalData.loading = false;
-    }
-  },
-   /**
-   * Hủy chia sẻ với user
-   */
-  async unshareUser(userId) {
-    if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
-      return;
-    }
-
-    try {
-      const response = await axios.post(`/api/folders/${this.selectedFolder.id}/unshare`, {
-        user_ids: [userId]
-      });
-
-      if (response.data.success) {
-        this.loadSharedUsers();
-        this.showSuccess('Hủy chia sẻ thành công');
-      }
-    } catch (error) {
-      this.showError('Lỗi khi hủy chia sẻ');
-    }
-  },
-   /**
-   * Đóng modal chia sẻ
-   */
-  closeShareModal() {
-    this.showShareModal = false;
-    this.selectedFolder = null;
-    this.shareModalData = {
-      emailsInput: '',
-      permission: 'view',
-      loading: false,
-      sharedUsers: []
-    };
-  },
-  
-// ---------------------------------------------------------------
-    // ✅ BẢO MẬT: Sanitize input để tránh XSS
-    sanitizeInput(value) {
-      if (value === null || value === undefined) return '';
-      const div = document.createElement('div');
-      div.textContent = value.toString();
-      return div.innerHTML.replace(/[^\w\s\-_.]/gi, '');
-    },
-
-    // ✅ BẢO MẬT: Sanitize output để tránh XSS
-    sanitizeOutput(value) {
-      if (value === null || value === undefined) return '';
-      const div = document.createElement('div');
-      div.textContent = value.toString();
-      return div.innerHTML;
-    },
-
-    // ✅ BẢO MẬT: Sanitize URL để tránh XSS và injection
-    sanitizeUrl(url) {
-      if (!url) return '';
-      try {
-        const parsed = new URL(url, window.location.origin);
-        // Chỉ cho phép các URL cùng origin hoặc đường dẫn tương đối
-        if (parsed.origin === window.location.origin || parsed.protocol === 'about:') {
-          return url;
-        }
-        return '';
-      } catch {
-        return '';
-      }
-    },
-
-    // ✅ BẢO MẬT: Validate folder ID
-    validateFolderId(folderId) {
-      if (!folderId || !Number.isInteger(Number(folderId)) || folderId <= 0) {
-        throw new Error('ID thư mục không hợp lệ');
-      }
-      return Number(folderId);
-    },
-
-    // ✅ BẢO MẬT: Validate date input
-    validateDate() {
-      if (this.searchParams.date) {
-        const date = new Date(this.searchParams.date);
-        if (isNaN(date.getTime())) {
-          this.searchParams.date = '';
-          this.showError('Ngày không hợp lệ');
-        }
-      }
-    },
-
-    goToFolder(folderId) {
-      // ✅ BẢO MẬT: Validate folder ID
-      try {
-        const validFolderId = this.validateFolderId(folderId);
-        
-        if (this.isSearchMode) {
-          this.isSearchMode = false;
-          this.searchParams = { name: '', date: '', file_type: '' };
-        }
-        
-        this.currentFolder = { folder_id: validFolderId };
-        this.items.current_page = 1;
-        this.loadData();
-      } catch (error) {
-        this.showError('ID thư mục không hợp lệ');
-      }
-    },
-
-    // THÊM: Method load danh sách loại tài liệu
-    async loadDocumentTypes() {
-      this.loadingDocumentTypes = true;
-      try {
-        const response = await axios.get('/api/types');
-        
-        // ✅ BẢO MẬT: Sanitize document type names
-        this.documentTypes = (response.data || []).map(docType => ({
-          ...docType,
-          name: this.sanitizeInput(docType.name)
-        }));
-        
-      } catch (error) {
-        // Fallback to empty array if API fails
-        this.documentTypes = [];
-        console.error('Error loading document types:', error);
-      } finally {
-        this.loadingDocumentTypes = false;
-      }
-    },
-
-    getItemKey(item) {
-      if (!item) return 'null-item';
-      return `${item.item_type}-${item.id}`;
-    },
-
-    // ✅ THAY THẾ: Method tiếp tục sau khi thành công
-    continueAfterSuccess() {
-      this.showSuccessModal = false;
-      this.successMessage = '';
-      this.loadData();
-    },
-
-    // ✅ THAY THẾ: Method ẩn modal lỗi
-    hideErrorModal() {
-      this.showErrorModal = false;
-      this.errorMessage = '';
-    },
-
-    // ✅ THAY THẾ: Hiển thị modal thành công
-    showSuccess(message) {
-      this.successMessage = this.sanitizeOutput(message);
-      this.showSuccessModal = true;
-    },
-
-    // ✅ THAY THẾ: Hiển thị modal lỗi
-    showError(message) {
-      this.errorMessage = this.sanitizeOutput(message);
-      this.showErrorModal = true;
-    },
-
-    async loadData() {
-      this.loading = true;
-      
-      try {
-        // ✅ BẢO MẬT: Sanitize search parameters
-        const params = {
-          name: this.sanitizeInput(this.searchParams.name || ''),
-          date: this.searchParams.date || '',
-          file_type: this.sanitizeInput(this.searchParams.file_type || ''),
-          per_page: this.perPage,
-          page: this.items.current_page,
-        };
-
-        // ✅ QUAN TRỌNG: Chỉ thêm parent_id khi KHÔNG ở chế độ tìm kiếm
-        if (this.currentFolder?.folder_id && !this.isSearchMode) {
-          params.parent_id = this.currentFolder.folder_id;
-        }
-
-        const response = await axios.get('/api/folders', { params });
-        
-        if (response.data.success) {
-          const data = response.data.data;
-          
-          this.items = {
-            data: data.items?.data || data.items || [],
-            current_page: data.items?.current_page || data.current_page || 1,
-            last_page: data.items?.last_page || data.last_page || 1,
-            from: data.items?.from || data.from || 0,
-            to: data.items?.to || data.to || 0,
-            total: data.items?.total || data.total || 0
-          };
-          
-          this.currentFolder = data.currentFolder || null;
-          this.breadcrumbs = data.breadcrumbs || [];
-          this.isSearchMode = data.isSearchMode || false;
-          this.lastUpdate = new Date().toISOString();
-        } else {
-          throw new Error(response.data.message || 'API response not successful');
-        }
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Lỗi khi tải dữ liệu';
-        this.showError(errorMsg);
-        this.items = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
-        this.currentFolder = null;
-        this.breadcrumbs = [];
-        this.isSearchMode = false;
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    exitSearchMode() {
-      this.resetFilters();
-    },
-
-    // THÊM: Method refresh cả danh sách loại tài liệu
-    async refreshDocumentTypes() {
-      await this.loadDocumentTypes();
-    },
-
-    // CẬP NHẬT: Method manualReload để refresh cả document types
-    async manualReload() {
-      await Promise.all([
-        this.loadDocumentTypes(),
-        this.loadData()
-      ]);
-    },
-
-    async loadUserInfo() {
-      try {
-        const userMeta = document.querySelector('meta[name="user-info"]');
-        if (userMeta) {
-          this.userInfo = JSON.parse(userMeta.getAttribute('content'));
-        }
-      } catch (error) {
-        console.error('Error loading user info:', error);
-      }
-    },
-
-    getItemIcon(item) {
-      if (!item) return 'fas fa-question-circle text-gray-400';
-      
-      if (item.item_type === 'folder') {
-        if (item.shared_info && !item.is_owner) {
-          return 'fas fa-share-alt text-blue-500';
-        }
-        return 'fas fa-folder text-yellow-500';
-      }
-      
-      const icons = {
-        'PDF': 'fas fa-file-pdf text-red-500',
-        'Word': 'fas fa-file-word text-blue-500',
-        'Excel': 'fas fa-file-excel text-green-500',
-        'PowerPoint': 'fas fa-file-powerpoint text-orange-500',
-        'Image': 'fas fa-file-image text-purple-500',
-        'Video': 'fas fa-file-video text-pink-500',
-        'Audio': 'fas fa-file-audio text-indigo-500',
-      };
-      
-      return icons[item.type_name] || 'fas fa-file text-gray-500';
-    },
-
-    goToParent() {
-      if (this.currentFolder?.parent_folder_id) {
-        this.goToFolder(this.currentFolder.parent_folder_id);
-      } else {
-        this.goToRoot();
-      }
-    },
-
-    goToRoot() {
-      this.currentFolder = null;
-      this.items.current_page = 1;
-      this.loadData();
-    },
-
-    openCreateFolder() {
-      const parentId = this.currentFolder?.folder_id || null;
-      // ✅ BẢO MẬT: Sanitize URL
-      const safeParentId = parentId ? encodeURIComponent(parentId) : '';
-      window.location.href = `/folders/create?parent_id=${safeParentId}`;
-      this.showNewDropdown = false;
-    },
-
-    editFolder(item) {
-      // ✅ BẢO MẬT: Validate item ID
-      try {
-        const validId = this.validateFolderId(item.id);
-        window.location.href = `/folders/${validId}/edit`;
-        this.activeMenu = null;
-      } catch (error) {
-        this.showError('ID không hợp lệ');
-      }
-    },
-
-    openDocument(item) {
-      if (item.file_path) {
-        // ✅ BẢO MẬT: Sanitize URL trước khi mở
-        const safeUrl = this.sanitizeUrl(item.file_path);
-        if (safeUrl) {
-          window.open(safeUrl, '_blank', 'noopener,noreferrer');
-        } else {
-          this.showError('Đường dẫn file không hợp lệ');
-        }
-      } else {
-        this.showError('File không tồn tại');
-      }
-      this.hideContextMenu();
-    },
-
-    downloadDocument(item) {
-      if (item.file_path) {
-        // ✅ BẢO MẬT: Sanitize URL và filename
-        const safeUrl = this.sanitizeUrl(item.file_path);
-        const safeFilename = this.sanitizeInput(item.file_name || item.name);
-        
-        if (safeUrl) {
-          const a = document.createElement('a');
-          a.href = safeUrl;
-          a.download = safeFilename;
-          a.rel = 'noopener noreferrer';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        } else {
-          this.showError('Đường dẫn file không hợp lệ');
-        }
-      } else {
-        this.showError('File không tồn tại');
-      }
-      this.activeMenu = null;
-      this.hideContextMenu();
-    },
-
-    showDeleteConfirmation(item) {
-      this.itemToDelete = item;
-      this.showDeleteModal = true;
-      this.activeMenu = null;
-      this.hideContextMenu();
-    },
-
-    cancelDelete() {
-      this.showDeleteModal = false;
-      this.itemToDelete = null;
-    },
-
-    async confirmDelete() {
-      if (!this.itemToDelete) return;
-      
-      try {
-        // ✅ BẢO MẬT: Validate item ID
-        const validId = this.validateFolderId(this.itemToDelete.id);
-        
-        const endpoint = this.itemToDelete.item_type === 'folder' 
-          ? `/api/folders/${validId}`
-          : `/api/documents/${validId}`;
-        
-        const response = await axios.delete(endpoint);
-        
-        if (response.data.success) {
-          this.showSuccess(response.data.message);
-          
-          // Reset currentFolder if deleting current folder
-          if (this.itemToDelete.item_type === 'folder' && 
-              this.currentFolder && 
-              this.currentFolder.folder_id === this.itemToDelete.id) {
-            this.currentFolder = null;
-          }
-        }
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Lỗi khi xóa: ' + error.message;
-        this.showError(errorMsg);
-      } finally {
-        this.showDeleteModal = false;
-        this.itemToDelete = null;
-      }
-    },
-
-    showContextMenu(event, item) {
-      if (!item) return;
-      
-      event.preventDefault();
-      event.stopPropagation();
-      
-      this.contextMenu = {
-        visible: true,
-        x: event.clientX,
-        y: event.clientY,
-        item: item
-      };
-      this.activeMenu = null;
-    },
-
-    toggleMenu(item, event) {
-      if (!item) return;
-      
-      if (this.activeMenu && this.activeMenu.id === item.id && this.activeMenu.item_type === item.item_type) {
-        this.activeMenu = null;
-        return;
-      }
-
-      const button = event.target.closest('button');
-      if (button) {
-        const rect = button.getBoundingClientRect();
-        this.actionDropdownPosition = {
-          x: rect.right - 224,
-          y: rect.bottom
-        };
-      }
-
-      this.activeMenu = item;
-      this.hideContextMenu();
-    },
-
-    hideContextMenu() {
-      this.contextMenu = { 
-        visible: false, 
-        x: 0, 
-        y: 0, 
-        item: null 
-      };
-    },     
-
-    closeMenu(event) {
-      const isDropdown = event.target.closest('.action-dropdown-container');
-      const isFixed = event.target.closest('.action-dropdown-fixed');
-      
-      if (!isDropdown && !isFixed) {
-        this.activeMenu = null;
-      }
-    },
-
-    handleKeydown(event) {
-      if (event.key === 'Escape') {
-        this.activeMenu = null;
-        this.hideContextMenu();
-        if (this.showDeleteModal) {
-          this.cancelDelete();
-        }
-        if (this.showSuccessModal) {
-          this.continueAfterSuccess();
-        }
-        if (this.showErrorModal) {
-          this.hideErrorModal();
-        }
-      }
-    },
-
-    handleScroll() {
-      if (this.activeMenu) {
-        this.activeMenu = null;
-      }
-    },
-
-    closeNewDropdownOutside(event) {
-      const dropdown = event.target.closest('.relative');
-      if (this.showNewDropdown && !dropdown) {
-        this.showNewDropdown = false;
-      }
-    },
-
-    toggleNewDropdown() {
-      this.showNewDropdown = !this.showNewDropdown;
-    },
-
-    openContextItem() {
-      if (this.contextMenu.item.item_type === 'folder') {
-        this.goToFolder(this.contextMenu.item.id);
-      } else {
-        this.openDocument(this.contextMenu.item);
-      }
-      this.hideContextMenu();
-    },
-
-    handleSearch() {
-      this.items.current_page = 1;
-      
-      // ✅ BẢO MẬT: Sanitize search parameters
-      this.searchParams.name = this.sanitizeInput(this.searchParams.name);
-      this.searchParams.file_type = this.sanitizeInput(this.searchParams.file_type);
-      
-      if (this.searchParams.name || this.searchParams.date || this.searchParams.file_type) {
-        this.currentFolder = null;
-      }
-      
-      this.loadData();
-    },
-
-    resetFilters() {
-      this.searchParams = { name: '', date: '', file_type: '' }; 
-      this.items.current_page = 1;
-      this.isSearchMode = false;
-      this.loadData();
-    },
-
-    changePerPage() {
-      this.items.current_page = 1;
-      this.loadData();
-    },
-
-    changePage(page) {
-      if (page === '...') return;
-      this.items.current_page = page;
-      this.loadData();
-    },
-
-    formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('vi-VN');
-    },
-
-    formatDateTime(dateTimeString) {
-      if (!dateTimeString) return '';
-      const date = new Date(dateTimeString);
-      return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    },
-
-    formatTime(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleTimeString('vi-VN', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
-      });
-    },
-
-    formatFileSize(bytes) {
-      if (!bytes || bytes === 0) return '0 B';
-      const k = 1024;
-      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-    },
-
-    startAutoReload() {
-      this.autoReloadInterval = setInterval(() => {
-        if (this.autoReloadEnabled && !this.loading) {
-          this.loadData();
-        }
-      }, 30000); // 30 seconds
-    },
-
-    stopAutoReload() {
-      if (this.autoReloadInterval) {
-        clearInterval(this.autoReloadInterval);
-        this.autoReloadInterval = null;
-      }
-    },
-
-    toggleAutoReload() {
-      this.autoReloadEnabled = !this.autoReloadEnabled;
-      if (this.autoReloadEnabled) {
-        this.startAutoReload();
-      } else {
-        this.stopAutoReload();
-      }
-    },
+  if (!item || item.item_type !== 'folder') {
+    console.warn('Invalid item for download', item);
+    showError('Chỉ có thể tải folder');
+    return;
   }
-}
+  
+  // Kiểm tra quyền download
+  const hasPermission = item.is_owner || 
+                        item.user_permission === 'view' || 
+                        item.user_permission === 'edit' ||
+                        item.can_edit_content ||
+                        item.can_edit_info;
+  
+  if (!hasPermission) {
+    showError('Bạn không có quyền download folder này');
+    return;
+  }
+  
+  // Kiểm tra folder có nội dung không
+  const hasContent = (item.documents_count && item.documents_count > 0) || 
+                     (item.child_folders_count && item.child_folders_count > 0);
+  
+  if (!hasContent) {
+    showError('Folder trống, không có gì để tải');
+    return;
+  }
+  
+  selectedFolder.value = item;
+  showDownloadModal.value = true;
+  activeMenu.value = null;
+  hideContextMenu();
+};
+
+const closeDownloadModal = () => {
+  showDownloadModal.value = false;
+  selectedFolder.value = null;
+};
+
+const items = ref({ 
+  data: [], 
+  current_page: 1, 
+  last_page: 1, 
+  from: 0, 
+  to: 0, 
+  total: 0 
+});
+const currentFolder = ref(null);
+const breadcrumbs = ref([]);
+const userInfo = ref(null);
+const documentTypes = ref([]);
+const loadingDocumentTypes = ref(false);
+const perPage = ref(20);
+const showNewDropdown = ref(false);
+const autoReloadInterval = ref(null);
+const autoReloadEnabled = ref(false);
+const lastUpdate = ref(null);
+
+// UI States
+const activeMenu = ref(null);
+const actionDropdownPosition = ref({ x: 0, y: 0 });
+const contextMenu = ref({ visible: false, x: 0, y: 0, item: null });
+const showDeleteModal = ref(false);
+const itemToDelete = ref(null);
+const showSuccessModal = ref(false);
+const successMessage = ref('');
+const showErrorModal = ref(false);
+const errorMessage = ref('');
+const showShareModal = ref(false);
+
+// Composables
+const { loading, error, loadData, loadDocumentTypes: apiLoadDocumentTypes } = useFolderAPI();
+const { 
+  searchParams, 
+  isSearchMode, 
+  hasActiveFilters, 
+  handleSearch: handleSearchFilter, 
+  resetFilters: resetFiltersFilter, 
+  validateDate 
+} = useSearchFilters();
+
+const { 
+  shouldShowEditButton, 
+  shouldShowDeleteButton, 
+  shouldShowShareButton, 
+  shouldShowNewFolderButton: checkShouldShowNewFolderButton,
+  getUploadFileUrl,
+  getUserPermissionText,
+  getPermissionDetails
+} = useItemPermissions();
+
+const { 
+  shareModalData, 
+  validateEmails, 
+  loadSharedUsers, 
+  shareFolder: apiShareFolder, 
+  unshareUser: apiUnshareUser 
+} = useShareManagement();
+
+// Computed
+const actionDropdownStyle = computed(() => {
+  if (!activeMenu.value) return {};
+  
+  const menuWidth = 224;
+  const menuHeight = 96;
+  const padding = 10;
+  
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  let x = actionDropdownPosition.value.x;
+  let y = actionDropdownPosition.value.y;
+  
+  if (x + menuWidth > viewportWidth) {
+    x = viewportWidth - menuWidth - padding;
+  }
+  
+  if (y + menuHeight > viewportHeight) {
+    y = actionDropdownPosition.value.y - menuHeight - 40;
+  }
+  
+  x = Math.max(padding, Math.min(x, viewportWidth - menuWidth - padding));
+  y = Math.max(padding, Math.min(y, viewportHeight - menuHeight - padding));
+  
+  return {
+    left: x + 'px',
+    top: y + 'px'
+  };
+});
+
+const contextMenuStyle = computed(() => {
+  if (!contextMenu.value.visible) return {};
+  
+  const menuWidth = 256;
+  const menuHeight = 180;
+  const padding = 10;
+  
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  let x = contextMenu.value.x;
+  let y = contextMenu.value.y;
+  
+  if (x + menuWidth > viewportWidth) {
+    x = x - menuWidth;
+  }
+  
+  if (y + menuHeight > viewportHeight) {
+    y = y - menuHeight;
+  }
+  
+  x = Math.max(padding, Math.min(x, viewportWidth - menuWidth - padding));
+  y = Math.max(padding, Math.min(y, viewportHeight - menuHeight - padding));
+  
+  return {
+    left: x + 'px',
+    top: y + 'px'
+  };
+});
+
+const handleNewButtonClick = () => {
+    if (!shouldShowNewFolderButton.value) {
+        // Hiển thị dropdown với thông báo lỗi
+        showNewDropdown.value = true;
+        // Cũng có thể hiển thị toast/thông báo
+        showPermissionError();
+    } else {
+        showNewDropdown.value = !showNewDropdown.value;
+    }
+};
+// Thêm computed để hiển thị thông báo chi tiết
+const permissionMessage = computed(() => {
+    if (!currentFolder.value) return '';
+    
+    const permission = currentFolder.value.user_permission;
+    const isShared = currentFolder.value.is_shared_folder;
+    const isDescendant = currentFolder.value.is_descendant_of_shared;
+    const folderName = currentFolder.value.name || 'folder này';
+    
+    if (isShared) {
+        if (permission === 'view') {
+            return `"${folderName}" được chia sẻ với bạn với quyền "Chỉ xem". Bạn chỉ có thể xem và tải file.`;
+        } else if (permission === 'edit') {
+            return `"${folderName}" được chia sẻ với bạn với quyền "Chỉnh sửa". Bạn có thể tạo thư mục/file mới.`;
+        }
+    } else if (isDescendant) {
+        return `"${folderName}" nằm trong folder được chia sẻ. Quyền của bạn phụ thuộc vào folder cha.`;
+    } else if (currentFolder.value.is_owner === false) {
+        return `Bạn không có quyền truy cập "${folderName}".`;
+    }
+    
+    return 'Bạn không có quyền tạo thư mục/file mới tại đây.';
+});
+
+const showPermissionError = () => {
+    if (!currentFolder.value) return;
+    
+    const message = permissionMessage.value;
+    if (message) {
+        // Có thể sử dụng toast notification hoặc alert
+        showError(message);
+    }
+};
+
+const shouldShowNewFolderButton = computed(() => {
+  return checkShouldShowNewFolderButton(currentFolder.value);
+});
+
+const uploadFileUrl = computed(() => {
+  return getUploadFileUrl(currentFolder.value);
+});
+
+const pages = computed(() => {
+  const pages = [];
+  const current = items.value.current_page;
+  const last = items.value.last_page;
+  const delta = 2;
+  
+  for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+    pages.push(i);
+  }
+  
+  if (current - delta > 2) pages.unshift('...');
+  if (current + delta < last - 1) pages.push('...');
+  
+  pages.unshift(1);
+  if (last > 1) pages.push(last);
+  
+  return pages.filter((v, i, a) => a.indexOf(v) === i);
+});
+
+// Methods
+const goToRootFromPermission = () => {
+    showNewDropdown.value = false;
+    goToRoot();
+};
+
+const hideContextMenu = () => {
+  contextMenu.value = { visible: false, x: 0, y: 0, item: null };
+};
+const goToFolder = (folderId) => {
+  try {
+    const validFolderId = validateFolderId(folderId);
+    
+    if (isSearchMode.value) {
+      isSearchMode.value = false;
+      searchParams.value = { name: '', date: '', file_type: '' };
+    }
+    
+    currentFolder.value = { folder_id: validFolderId };
+    items.value.current_page = 1;
+    loadFolderData();
+  } catch (error) {
+    showError('ID thư mục không hợp lệ');
+  }
+};
+
+const goToParent = () => {
+  if (currentFolder.value?.parent_folder_id) {
+    goToFolder(currentFolder.value.parent_folder_id);
+  } else {
+    goToRoot();
+  }
+};
+
+const goToRoot = () => {
+  currentFolder.value = null;
+  items.value.current_page = 1;
+  loadFolderData();
+};
+
+const openCreateFolder = () => {
+  const parentId = currentFolder.value?.folder_id || null;
+  const safeParentId = parentId ? encodeURIComponent(parentId) : '';
+  const url = `/folders/create?parent_id=${safeParentId}`;
+  window.location.href = url;
+  showNewDropdown.value = false;
+};
+
+const toggleNewDropdown = () => {
+  showNewDropdown.value = !showNewDropdown.value;
+};
+
+const closeNewDropdownOutside = (event) => {
+  const dropdown = event.target.closest('.relative');
+  if (showNewDropdown.value && !dropdown) {
+    showNewDropdown.value = false;
+  }
+};
+
+const loadUserInfo = () => {
+  try {
+    const userMeta = document.querySelector('meta[name="user-info"]');
+    if (userMeta) {
+      userInfo.value = JSON.parse(userMeta.getAttribute('content'));
+    }
+  } catch (error) {
+    console.error('Error loading user info:', error);
+  }
+};
+
+const loadDocumentTypesList = async () => {
+  loadingDocumentTypes.value = true;
+  try {
+    const types = await apiLoadDocumentTypes();
+    documentTypes.value = types;
+  } catch (error) {
+    console.error('Error loading document types:', error);
+    documentTypes.value = [];
+  } finally {
+    loadingDocumentTypes.value = false;
+  }
+};
+
+const loadFolderData = async () => {
+  const params = {
+    name: searchParams.value.name,
+    date: searchParams.value.date,
+    file_type: searchParams.value.file_type,
+    per_page: perPage.value,
+    page: items.value.current_page,
+  };
+
+  if (currentFolder.value?.folder_id && !isSearchMode.value) {
+    params.parent_id = currentFolder.value.folder_id;
+  }
+
+    try {
+    const data = await loadData(params);
+    
+    console.log('API Response:', data); // Debug
+    
+    items.value = {
+      data: data.items?.data || data.items || [],
+      current_page: data.items?.current_page || data.current_page || 1,
+      last_page: data.items?.last_page || data.last_page || 1,
+      from: data.items?.from || data.from || 0,
+      to: data.items?.to || data.to || 0,
+      total: data.items?.total || data.total || 0
+    };
+        console.log('Pagination data:', items.value); 
+    currentFolder.value = data.currentFolder || null;
+    breadcrumbs.value = data.breadcrumbs || [];
+    isSearchMode.value = data.isSearchMode || false;
+    lastUpdate.value = new Date().toISOString();
+  } catch (err) {
+    showError(err.message || 'Lỗi khi tải dữ liệu');
+    resetData();
+  }
+};
+
+const resetData = () => {
+  items.value = { data: [], current_page: 1, last_page: 1, from: 0, to: 0, total: 0 };
+  currentFolder.value = null;
+  breadcrumbs.value = [];
+  isSearchMode.value = false;
+};
+
+const openItem = (item) => {
+  if (!item) return;
+  
+  if (item.item_type === 'folder') {
+    goToFolder(item.id);
+  } else {
+    viewDocument(item);
+  }
+};
+
+const viewDocument = (item) => {
+  if (item.item_type !== 'document') return;
+  window.location.href = `/documents/${item.id}`;
+};
+
+const editDocument = (item) => {
+  if (item.item_type !== 'document') return;
+  
+  if (!item.is_owner) {
+    showError('Bạn không có quyền chỉnh sửa');
+    return;
+  }
+  
+  window.location.href = `/documents/${item.id}/edit`;
+};
+
+const downloadDocument = (item) => {
+  if (item.file_path) {
+    const safeUrl = sanitizeUrl(item.file_path);
+    if (safeUrl) {
+      const a = document.createElement('a');
+      a.href = safeUrl;
+      a.download = item.file_name || item.name;
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      showError('Đường dẫn file không hợp lệ');
+    }
+  } else {
+    showError('File không tồn tại');
+  }
+  activeMenu.value = null;
+  hideContextMenu();
+};
+
+const editFolder = (item) => {
+  try {
+    const validId = validateFolderId(item.id);
+    window.location.href = `/folders/${validId}/edit`;
+    activeMenu.value = null;
+  } catch (error) {
+    showError('ID không hợp lệ');
+  }
+};
+
+const toggleMenu = (item, event) => {
+  if (!item) return;
+  
+  if (activeMenu.value && activeMenu.value.id === item.id && activeMenu.value.item_type === item.item_type) {
+    activeMenu.value = null;
+    return;
+  }
+
+  const button = event.target.closest('button');
+  if (button) {
+    const rect = button.getBoundingClientRect();
+    actionDropdownPosition.value = {
+      x: rect.right - 224,
+      y: rect.bottom
+    };
+  }
+
+  activeMenu.value = item;
+  hideContextMenu();
+};
+
+const showContextMenu = (event, item) => {
+  if (!item) return;
+  
+  event.preventDefault();
+  event.stopPropagation();
+  
+  contextMenu.value = {
+    visible: true,
+    x: event.clientX,
+    y: event.clientY,
+    item: item
+  };
+  activeMenu.value = null;
+};
+
+const openContextItem = () => {
+  if (contextMenu.value.item.item_type === 'folder') {
+    goToFolder(contextMenu.value.item.id);
+  } else {
+    openItem(contextMenu.value.item);
+  }
+  hideContextMenu();
+};
+
+const handleSearch = () => {
+  items.value.current_page = 1;
+  if (hasActiveFilters.value) {
+    currentFolder.value = null;
+    isSearchMode.value = true;
+  } else {
+    isSearchMode.value = false;
+  }
+  loadFolderData();
+};
+
+const resetFilters = () => {
+  resetFiltersFilter();
+  items.value.current_page = 1;
+  isSearchMode.value = false;
+  loadFolderData();
+};
+
+const shareFolder = (item) => {
+  if (!item.is_owner) {
+    showError('Chỉ chủ sở hữu mới có thể chia sẻ folder này');
+    return;
+  }
+  
+  selectedFolder.value = item;
+  showShareModal.value = true;
+  activeMenu.value = null;
+  hideContextMenu();
+  
+  loadSharedUsers(item.id);
+};
+
+const shareFolderAction = async () => {
+  if (!shareModalData.value.emailsInput.trim()) {
+    showError('Vui lòng nhập ít nhất một email');
+    return;
+  }
+  
+  const emails = shareModalData.value.emailsInput.split(',')
+    .map(email => email.trim())
+    .filter(email => email);
+
+  try {
+    const result = await apiShareFolder(selectedFolder.value.id, emails, shareModalData.value.permission);
+    if (result.success) {
+      showSuccess(result.message);
+      shareModalData.value.emailsInput = '';
+    }
+  } catch (error) {
+    showError(error.message || 'Lỗi khi chia sẻ folder');
+  }
+};
+
+const unshareUser = async (userId) => {
+  if (!confirm('Bạn có chắc muốn hủy chia sẻ với người dùng này?')) {
+    return;
+  }
+
+  try {
+    const result = await apiUnshareUser(selectedFolder.value.id, userId);
+    if (result.success) {
+      showSuccess(result.message);
+    }
+  } catch (error) {
+    showError('Lỗi khi hủy chia sẻ');
+  }
+};
+
+const closeShareModal = () => {
+  showShareModal.value = false;
+  selectedFolder.value = null;
+  shareModalData.value = {
+    emailsInput: '',
+    permission: 'view',
+    loading: false,
+    sharedUsers: [],
+    emailError: ''
+  };
+};
+
+const showDeleteConfirmation = (item) => {
+  itemToDelete.value = item;
+  showDeleteModal.value = true;
+  activeMenu.value = null;
+  hideContextMenu();
+};
+
+const cancelDelete = () => {
+  showDeleteModal.value = false;
+  itemToDelete.value = null;
+};
+
+const confirmDelete = async () => {
+  if (!itemToDelete.value) return;
+  
+  try {
+    const validId = validateFolderId(itemToDelete.value.id);
+    const endpoint = itemToDelete.value.item_type === 'folder' 
+      ? `/api/folders/${validId}`
+      : `/api/documents/${validId}`;
+    
+    const response = await axios.delete(endpoint);
+    
+    if (response.data.success) {
+      showSuccess(response.data.message);
+      
+      if (itemToDelete.value.item_type === 'folder' && 
+          currentFolder.value && 
+          currentFolder.value.folder_id === itemToDelete.value.id) {
+        currentFolder.value = null;
+      }
+      
+      loadFolderData();
+    }
+  } catch (error) {
+    const errorMsg = error.response?.data?.message || 'Lỗi khi xóa: ' + error.message;
+    showError(errorMsg);
+  } finally {
+    showDeleteModal.value = false;
+    itemToDelete.value = null;
+  }
+};
+
+const continueAfterSuccess = () => {
+  showSuccessModal.value = false;
+  successMessage.value = '';
+  loadFolderData();
+};
+
+const showSuccess = (message) => {
+  successMessage.value = sanitizeOutput(message);
+  showSuccessModal.value = true;
+};
+
+const showError = (message) => {
+  errorMessage.value = sanitizeOutput(message);
+  showErrorModal.value = true;
+};
+
+const changePage = (page) => {
+  if (page === '...') return;
+  items.value.current_page = page;
+  loadFolderData();
+};
+
+const changePerPage = (newPerPage) => {
+  perPage.value = newPerPage;
+  items.value.current_page = 1;
+  loadFolderData();
+};
+
+const manualReload = async () => {
+  await Promise.all([
+    loadDocumentTypesList(),
+    loadFolderData()
+  ]);
+};
+
+const toggleAutoReload = () => {
+  autoReloadEnabled.value = !autoReloadEnabled.value;
+  if (autoReloadEnabled.value) {
+    startAutoReload();
+  } else {
+    stopAutoReload();
+  }
+};
+
+const startAutoReload = () => {
+  autoReloadInterval.value = setInterval(() => {
+    if (autoReloadEnabled.value && !loading.value) {
+      loadFolderData();
+    }
+  }, 30000);
+};
+
+const stopAutoReload = () => {
+  if (autoReloadInterval.value) {
+    clearInterval(autoReloadInterval.value);
+    autoReloadInterval.value = null;
+  }
+};
+
+const closeMenu = (event) => {
+  const isDropdown = event.target.closest('.action-dropdown-container');
+  const isFixed = event.target.closest('.action-dropdown-fixed');
+  
+  if (!isDropdown && !isFixed) {
+    activeMenu.value = null;
+  }
+};
+
+const handleKeydown = (event) => {
+  if (event.key === 'Escape') {
+    activeMenu.value = null;
+    hideContextMenu();
+    if (showDeleteModal.value) {
+      cancelDelete();
+    }
+    if (showSuccessModal.value) {
+      continueAfterSuccess();
+    }
+    if (showErrorModal.value) {
+      showErrorModal.value = false;
+    }
+  }
+};
+
+const handleScroll = () => {
+  if (activeMenu.value) {
+    activeMenu.value = null;
+  }
+};
+
+// Lifecycle Hooks
+onMounted(() => {
+  loadUserInfo();
+  loadDocumentTypesList();
+  loadFolderData();
+  
+  document.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', handleKeydown);
+  document.addEventListener('click', closeNewDropdownOutside);
+  document.addEventListener('scroll', handleScroll);
+  window.addEventListener('resize', hideContextMenu);
+});
+
+onBeforeUnmount(() => {
+  stopAutoReload();
+  document.removeEventListener('click', closeMenu);
+  document.removeEventListener('keydown', handleKeydown);
+  document.removeEventListener('click', closeNewDropdownOutside);
+  document.removeEventListener('scroll', handleScroll);
+  window.removeEventListener('resize', hideContextMenu);
+});
 </script>
 
 <style scoped>
@@ -1411,57 +962,6 @@ export default {
   background: transparent;
 }
 
-.context-menu-header {
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-bottom: 1px solid #e2e8f0;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-  display: flex;
-  align-items: center;
-}
-
-.context-menu-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 8px 16px;
-  font-size: 14px;
-  color: #374151;
-  background: none;
-  border: none;
-  text-align: left;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  border-radius: 4px;
-  margin: 2px 4px;
-}
-
-.context-menu-item:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  transform: translateX(2px);
-}
-
-.context-menu-item:hover i {
-  color: white !important;
-}
-
-.context-menu-item-danger {
-  color: #dc2626;
-}
-
-.context-menu-item-danger:hover {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  color: white;
-}
-
-.context-menu-divider {
-  border-top: 1px solid #f1f5f9;
-  margin: 6px 8px;
-}
-
-/* Action Dropdown Fixed */
 .action-dropdown-fixed {
   position: fixed;
   z-index: 10001;

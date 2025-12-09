@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import DocumentDetailModal from '../Components/DocumentList/DocumentDetailModal.vue';
-import PreviewFile from '../Components/PreviewFile/PreviewFile.vue'; // đúng đường dẫn
+import PreviewFile from '../Components/PreviewFile/PreviewFile.vue';
+import EditDocuments from '../Components/DocumentList/EditDocuments.vue';
 
 const app = createApp({
   data() {
@@ -20,4 +21,6 @@ const app = createApp({
 
 app.component('DocumentDetailModal', DocumentDetailModal);
 app.component('PreviewFile', PreviewFile);
+app.component('EditDocuments', EditDocuments);
+
 app.mount('#document-detail-app');

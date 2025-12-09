@@ -11,7 +11,11 @@ class AccessLog extends Model
 
     protected $table = 'access_logs';
     protected $primaryKey = 'access_log_id';
-    public $timestamps = false; // Chỉ dùng created_at
+    
+    // ✅ Vì bảng chỉ có created_at, không có updated_at
+    public $timestamps = false;
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = null;
 
     protected $fillable = [
         'user_id',
@@ -37,12 +41,40 @@ class AccessLog extends Model
     }
 
     /**
-     * Quan hệ với Document (nếu target_type = 'document')
+     * ✅ FIX: Quan hệ với Document (KHÔNG nên dùng where trong relationship)
+     * Thay vào đó, dùng accessor hoặc kiểm tra target_type khi cần
      */
     public function document()
     {
-        return $this->belongsTo(Document::class, 'target_id', 'document_id')
-                    ->where('target_type', 'document');
+        return $this->belongsTo(Document::class, 'target_id', 'document_id');
+    }
+
+    /**
+     * ✅ Accessor để lấy document CHỈ KHI target_type = 'document'
+     */
+    public function getRelatedDocumentAttribute()
+    {
+        if ($this->target_type === 'document' && $this->target_id) {
+            return $this->document;
+        }
+        return null;
+    }
+
+    /**
+     * ✅ Accessor để lấy target name (document title hoặc user name...)
+     */
+    public function getTargetNameAttribute()
+    {
+        if ($this->target_type === 'document' && $this->document) {
+            return $this->document->title ?? 'Unknown Document';
+        }
+        
+        if ($this->target_type === 'user' && $this->target_id) {
+            $targetUser = User::find($this->target_id);
+            return $targetUser ? $targetUser->name : 'Unknown User';
+        }
+
+        return $this->target_type ?? 'System';
     }
 
     /**
@@ -67,6 +99,14 @@ class AccessLog extends Model
     public function scopeDateRange($query, $startDate, $endDate)
     {
         return $query->whereBetween('created_at', [$startDate, $endDate]);
+    }
+
+    /**
+     * ✅ Scope để lọc theo target_type
+     */
+    public function scopeByTargetType($query, $targetType)
+    {
+        return $query->where('target_type', $targetType);
     }
 
     /**
